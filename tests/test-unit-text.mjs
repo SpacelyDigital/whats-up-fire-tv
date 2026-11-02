@@ -24,7 +24,7 @@ test('fmt.int: rounding, thousands, huge values, and a dash for anything not a n
   assert.equal(fmt.int(1e9),'1,000,000,000');assert.equal(fmt.int(123456789.6),'123,456,790');
   for(const v of BAD)assert.equal(fmt.int(v),'—',String(v));
 });
-test('fmt.int: a small negative never shows as "-0"',{todo:'BUG: Math.round(-0.4) is -0 and toLocaleString gives "-0" (fmt.alt(-1) in metres shows "-0 m"); FINDINGS-unit.md U-04'},()=>{
+test('fmt.int: a small negative never shows as "-0"',()=>{
   assert.equal(fmt.int(-0.4),'0');
   km();assert.equal(fmt.alt(-1),'0 m','an airfield 1 ft below sea level');assert.equal(fmt.altNum(-1),'0');mi();
 });

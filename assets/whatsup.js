@@ -4910,7 +4910,7 @@ const useSettings=s=>{S=s;};
 const KM=1.609344;
 const metric=()=>S.distance==='km';
 const fmt={
-  int:v=>number(v)?Math.round(v).toLocaleString('en-US'):'—',
+  int:v=>number(v)?(Math.round(v)||0).toLocaleString('en-US'):'—', // ||0: never "-0"
   dist:(mi,d=1)=>!number(mi)?'—':S.distance==='km'?`${(mi*KM).toFixed(d)} km`:`${mi.toFixed(d)} mi`,
   far:mi=>!number(mi)?'—':S.distance==='km'?`${fmt.int(mi*KM)} km`:`${fmt.int(mi)} mi`,
   alt:ft=>!number(ft)?'—':S.altitude==='m'?`${fmt.int(ft*.3048)} m`:ft>=18000?`FL${Math.round(ft/100)}`:`${fmt.int(ft)} ft`,
