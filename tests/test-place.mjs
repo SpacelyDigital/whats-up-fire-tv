@@ -1,7 +1,7 @@
 // Geocoding parsing, address detection, settings and unit formatting. The network is a stub.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {searchPlaces,searchAddress,looksLikeAddress,locateByIp,loadSettings,placeLabel} from '../web/place.mjs';
+import {searchPlaces,searchAddress,looksLikeAddress,looksLikePostcode,locateByIp,loadSettings,placeLabel,refineZone} from '../web/place.mjs';
 import {useSettings,fmt} from '../web/kit.mjs';
 
 // fetch stub: url pattern -> [status, body]. Unmatched URLs fail like a dropped connection.
@@ -45,7 +45,7 @@ test('address detection: house number then words; ZIPs and cities are not addres
   assert.ok(looksLikeAddress('10 Downing Street'));
   for(const q of ['45202','45202-1234','Chicago','SW1A 2AA',''])assert.ok(!looksLikeAddress(q),q);
 });
-test('address search: Census match first, with its time zone looked up',async()=>{
+test('address search: Census match first; its time zone is looked up when picked',async()=>{
   const seen=stub([
     [/geocoding\.geo\.census\.gov/,[200,{result:{addressMatches:[{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',
       addressComponents:{city:'CINCINNATI',state:'OH'},coordinates:{x:-84.6694,y:39.0550}}]}}]],
@@ -56,7 +56,12 @@ test('address search: Census match first, with its time zone looked up',async()=
   assert.equal(placeLabel(p),'Cincinnati, OH');
   assert.equal(p.source,'census');
   assert.ok(!seen.some(u=>/nominatim/.test(u)),'Nominatim not asked when Census matched');
-  assert.ok(seen.some(u=>/latitude=39\.05&longitude=-84\.65&/.test(u)),'time zone lookup gets the snapped 0.05 degree grid point only');
+  // Privacy policy: Open-Meteo gets a place's rounded location only when the user picks it.
+  assert.ok(!seen.some(u=>/forecast/.test(u)),'no time zone lookup for matches that were only shown');
+  assert.ok(p.tzGuess,'a stand-in time zone until picked');
+  const picked=await refineZone(p);
+  assert.ok(seen.some(u=>/latitude=39\.05&longitude=-84\.65&/.test(u)),'on pick: the snapped 0.05 degree grid point only');
+  assert.equal(picked.timeZone,'America/New_York');assert.ok(!picked.tzGuess);
 });
 test('address search: falls back to Nominatim; both failing is null, no match is []',async()=>{
   stub([
@@ -67,7 +72,7 @@ test('address search: falls back to Nominatim; both failing is null, no match is
   const [p]=await searchAddress('10 Downing Street London',{census:true,nominatim:true});
   assert.equal(p.street,'10 Downing Street');
   assert.equal(placeLabel(p),'London, UK');
-  assert.equal(p.timeZone,'Europe/London');
+  assert.equal((await refineZone(p)).timeZone,'Europe/London','looked up when picked');
   stub([[/census/,[200,{result:{addressMatches:[]}}]],[/nominatim/,[200,[]]]]);
   assert.deepEqual(await searchAddress('1 Nowhere Lane Springfield IL',{census:true,nominatim:true}),[]);
   stub([]);
@@ -205,4 +210,15 @@ test('window view: no saved window shows the example ENE 74° to S 175°, 25 mi;
   s=loadSettings();
   assert.equal(s.viewFrom,300);assert.equal(s.viewTo,40);assert.equal(s.viewMiles,10);
   delete globalThis.localStorage;
+});
+
+test('address search privacy: a failed Census search never falls through to Nominatim; only postcode-like text does',async()=>{
+  const seen=stub([[/census/,[500,'']],[/nominatim/,[200,[]]]]);
+  assert.equal(await searchAddress('3087 Terminal Dr Hebron KY 41048',{census:true,nominatim:true}),null,'Search is unavailable, Try again');
+  assert.ok(!seen.some(u=>/nominatim/.test(u)),'the U.S. address was not sent to Nominatim');
+  const off=stub([[/nominatim/,[200,[]]]]);
+  assert.equal(await searchAddress('4 Elm Street Springfield IL',{census:true,nominatim:true}),null,'Census unreachable: null, still no Nominatim');
+  assert.ok(!off.some(u=>/nominatim/.test(u)));
+  for(const t of ['SW1A 2AA','M5V 3L9','75008','10115'])assert.ok(looksLikePostcode(t),t);
+  for(const t of ['CHICAGOO','St Johns','Springfield'])assert.ok(!looksLikePostcode(t),t);
 });

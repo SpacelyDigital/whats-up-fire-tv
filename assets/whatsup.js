@@ -3918,6 +3918,8 @@ async function searchNames(q){
 }
 
 // "123 Main St ..." or "10 Downing Street": a house number, then words.
+// A postal code: short, with at least one digit (UK "SW1A 2AA", Canada "M5V 3L9", "75008").
+const looksLikePostcode=q=>{const t=clean(q);return t.length<=10&&/\d/.test(t)&&/^[A-Z0-9][A-Z0-9 -]*$/i.test(t);};
 const looksLikeAddress=q=>/^\d+[A-Z]?\s+[A-Z]/i.test(clean(q))&&!/^\d{5}(-\d{4})?$/.test(clean(q));
 // A street address the U.S. Census geocoder covers: a house number and street, plus a U.S.
 // state, territory (Puerto Rico, Island Areas) or ZIP. Only such text is ever sent to it.
@@ -3942,12 +3944,9 @@ const title=s=>s.toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 // lookup fails, the TV's own time zone stands in, marked tzGuess, and the app looks it up
 // again later (refineZone): a geocoder's default (New York, UTC) was saved for good.
 const deviceTz=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch{return '';}};
-async function addZone(p){
-  const g=snapped(p);
-  const {status,payload}=await getJson(TZ_URL(g.latitude,g.longitude),6000);
-  if(status===200&&validTz(payload?.timezone))return makePlace({...p,timeZone:payload.timezone,elevationM:payload?.elevation,tzGuess:false});
-  return makePlace({...p,timeZone:validTz(deviceTz())?deviceTz():p.timeZone,tzGuess:true});
-}
+// An address match: a stand-in time zone until the user picks it (the policy: Open-Meteo gets
+// "when you pick a street address, that place's rounded location"); refineZone then looks it up.
+const guessZone=p=>makePlace({...p,timeZone:validTz(deviceTz())?deviceTz():p.timeZone,tzGuess:true});
 // A saved place whose time zone was a stand-in: the looked-up one, or null.
 async function refineZone(p){
   if(!p?.tzGuess)return null;
@@ -3980,27 +3979,30 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
     for(const m of matches.slice(0,4)){
       const a=m.addressComponents||{},full=clean(m.matchedAddress,120);
       const street=title(full.split(',')[0]||'');
-      const p=await addZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
+      const p=guessZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
         latitude:m.coordinates?.y,longitude:m.coordinates?.x,timeZone:'America/New_York',street,source:'census',accuracyKm:.05});
       if(p)found.push(p);
     }
     if(found.length)return found;
   }
-  if(!nominatim)return failed?null:[];
+  // Nominatim only for what the others couldn't find, never because Census couldn't answer:
+  // a failed Census search ends as "Search is unavailable", with Try again.
+  if(failed)return null;
+  if(!nominatim)return [];
   const {status,payload}=await getJson(NOMINATIM_URL(q),10000);
-  if(status!==200||!Array.isArray(payload))return failed||status!==200?null:[];
+  if(status!==200||!Array.isArray(payload))return status!==200?null:[];
   const found=[];
   for(const r of payload.slice(0,4)){
     const a=r.address||{};
     const street=[a.house_number,a.road].filter(Boolean).join(' ')||clean(r.name);
-    const p=await addZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
+    const p=guessZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
       countryCode:a.country_code,latitude:r.lat,longitude:r.lon,timeZone:'UTC',street,source:'nominatim',accuracyKm:.1});
     if(p)found.push(p);
   }
   return found;
 }
 
-return {IP_URL,SEARCH_URL,CENSUS_URL,NOMINATIM_URL,TZ_URL,placeLabel,VIEW_MILES,MAP_RADII,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,looksLikeAddress,looksLikeUSAddress,refineZone,searchAddress};
+return {IP_URL,SEARCH_URL,CENSUS_URL,NOMINATIM_URL,TZ_URL,placeLabel,VIEW_MILES,MAP_RADII,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,looksLikePostcode,looksLikeAddress,looksLikeUSAddress,refineZone,searchAddress};
 })();
 // ---- mapgen.mjs
 __modules["mapgen.mjs"]=(()=>{
@@ -5178,7 +5180,7 @@ const {PROFILE}=__modules["profile.mjs"];
 const {chimeGate}=__modules["core.mjs"];
 const {HISTORY_KEY,MAX_NM,store}=__modules["live.mjs"];
 const {start,demo,query,compass,resetLog,setLogRadius,flushLog}=__modules["model.mjs"];
-const {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,placeLabel,refineZone}=__modules["place.mjs"];
+const {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone}=__modules["place.mjs"];
 const {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE}=__modules["mapgen.mjs"];
 const {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit:fitText}=__modules["kit.mjs"];
 // The page. Owns the data (feed model, settings, maps) and the shared
@@ -5415,6 +5417,8 @@ async function applyPlace(place,{fresh=false}={}){
 // A search result: show what matched before using it.
 function confirmPlace(place){
   pending=place;
+  // A picked address: its time zone now (only the picked one's rounded location goes out).
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&pending===place)pending=p;}).catch(()=>{});
   setText('confirm-label','Use this location?');
   setText('confirm-main',place.street||placeLabel(place));
   setText('confirm-sub',place.street?placeLabel(place):[place.admin,place.country].filter(Boolean).join(', '));
@@ -5428,6 +5432,8 @@ let pending=null;
 // a closer one (Adjust position, a nearby address) keeps them, restarts the feed for the
 // new point (and its time zone) and redraws the map around it.
 function choosePlace(place){
+  // Chosen before its time zone came back: look it up once more for the saved place.
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place){settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();}}).catch(()=>{});
   const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
   const miles=old?Math.hypot((place.longitude-old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity;
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
@@ -5745,7 +5751,7 @@ async function runSearch(explicit=false){
   const work=(async()=>{
     let found=address?await searchAddress(q,{census:us,nominatim:PROFILE.nominatim}):await searchPlaces(q);
     // Postcodes Open-Meteo doesn't know (e.g. UK "SW1A 2AA"): OpenStreetMap once, if allowed.
-    if(!address&&explicit&&found&&!found.length&&PROFILE.nominatim)found=await searchAddress(q,{nominatim:true});
+    if(!address&&explicit&&found&&!found.length&&PROFILE.nominatim&&looksLikePostcode(q))found=await searchAddress(q,{nominatim:true});
     return found;
   })().catch(e=>{console.error('search',e?.message||e);return null;});
   const found=await Promise.race([work,new Promise(r=>setTimeout(()=>r('timeout'),SEARCH_LIMIT_MS))]);

@@ -7,7 +7,7 @@ import {PROFILE} from './profile.mjs';
 import {chimeGate} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog} from './model.mjs';
-import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,placeLabel,refineZone} from './place.mjs';
+import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText} from './kit.mjs';
 
@@ -233,6 +233,8 @@ async function applyPlace(place,{fresh=false}={}){
 // A search result: show what matched before using it.
 function confirmPlace(place){
   pending=place;
+  // A picked address: its time zone now (only the picked one's rounded location goes out).
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&pending===place)pending=p;}).catch(()=>{});
   setText('confirm-label','Use this location?');
   setText('confirm-main',place.street||placeLabel(place));
   setText('confirm-sub',place.street?placeLabel(place):[place.admin,place.country].filter(Boolean).join(', '));
@@ -246,6 +248,8 @@ let pending=null;
 // a closer one (Adjust position, a nearby address) keeps them, restarts the feed for the
 // new point (and its time zone) and redraws the map around it.
 function choosePlace(place){
+  // Chosen before its time zone came back: look it up once more for the saved place.
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place){settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();}}).catch(()=>{});
   const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
   const miles=old?Math.hypot((place.longitude-old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity;
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
@@ -563,7 +567,7 @@ async function runSearch(explicit=false){
   const work=(async()=>{
     let found=address?await searchAddress(q,{census:us,nominatim:PROFILE.nominatim}):await searchPlaces(q);
     // Postcodes Open-Meteo doesn't know (e.g. UK "SW1A 2AA"): OpenStreetMap once, if allowed.
-    if(!address&&explicit&&found&&!found.length&&PROFILE.nominatim)found=await searchAddress(q,{nominatim:true});
+    if(!address&&explicit&&found&&!found.length&&PROFILE.nominatim&&looksLikePostcode(q))found=await searchAddress(q,{nominatim:true});
     return found;
   })().catch(e=>{console.error('search',e?.message||e);return null;});
   const found=await Promise.race([work,new Promise(r=>setTimeout(()=>r('timeout'),SEARCH_LIMIT_MS))]);

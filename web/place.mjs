@@ -111,6 +111,8 @@ async function searchNames(q){
 }
 
 // "123 Main St ..." or "10 Downing Street": a house number, then words.
+// A postal code: short, with at least one digit (UK "SW1A 2AA", Canada "M5V 3L9", "75008").
+export const looksLikePostcode=q=>{const t=clean(q);return t.length<=10&&/\d/.test(t)&&/^[A-Z0-9][A-Z0-9 -]*$/i.test(t);};
 export const looksLikeAddress=q=>/^\d+[A-Z]?\s+[A-Z]/i.test(clean(q))&&!/^\d{5}(-\d{4})?$/.test(clean(q));
 // A street address the U.S. Census geocoder covers: a house number and street, plus a U.S.
 // state, territory (Puerto Rico, Island Areas) or ZIP. Only such text is ever sent to it.
@@ -135,12 +137,9 @@ const title=s=>s.toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 // lookup fails, the TV's own time zone stands in, marked tzGuess, and the app looks it up
 // again later (refineZone): a geocoder's default (New York, UTC) was saved for good.
 const deviceTz=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch{return '';}};
-async function addZone(p){
-  const g=snapped(p);
-  const {status,payload}=await getJson(TZ_URL(g.latitude,g.longitude),6000);
-  if(status===200&&validTz(payload?.timezone))return makePlace({...p,timeZone:payload.timezone,elevationM:payload?.elevation,tzGuess:false});
-  return makePlace({...p,timeZone:validTz(deviceTz())?deviceTz():p.timeZone,tzGuess:true});
-}
+// An address match: a stand-in time zone until the user picks it (the policy: Open-Meteo gets
+// "when you pick a street address, that place's rounded location"); refineZone then looks it up.
+const guessZone=p=>makePlace({...p,timeZone:validTz(deviceTz())?deviceTz():p.timeZone,tzGuess:true});
 // A saved place whose time zone was a stand-in: the looked-up one, or null.
 export async function refineZone(p){
   if(!p?.tzGuess)return null;
@@ -173,20 +172,23 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
     for(const m of matches.slice(0,4)){
       const a=m.addressComponents||{},full=clean(m.matchedAddress,120);
       const street=title(full.split(',')[0]||'');
-      const p=await addZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
+      const p=guessZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
         latitude:m.coordinates?.y,longitude:m.coordinates?.x,timeZone:'America/New_York',street,source:'census',accuracyKm:.05});
       if(p)found.push(p);
     }
     if(found.length)return found;
   }
-  if(!nominatim)return failed?null:[];
+  // Nominatim only for what the others couldn't find, never because Census couldn't answer:
+  // a failed Census search ends as "Search is unavailable", with Try again.
+  if(failed)return null;
+  if(!nominatim)return [];
   const {status,payload}=await getJson(NOMINATIM_URL(q),10000);
-  if(status!==200||!Array.isArray(payload))return failed||status!==200?null:[];
+  if(status!==200||!Array.isArray(payload))return status!==200?null:[];
   const found=[];
   for(const r of payload.slice(0,4)){
     const a=r.address||{};
     const street=[a.house_number,a.road].filter(Boolean).join(' ')||clean(r.name);
-    const p=await addZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
+    const p=guessZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
       countryCode:a.country_code,latitude:r.lat,longitude:r.lon,timeZone:'UTC',street,source:'nominatim',accuracyKm:.1});
     if(p)found.push(p);
   }
