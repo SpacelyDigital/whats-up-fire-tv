@@ -116,6 +116,21 @@ test('model photos: bundled per ICAO type with author and license, files present
   assert.equal(modelPhoto({aircraft_type:'b763'}).src,'models/B763.jpg');
   assert.equal(modelPhoto({aircraft_type:'ZZZZ'}),null);
 });
+test('model photos: every key is a type code the feed sends; KC-46 only for military B762s',async()=>{
+  const {MODELS,MILITARY_MODELS,modelPhoto}=await import('../web/models.mjs');
+  const {AIRCRAFT_TYPES}=await import('../web/aircraft-types.mjs');
+  const {existsSync}=await import('node:fs');
+  for(const t of [...Object.keys(MODELS),...Object.keys(MILITARY_MODELS)])assert.ok(t in AIRCRAFT_TYPES,`${t} is not a type code`);
+  for(const [t,m] of Object.entries(MILITARY_MODELS)){
+    assert.ok(m.author&&m.license&&!/SA/i.test(m.license),t);
+    assert.ok(existsSync(new URL(`../web/models/${m.file}.jpg`,import.meta.url)),t);
+  }
+  assert.equal(modelPhoto({aircraft_type:'P28A'}).src,'models/P28A.jpg');
+  assert.equal(modelPhoto({aircraft_type:'H60'}).src,'models/H60.jpg');
+  assert.equal(modelPhoto({aircraft_type:'B762',military:true}).src,'models/KC46.jpg');
+  assert.equal(modelPhoto({aircraft_type:'B762',military:true}).model,'Boeing KC-46 Pegasus');
+  assert.equal(modelPhoto({aircraft_type:'B762'}),null);
+});
 test('logbook: Rarest and Farthest follow the map radius; Seen stays local',async()=>{
   const {updateLog,logSummary,setLogRadius,pickRarest,pickFarthest}=await import('../web/model.mjs');
   const p=(hex,type,mi,from)=>({hex,aircraft_type:type,distance_mi:mi,flight:hex.toUpperCase(),altitude_ft:30000,speed_kt:400,

@@ -58,7 +58,7 @@ export const MODELS={
   "C208":{model:"Cessna 208 Caravan",author:"Robbie Klinkenberg",license:"CC BY 4.0"},
   "C172":{model:"Cessna 172",author:"TRTPUWU",license:"CC BY 4.0"},
   "C182":{model:"Cessna 182",author:"Sudan Envoy",license:"CC BY 2.0"},
-  "PA28":{model:"Piper PA-28 Cherokee",author:"Adrian Pingstone",license:"Public domain"},
+  "P28A":{model:"Piper PA-28 Cherokee",author:"Adrian Pingstone",license:"Public domain"},
   "SR22":{model:"Cirrus SR22",author:"Author unknown",license:"Public domain"},
   "DA40":{model:"Diamond DA40",author:"Weißnichtmiristlangweilig",license:"CC BY 4.0"},
   "C25A":{model:"Cessna Citation CJ2",author:"Kambui",license:"CC BY 2.0"},
@@ -88,15 +88,19 @@ export const MODELS={
   "B429":{model:"Bell 429",author:"Bspor.88",license:"CC0"},
   "R44":{model:"Robinson R44",author:"Ministerstwo Spraw Wewnętrznych i Administracji",license:"CC BY 3.0 pl"},
   "S76":{model:"Sikorsky S-76",author:"San Diego Air & Space Museum Archives",license:"Public domain"},
-  "UH60":{model:"Sikorsky UH-60 Black Hawk",author:"U.S. Air Force photo by Wolfram M. Stumpf",license:"Public domain"},
+  "H60":{model:"Sikorsky UH-60 Black Hawk",author:"U.S. Air Force photo by Wolfram M. Stumpf",license:"Public domain"},
   "C130":{model:"Lockheed C-130 Hercules",author:"Balon Greyjoy",license:"CC0"},
   "C30J":{model:"Lockheed C-130J Super Hercules",author:"Balon Greyjoy",license:"CC0"},
   "C17":{model:"Boeing C-17 Globemaster III",author:"U.S. Air Force photo",license:"Public domain"},
   "K35R":{model:"Boeing KC-135 Stratotanker",author:"U.S. Air Force photo by Staff Sgt. Randy Mallard",license:"Public domain"},
-  "KC46":{model:"Boeing KC-46 Pegasus",author:"U.S. Air Force photo by Airman 1st Class Cody Dowell",license:"Public domain"},
   "A124":{model:"Antonov An-124",author:"Dtom",license:"CC BY 3.0"},
   "B52":{model:"Boeing B-52 Stratofortress",author:"U.S. Air Force photo by Senior Airman Keifer Bowes",license:"Public domain"},
   "E3TF":{model:"Boeing E-3 Sentry",author:"Qwexcxewq",license:"CC BY 4.0"},
   "P8":{model:"Boeing P-8 Poseidon",author:"Balon Greyjoy",license:"CC0"}
 };
-export const modelPhoto=a=>{const t=String(a?.aircraft_type||'').toUpperCase(),m=MODELS[t];return m?{...m,src:`models/${t}.jpg`}:null;};
+// By type code, for military aircraft only: adsb.fi reports KC-46 tankers as B762.
+export const MILITARY_MODELS={
+  "B762":{model:"Boeing KC-46 Pegasus",author:"U.S. Air Force photo by Airman 1st Class Cody Dowell",license:"Public domain",file:"KC46"},
+};
+export const modelPhoto=a=>{const t=String(a?.aircraft_type||'').toUpperCase(),mil=a?.military&&MILITARY_MODELS[t],m=mil||MODELS[t];
+  return m?{model:m.model,author:m.author,license:m.license,src:`models/${mil?m.file:t}.jpg`}:null;};

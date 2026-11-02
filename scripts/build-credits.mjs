@@ -39,7 +39,9 @@ p('Address matching: U.S. Census Bureau Geocoder (not endorsed by the Census Bur
 if(P.nominatim)p('Other addresses: Nominatim, © OpenStreetMap contributors.');
 
 // --- Model photos.
-const models=new Function(read('web','models.mjs').replace(/^export const MODELS\s*=/m,'return ').replace(/^export[\s\S]*$/m,''))();
+const MODELS_SRC=read('web','models.mjs'),table=name=>new Function('return '+new RegExp(`^export const ${name}=(\\{[\\s\\S]*?\\n\\});`,'m').exec(MODELS_SRC)[1])();
+// Military photos are credited under their file name (KC46), like their notices row.
+const models={...table('MODELS'),...Object.fromEntries(Object.values(table('MILITARY_MODELS')).map(m=>[m.file,m]))};
 const sources={};
 for(const line of read('THIRD_PARTY_NOTICES.md').split('\n')){
   const m=/^\| (\w+) \| [^|]+ \| [^|]+ \| [^|]+ \| (https:\/\/commons\.wikimedia\.org\/wiki\/File:\S+) \|/.exec(line);

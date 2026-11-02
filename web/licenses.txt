@@ -216,8 +216,6 @@ Boeing C-17 Globemaster III: U.S. Air Force photo. Public domain. https://common
 
 Boeing KC-135 Stratotanker: U.S. Air Force photo by Staff Sgt. Randy Mallard. Public domain. https://commons.wikimedia.org/wiki/File:Boeing_KC-135_Stratotanker_DGNP_990412-F-1312M-004.jpg. Resized.
 
-Boeing KC-46 Pegasus: U.S. Air Force photo by Airman 1st Class Cody Dowell. Public domain. https://commons.wikimedia.org/wiki/File:Coming_soon_to_a_base_near_you_KC-46A_Pegasus.jpg. Resized.
-
 Antonov An-124: Dtom. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:An_124_forward.jpg. Resized.
 
 Boeing B-52 Stratofortress: U.S. Air Force photo by Senior Airman Keifer Bowes. Public domain. https://commons.wikimedia.org/wiki/File:A_Boeing_B-52H_Stratofortress_in_flight_over_the_Persian_Gulf_(190521-F-XN348-9173).jpg. Resized.
@@ -225,6 +223,8 @@ Boeing B-52 Stratofortress: U.S. Air Force photo by Senior Airman Keifer Bowes. 
 Boeing E-3 Sentry: Qwexcxewq. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Boeing_Sentry.jpg. Resized.
 
 Boeing P-8 Poseidon: Balon Greyjoy. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:20190206_P-8_Poseidon_Kadena_AB-12.jpg. Resized.
+
+Boeing KC-46 Pegasus: U.S. Air Force photo by Airman 1st Class Cody Dowell. Public domain. https://commons.wikimedia.org/wiki/File:Coming_soon_to_a_base_near_you_KC-46A_Pegasus.jpg. Resized.
 
 ## Software
 

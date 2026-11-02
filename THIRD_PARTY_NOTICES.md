@@ -107,7 +107,7 @@ resized to 240 px; author and license are also shown on screen with each photo.
 | C208 | Cessna 208 Caravan | Robbie Klinkenberg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Fallschirmsportzentrum_Saar_Cessna_208_Caravan_D-FNDA_at_Portim%C3%A3o_Airport_12-06-2023_(1).jpg |
 | C172 | Cessna 172 | TRTPUWU | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:CC-STA_(Cessna_172_of_the_Temuco_Air_club).jpg |
 | C182 | Cessna 182 | Sudan Envoy | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Cessna_182_-_Takeoff.jpg |
-| PA28 | Piper PA-28 Cherokee | Adrian Pingstone (Arpingstone) | Public domain | https://commons.wikimedia.org/wiki/File:Piper_pa-28-140_cherokee_g-atoo_arp.jpg |
+| P28A | Piper PA-28 Cherokee | Adrian Pingstone (Arpingstone) | Public domain | https://commons.wikimedia.org/wiki/File:Piper_pa-28-140_cherokee_g-atoo_arp.jpg |
 | SR22 | Cirrus SR22 | unknown | Public domain | https://commons.wikimedia.org/wiki/File:Cirrus.sr22.n147vc.arp.jpg |
 | DA40 | Diamond DA40 | Weißnichtmiristlangweilig | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Bundesheer_(Austrian_Air_Force)_Diamond_DA40_3H-DD.jpg |
 | C25A | Cessna Citation CJ2 | Kambui | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Untitled_Cessna_525A_Citation_CJ2%2B_D-IDAS_(24042804719).jpg |
@@ -137,7 +137,7 @@ resized to 240 px; author and license are also shown on screen with each photo.
 | B429 | Bell 429 | Bspor.88 | CC0 | https://commons.wikimedia.org/wiki/File:Bell_429_(N917PD),_NYPD,_August_2024.jpg |
 | R44 | Robinson R44 | Ministerstwo Spraw Wewnętrznych i Admi… | CC BY 3.0 pl | https://commons.wikimedia.org/wiki/File:Robinson_R44_Stra%C5%BC_Graniczna_Polish_Border_Guard.jpg |
 | S76 | Sikorsky S-76 | San Diego Air &amp; Space Museum Archi… | Public domain | https://commons.wikimedia.org/wiki/File:01_00095416_SDASM_Aircraft_Image_-_Sikorsky_S-76_(53958632386).jpg |
-| UH60 | Sikorsky UH-60 Black Hawk | Wolfram M. Stumpf, U.S. Air Force | Public domain | https://commons.wikimedia.org/wiki/File:Jordanian_Air_Force_UH-60_Black_Hawk_helicopter_(cropped).jpg |
+| H60 | Sikorsky UH-60 Black Hawk | Wolfram M. Stumpf, U.S. Air Force | Public domain | https://commons.wikimedia.org/wiki/File:Jordanian_Air_Force_UH-60_Black_Hawk_helicopter_(cropped).jpg |
 | C130 | Lockheed C-130 Hercules | Balon Greyjoy | CC0 | https://commons.wikimedia.org/wiki/File:20180512_C-130J_Super_Hercules_Dyess_AFB_Air_Show_2018_1.jpg |
 | C30J | Lockheed C-130J Super Hercules | Balon Greyjoy | CC0 | https://commons.wikimedia.org/wiki/File:20180512_C-130J_Super_Hercules_Dyess_AFB_Air_Show_2018_1.jpg |
 | C17 | Boeing C-17 Globemaster III | U.S. Air Force | Public domain | https://commons.wikimedia.org/wiki/File:C-17_test_sortie.jpg |
