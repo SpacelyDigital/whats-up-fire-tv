@@ -329,3 +329,11 @@ test('map cache list: a damaged "recent maps" value counts as none (no rebuild l
   assert.doesNotMatch(src,/store\.get\(RECENT_KEY\)\|\|\[\]/,'every read goes through recentMaps()');
   assert.match(src,/Array\.isArray\(r\)\?r:\[\]/);
 });
+test('map: when every tile comes back empty (a 200 with nothing), the build fails instead of saving a blank map',async()=>{
+  const {buildMap,buildDetail}=await import('../web/mapgen.mjs');
+  const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+  const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+  const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/20260101_001001_pt/{z}/{x}/{y}.pbf']}}),getBytes:async()=>new Uint8Array(0)};
+  await assert.rejects(buildMap({latitude:39.10,longitude:-84.41},10,{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
+  await assert.rejects(buildDetail({latitude:39.10,longitude:-84.41},{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
+});

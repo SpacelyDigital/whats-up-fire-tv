@@ -4118,7 +4118,7 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true){
     if((x1-x0+1)*(y1-y0+1)<=MAX_TILES||z<=Math.max(2,zoom-2)){zoom=z;break;}
   }
   const n=2**zoom;
-  let fetched=0;
+  let fetched=0,withData=0;
   for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++){
     if(!alive())throw new Error(STALE);
     // Across the date line the tile column wraps (geometry keeps the unwrapped column, so it
@@ -4129,6 +4129,7 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true){
     if(!bytes)throw new Error('map tile unavailable'); // no tile numbers: they place the home
     fetched++;
     const tile=new MVT.VectorTile(new MVT.Pbf(bytes));
+    if(Object.keys(tile.layers).length)withData++;
     const each=(name,f)=>{const layer=tile.layers[name];if(layer)for(let i=0;i<layer.length;i++)f(layer.feature(i),layer.extent);};
     const geom=(f,extent)=>f.loadGeometry().map(ring=>ring.map(p=>toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom))));
     const point=(f,extent)=>{const [[p]]=f.loadGeometry();return toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom));};
@@ -4150,6 +4151,9 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true){
     };
     fn({each,geom,point,shore});
   }
+  // Every tile empty (even open sea carries a water layer): something answered 200 with
+  // nothing. That is a failed build, never a blank map saved for 30 days.
+  if(fetched&&!withData)throw new Error('map tiles empty');
   return fetched;
 }
 const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').slice(0,60);
