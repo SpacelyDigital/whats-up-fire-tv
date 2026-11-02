@@ -3,7 +3,8 @@
 // opens Settings with Play/Pause, walks to each editable row with the arrow keys, presses OK,
 // changes the value once, and checks that the value is shown whole (never cut, never zero
 // width), the keys hint is shown in full on the title line inside the card, and Back undoes
-// the edit and leaves edit mode. Values are pushed long first (250 mi map, "On · medium").
+// the edit and leaves edit mode; then OK, Right, OK keeps a change and the kept value is whole.
+// CHECK_DSF=1.3333 runs it at 1280×720 (default 1, 960×540 CSS px).
 // Exit code 1 on any failure.
 import {spawn} from 'node:child_process';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
@@ -22,7 +23,7 @@ async function page(){
   const ev=async x=>(await send('Runtime.evaluate',{expression:x,returnByValue:true})).result?.value;
   const key=async(k,c)=>{for(const type of ['keyDown','keyUp'])await send('Input.dispatchKeyEvent',{type,key:k,code:k,windowsVirtualKeyCode:c});await sleep(250);};
   await send('Page.enable');await send('Runtime.enable');
-  await send('Emulation.setDeviceMetricsOverride',{width:960,height:540,deviceScaleFactor:1,mobile:false});
+  await send('Emulation.setDeviceMetricsOverride',{width:960,height:540,deviceScaleFactor:Number(process.env.CHECK_DSF)||1,mobile:false});
   return {send,ev,key,close(){ws.close();chrome.kill();}};
 }
 // Arrow-key moves that reach a row from Location (left column first, then right column).
@@ -55,6 +56,12 @@ for(const layout of LAYOUTS){
     await p.key('Escape',27);
     if(await p.ev(`document.getElementById('${row}').classList.contains('editing')||document.querySelector('#settings .card').classList.contains('editing')`))bad.push(`${row}: Back did not leave edit mode`);
     if(await p.ev(`document.getElementById('settings').hidden`)){bad.push(`${row}: Back closed Settings instead of undoing`);await p.key('MediaPlayPause',179);}
+    // OK, Right, OK keeps the change: the kept value is shown whole, with no edit hint left.
+    // (Not on Alert zone: keeping a change there hides the window rows checked after it.)
+    if(row!=='set-zone'){await p.key('Enter',13);await p.key('ArrowRight',39);await p.key('Enter',13);await sleep(300);
+    const k=await p.ev(`(()=>{const b=document.getElementById('${row}').querySelector('b');return {value:b.textContent,w:b.clientWidth,sw:b.scrollWidth,editing:document.querySelector('#settings .card').classList.contains('editing')}})()`);
+    if(k.editing)bad.push(`${row}: OK did not leave edit mode`);
+    if(!k.w||k.sw>k.w+1)bad.push(`${row}: kept value "${k.value}" cut (${k.w}/${k.sw} px)`);}
   }
   p.close();
   console.log(`${bad.length?'FAIL':'ok  '} ${layout.padEnd(16)} ${rows.length} editable rows${bad.length?'\n    '+bad.join('\n    '):''}`);
