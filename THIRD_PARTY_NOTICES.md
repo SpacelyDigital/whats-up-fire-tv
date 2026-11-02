@@ -148,14 +148,14 @@ resized to 240 px; author and license are also shown on screen with each photo.
 | E3TF | Boeing E-3 Sentry | Qwexcxewq | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Boeing_Sentry.jpg |
 | P8 | Boeing P-8 Poseidon | Balon Greyjoy | CC0 | https://commons.wikimedia.org/wiki/File:20190206_P-8_Poseidon_Kadena_AB-12.jpg |
 | C550 | Cessna Citation Bravo | Martin Oertle | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:GLS_-_General_Logistics_Systems_(Airlink)_Cessna_550B_Citation_Bravo_OE-GLG_(21985155552).jpg |
-| C560 | Cessna Citation Ultra | Adrian Pingstone | Public domain | https://commons.wikimedia.org/wiki/File:Cessna_uc-35a_citation_560_ultra_v_arp.jpg |
+| C560 | Cessna Citation Ultra | Duncan Kirk from Coeur d'Alene, United States | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:N444GG_Citation_Ultra,_McGregor_Executive_12-09-25_(55080790988).jpg |
 | C206 | Cessna 206 Stationair | Adrian Pingstone (Arpingstone) | Public domain | https://commons.wikimedia.org/wiki/File:Cessna.206h.stationair2.arp.jpg |
 | C150 | Cessna 150 | Huhu Uet | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Cessna_150_(D-ETKR)_02.jpg |
 | M20P | Mooney M20 | Huhu Uet | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Mooney_M20_(D-EPPP)_01.jpg |
 | BE35 | Beechcraft V35 Bonanza | Duncan Kirk | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:N30ED_Beech_V35_Bonanza,_Chino_10-26-21_(55325238017).jpg |
 | PA18 | Piper Super Cub | Felix König | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Piper_PA-18_Super_Cub_L%C3%B6chgau_2012.JPG |
 | CH7A | Aeronca Champion | Adrian Pingstone (Arpingstone) | Public domain | https://commons.wikimedia.org/wiki/File:Aeronca.7ac.champion.kemble.arp.jpg |
-| PA22 | Piper Tri-Pacer | Jerry Gunner from Lincoln, UK | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:N8205C,_1954_Piper_PA-22-135_(3831855151).jpg |
+| PA22 | Piper Tri-Pacer | Ian Kirk from Broadstone, Dorset, UK | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:1955_Piper_PA-22-150_Tri-Pacer_Caribbean_G-BRNX_(8708314780).jpg |
 | C180 | Cessna 180 Skywagon | Rennett Stowe from USA | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Cessna_180_(3033819308).jpg |
 | PA24 | Piper Comanche | Jeroen Stroes Aviation Photography from Netherlands | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:N5411P_(46143128751).jpg |
 | T206 | Cessna T206 Stationair | Huhu Uet | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Cessna_T206H_Stationair_TC_(G-CHJK)_01.jpg |
@@ -235,7 +235,7 @@ resized to 240 px; author and license are also shown on screen with each photo.
 | P210 | Cessna P210 Centurion | Huhu Uet | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Cessna_P210N_(D-EEHW)_02.jpg |
 | CH60 | Zenith Zodiac CH 601 | David Álvarez López from Gijón, España | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:ULM_La_Morgal._Zenair_XL._Festival_a%C3%A9reo_internacional_de_Gij%C3%B3n_2024._(53887392028)_(cropped).jpg |
 | PA25 | Piper Pawnee | Mankymuncle | CC0 | https://commons.wikimedia.org/wiki/File:Piper_Pawnee_VH-SSO_conducting_a_landing_at_the_Bacchus_Marsh_ALA.jpg |
-| BE55 | Beechcraft Baron 55 | Secretaria de Marina Armada de Mexico. | Public domain | https://commons.wikimedia.org/wiki/File:Beechcraft_Baron_B-55.jpg |
+| BE55 | Beechcraft Baron 55 | Jeroen Stroes Aviation Photography from Netherlands | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:N743P_(30246136817).jpg |
 | PA38 | Piper Tomahawk | Ian Kirk from Broadstone, Dorset, UK | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Piper_PA-38_Tomahawk_Compton_Abbas_30th_June_2013_(9218587756).jpg |
 | LGEZ | Rutan Long-EZ | NOAA | Public domain | https://commons.wikimedia.org/wiki/File:NOAA-Long-EZ.jpg |
 | C195 | Cessna 195 | Adrian Pingstone (Arpingstone) | Public domain | https://commons.wikimedia.org/wiki/File:Cessna_195_businessliner_g-btbj_of_1952_arp.jpg |
@@ -278,4 +278,4 @@ resized to 240 px; author and license are also shown on screen with each photo.
 | RV10 | Van's RV-10 | Ahunt at English Wikipedia | Public domain | https://commons.wikimedia.org/wiki/File:VansRV-10N104CD.jpg |
 | RV12 | Van's RV-12 | Mark Harkin | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:G-RMPS_(8532178590).jpg |
 | BL17 | Bellanca Viking | happy days photos and art | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:G-VIKE_Bellanca_17-30A_Super_Viking_(7344507090).jpg |
-| BE36 | Beechcraft G36 Bonanza | Puspenerbal TNI-AL | Public domain | https://commons.wikimedia.org/wiki/File:Beechcraft_Bonanza_G36_Indonesian_Navy.jpg |
+| BE36 | Beechcraft A36 Bonanza | Davidi Vardi (דוידי ורדי), via the PikiWiki Israel free image collection | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:140024_parking_in_rosh_pina_PikiWiki_Israel.jpg |

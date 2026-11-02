@@ -98,14 +98,14 @@ export const MODELS={
   "E3TF":{model:"Boeing E-3 Sentry",author:"Qwexcxewq",license:"CC BY 4.0"},
   "P8":{model:"Boeing P-8 Poseidon",author:"Balon Greyjoy",license:"CC0"},
   "C550":{model:"Cessna Citation Bravo",author:"Martin Oertle",license:"CC BY 2.0"},
-  "C560":{model:"Cessna Citation Ultra",author:"Adrian Pingstone",license:"Public domain"},
+  "C560":{model:"Cessna Citation Ultra",author:"Duncan Kirk",license:"CC BY 4.0"},
   "C206":{model:"Cessna 206 Stationair",author:"Adrian Pingstone",license:"Public domain"},
   "C150":{model:"Cessna 150",author:"Huhu Uet",license:"CC BY 3.0"},
   "M20P":{model:"Mooney M20",author:"Huhu Uet",license:"CC BY 3.0"},
   "BE35":{model:"Beechcraft V35 Bonanza",author:"Duncan Kirk",license:"CC BY 4.0"},
   "PA18":{model:"Piper Super Cub",author:"Felix König",license:"CC BY 3.0"},
   "CH7A":{model:"Aeronca Champion",author:"Adrian Pingstone",license:"Public domain"},
-  "PA22":{model:"Piper Tri-Pacer",author:"Jerry Gunner",license:"CC BY 2.0"},
+  "PA22":{model:"Piper Tri-Pacer",author:"Ian Kirk",license:"CC BY 2.0"},
   "C180":{model:"Cessna 180 Skywagon",author:"Rennett Stowe",license:"CC BY 2.0"},
   "PA24":{model:"Piper Comanche",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
   "T206":{model:"Cessna T206 Stationair",author:"Huhu Uet",license:"CC BY 3.0"},
@@ -185,7 +185,7 @@ export const MODELS={
   "P210":{model:"Cessna P210 Centurion",author:"Huhu Uet",license:"CC BY 3.0"},
   "CH60":{model:"Zenith Zodiac CH 601",author:"David Álvarez López",license:"CC BY 2.0"},
   "PA25":{model:"Piper Pawnee",author:"Mankymuncle",license:"CC0"},
-  "BE55":{model:"Beechcraft Baron 55",author:"Secretaría de Marina, Mexico",license:"Public domain"},
+  "BE55":{model:"Beechcraft Baron 55",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
   "PA38":{model:"Piper Tomahawk",author:"Ian Kirk",license:"CC BY 2.0"},
   "LGEZ":{model:"Rutan Long-EZ",author:"NOAA",license:"Public domain"},
   "C195":{model:"Cessna 195",author:"Adrian Pingstone",license:"Public domain"},
@@ -228,7 +228,7 @@ export const MODELS={
   "RV10":{model:"Van's RV-10",author:"Ahunt",license:"Public domain"},
   "RV12":{model:"Van's RV-12",author:"Mark Harkin",license:"CC BY 2.0"},
   "BL17":{model:"Bellanca Viking",author:"happy days photos and art",license:"CC BY 2.0"},
-  "BE36":{model:"Beechcraft G36 Bonanza",author:"Puspenerbal TNI-AL",license:"Public domain"}
+  "BE36":{model:"Beechcraft A36 Bonanza",author:"Davidi Vardi",license:"CC BY 2.5"}
 };
 // By type code, for military aircraft only: adsb.fi reports KC-46 tankers as B762.
 export const MILITARY_MODELS={
