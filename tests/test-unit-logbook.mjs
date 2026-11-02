@@ -183,11 +183,11 @@ test('cargo tonight: kept all night over the spring-forward night (7 to 8 Mar 20
   const r=cargoNight('America/New_York',H(2026,2,7,23),H(2026,2,8,10)); // 18:00 EST .. 06:00 EDT
   assert.deepEqual(r.lost,[]);assert.equal(r.after,0);
 });
-test('cargo tonight: kept all night after the spring-forward day (8 to 9 Mar 2026, New York)',{todo:'BUG: tonightKey takes "yesterday" as now minus 24 h; after a 23-hour day that is two days back between 00:00 and 01:00, so the count is wiped at midnight and again at 1 am (FINDINGS-unit.md U-02)'},()=>{
+test('cargo tonight: kept all night after the spring-forward day (8 to 9 Mar 2026, New York)',()=>{
   const r=cargoNight('America/New_York',H(2026,2,8,22),H(2026,2,9,10)); // 18:00 EDT .. 06:00 EDT
   assert.deepEqual(r.lost,[]);assert.equal(r.after,0);
 });
-test('cargo tonight: kept all night after the spring-forward day in London and Sydney too',{todo:'BUG: same as U-02 (London 29 Mar 2026, Sydney 4 Oct 2026)'},()=>{
+test('cargo tonight: kept all night after the spring-forward day in London and Sydney too',()=>{
   assert.deepEqual(cargoNight('Europe/London',H(2026,2,29,17),H(2026,2,30,5)).lost,[]);
   assert.deepEqual(cargoNight('Australia/Sydney',H(2026,9,4,7),H(2026,9,4,19)).lost,[]);
 });

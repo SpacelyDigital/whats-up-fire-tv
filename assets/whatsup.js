@@ -4494,7 +4494,10 @@ function derive(a){
 const LOG_KEY='whatsup.logbook.v1';
 const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
 const localHour=t=>Number(new Date(t).toLocaleString('en-US',{hour:'numeric',hourCycle:'h23',timeZone:TZ}));
-const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?localDay(t-86400000):null;};
+// Before 06:00 the night belongs to the previous calendar date (counted on the date itself,
+// not 24 h back: after a 23-hour spring-forward day that would land two dates back).
+const prevDay=d=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd-1)).toISOString().slice(0,10);};
+const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?prevDay(localDay(t)):null;};
 const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
 // The logbook lives in memory and is saved every 5 min, at the local midnight change and
 // when the app leaves the screen (flushLog), not on every poll: it can be ~350 KB, and
