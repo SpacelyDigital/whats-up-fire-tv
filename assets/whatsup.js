@@ -40,8 +40,8 @@ const PROFILES={
   },
   // The public app: the same services as the personal build (adsb.fi agreed to this app;
   // photos credited as Planespotters asks). It differs only in its final privacy policy
-  // (web/privacy-store.txt).
-  store:{id:'store'},
+  // (web/privacy-store.txt), also published at privacyUrl and shown as a QR on the Privacy page.
+  store:{id:'store',privacyUrl:'https://spacelydigital.github.io/Whats-Up/privacy/'},
 };
 const profileFor=id=>({...PROFILES.personal,...PROFILES[id]});
 const PROFILE=profileFor(globalThis.__whatsupProfile);
@@ -5914,8 +5914,8 @@ function showWelcome(place){
 // (once), and everything else the user set is kept.
 // Version 2: the text names every service by profile and says where searches go (asked again once).
 const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=2;
-// The hosted policy (shown as a QR on the privacy page when set).
-const PRIVACY_URL='';
+// The hosted policy (shown as a QR on the privacy page when set): the store build's only.
+const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{return JSON.parse(localStorage.getItem(CONSENT_KEY))?.v===CONSENT_VERSION;}catch{return false;}}
 function giveConsent(){store.set(CONSENT_KEY,{v:CONSENT_VERSION,at:new Date().toISOString().slice(0,10)});} // full storage: maps make room
 let consentDone=null;
@@ -5935,7 +5935,7 @@ function renderDoc(box,text){
 }
 function openPrivacy(){
   const doc=$('privacy-doc');renderDoc(doc,window.__whatsupDocs?.privacy||'');doc.scrollTop=0;
-  const qr=$('privacy-qr');qr.hidden=!PRIVACY_URL;if(PRIVACY_URL)qr.src=themedQr(PRIVACY_URL);
+  $('privacy-qr-box').hidden=!PRIVACY_URL;if(PRIVACY_URL)$('privacy-qr').src=themedQr(PRIVACY_URL);
   $('privacy-erase').hidden=!hasConsent(); // before consent there is nothing to erase
   open('privacy','privacy-back');
 }

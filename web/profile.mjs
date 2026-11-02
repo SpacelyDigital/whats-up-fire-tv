@@ -17,8 +17,8 @@ const PROFILES={
   },
   // The public app: the same services as the personal build (adsb.fi agreed to this app;
   // photos credited as Planespotters asks). It differs only in its final privacy policy
-  // (web/privacy-store.txt).
-  store:{id:'store'},
+  // (web/privacy-store.txt), also published at privacyUrl and shown as a QR on the Privacy page.
+  store:{id:'store',privacyUrl:'https://spacelydigital.github.io/Whats-Up/privacy/'},
 };
 export const profileFor=id=>({...PROFILES.personal,...PROFILES[id]});
 export const PROFILE=profileFor(globalThis.__whatsupProfile);

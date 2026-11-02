@@ -1,6 +1,6 @@
 ## Privacy Policy
 
-Version 1 · Effective [date] · Last updated [month year]
+Version 1 · Effective November 2, 2026 · Last updated November 2026
 
 This is a free Fire TV app that shows the aircraft over your home. This policy explains what the app does with information about you. It is the whole policy; there are no hidden parts.
 
@@ -62,7 +62,7 @@ Your TV's web engine may also keep temporary copies of satellite pictures and ai
 
 ## Services that receive data from your TV
 
-To work, your TV sends requests straight to the services below. We have no contracts with them, and we never see what they receive. Each one handles it under its own privacy policy; what they say about logs is summarized here as of [month year].
+To work, your TV sends requests straight to the services below. We have no contracts with them, and we never see what they receive. Each one handles it under its own privacy policy; what they say about logs is summarized here as of October 2026.
 
 Every service also receives your TV's IP address and the time of each request, plus standard technical details. Most requests carry a label with the app's name and version and our email address, so a service can reach us if something goes wrong. Aircraft photos and satellite pictures are loaded by your TV's web engine, which sends its usual browser details instead. None of these details identify you. The app can only reach the web addresses on a fixed list, and only over encrypted HTTPS.
 
@@ -294,6 +294,6 @@ When we change this policy, we update the version and dates at the top, and earl
 
 ## Contact
 
-Spacely Digital LLC, Ohio, USA · spacelydigital@gmail.com · This policy: [web address]
+Spacely Digital LLC, Ohio, USA · spacelydigital@gmail.com · This policy: https://spacelydigital.github.io/Whats-Up/privacy/
 
 The site that hosts this policy may keep standard visit logs, like any website. We add no analytics to it.
