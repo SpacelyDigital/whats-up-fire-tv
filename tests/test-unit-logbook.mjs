@@ -231,3 +231,21 @@ test('live: the logbook day follows the feed\'s clock when the TV\'s clock is of
   resetLog();
   assert.equal(m.at(-1).log.today,1,'3 Nov: only the plane seen after midnight');
 });
+test('saneLog: a damaged saved logbook is repaired or dropped, never stops the dashboard',async()=>{
+  const {saneLog,updateLog,logSummary,resetLog}=await import('../web/model.mjs');
+  const day=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const bad=[null,'x',42,[],{},{day:7},{day,seen:['a1b2c3'],typesToday:['B738']},{day,seen:[],typesToday:[],cargo:{night:null,seen:{}}},
+    {day,seen:'abc',typesAll:null,cargo:'x',mil:[],planes:[1,2],highest:{name:5},fastest:'fast'},{day,seen:[null,3,'abc123'],planes:{x:null,y:{t:'B738',d:2}},cargo:{night:7,seen:[]}}];
+  const plane={hex:'a0c001',callsign:'UPS123',registration:'N1',aircraft_type:'B763',altitude_ft:5000,speed_kt:250,distance_mi:3,latitude:39,longitude:-84.6};
+  for(const b of bad){
+    const log=saneLog(b);
+    assert.doesNotThrow(()=>logSummary(log),JSON.stringify(b));
+    let next;assert.doesNotThrow(()=>{next=updateLog(log,[plane],Date.now());},JSON.stringify(b));
+    assert.doesNotThrow(()=>logSummary(next),JSON.stringify(b));
+    assert.ok(next&&Array.isArray(next.seen));
+  }
+  assert.equal(saneLog('x'),null);
+  const ok={day,pk:1,seen:['a1'],planes:{xa1:{t:'B738',d:1}},highest:{name:'A',value:3},fastest:null,typesToday:['B738'],typesAll:{B738:2},cargo:{night:null,seen:{}},mil:{}};
+  assert.deepEqual(saneLog(ok),ok,'a good logbook is kept as is');
+  resetLog();
+});

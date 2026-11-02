@@ -94,6 +94,20 @@ function saveLogSoon(log,now){
   pendingLog=log;
   if(newDay||now-lastLogSave>=LOG_FLUSH_MS)flushLog();
 }
+// A saved logbook as loaded from storage: repaired field by field (old shapes, or a value
+// damaged on the stick's flash), or dropped when it isn't a logbook at all, so a bad value
+// can never stop the dashboard.
+const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
+export function saneLog(log){
+  if(!plain(log)||typeof log.day!=='string')return null;
+  if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
+  const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null;
+  return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?log.typesAll:{},highest:rec(log.highest),fastest:rec(log.fastest),
+    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
+    mil:plain(log.mil)?log.mil:{}};
+}
 export function updateLog(log,planes,now){
   const day=localDay(now);
   if(!log||log.day!==day)log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
@@ -240,7 +254,7 @@ function pickHero(planes,config){
 // --- Live
 const MAX_PLANES=300,LOG_MILES=17.3; // 15 NM
 function liveSource(config,onModel){
-  const routes=new RouteLookup(),started=Date.now();let log=pendingLog||store.get(LOG_KEY),lastOk=0,lastGood=null;
+  const routes=new RouteLookup(),started=Date.now();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=0,lastGood=null;
   return startLive((states,ok)=>{
     if(ok)lastOk=Date.now();
     const now=Date.now(),retryIn=states.retryAt?Math.max(0,Math.round((states.retryAt-now)/1000)):0;
