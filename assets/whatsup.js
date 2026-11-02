@@ -4699,7 +4699,9 @@ function liveSource(config,onModel){
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
-    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,feedNow);}
+    // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
+    // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
+    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,now);}
     const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
     // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.

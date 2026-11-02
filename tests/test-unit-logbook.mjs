@@ -249,3 +249,17 @@ test('saneLog: a damaged saved logbook is repaired or dropped, never stops the d
   assert.deepEqual(saneLog(ok),ok,'a good logbook is kept as is');
   resetLog();
 });
+test('live: with the TV clock 10 min off the feed, the logbook is not written on every poll (save timer on the TV clock)',async()=>{
+  const {store}=await import('../web/live.mjs');
+  resetLog();
+  const real=store.set;let writes=0;
+  store.set=function(k,...a){if(k==='whatsup.logbook.v1')writes++;return real.call(this,k,...a);};
+  try{
+    const t=H(2026,10,3,15,0),MIN2=60000;
+    await liveOnce({tvMs:t,feedMs:t+10*MIN2,ac:[near('a0c001')]});
+    const after1=writes;
+    await liveOnce({tvMs:t+5000,feedMs:t+10*MIN2+5000,ac:[near('a0c002')]});
+    await liveOnce({tvMs:t+10000,feedMs:t+10*MIN2+10000,ac:[near('a0c003')]});
+    assert.equal(writes,after1,'no extra write within 5 minutes of TV time');
+  }finally{store.set=real;resetLog();}
+});
