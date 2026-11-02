@@ -36,7 +36,12 @@ export function themedQr(link){
 // A Planespotters credit, longest first; every wording keeps the photographer and the site.
 export const psCredit=name=>[...new Set([`Photo © ${name} / Planespotters.net`,`© ${name} / Planespotters.net`,
   `© ${shortAuthor(name)} / Planespotters.net`,`© ${shortAuthor(name)} / Planespotters`])];
-export const shortAuthor=a=>/^Author unknown$/.test(a)?a:/ photo( by |$)/.test(a)?a.replace(/ by .*$/,''):a.replace(/^(\S)\S*\s+(?=\S)/,'$1. ').replace(/,.*$/,'');
+// Only a person's name becomes "J. Herzog"; usernames, studios and agencies ("BWard 1997",
+// "Curimedia Photography", "Armada Argentina") stay as credited.
+const ORG=/\b(Armada|Envoy|Photography|Aviat(?:ion|or)|Museum|Archives?|Navy|Army|Force|Ministry|Ministerstwo|Marina|Secretar[ií]a|Agency|Department)\b/i;
+const personName=a=>{const w=a.split(/\s+/);return w.length>=2&&w.length<=3&&w.every(x=>/^[A-ZÀ-Þ][a-zß-ÿ'’-]+$|^[A-Z]\.$|^(van|von|de|da|di|der|den|le|la|du)$/.test(x))&&!ORG.test(a);};
+export const shortAuthor=a=>/^Author unknown$/.test(a)?a:/ photo( by |$)/.test(a)?a.replace(/ by .*$/,''):
+  personName(a.replace(/,.*$/,''))?a.replace(/,.*$/,'').replace(/^(\S)\S*\s+(?=\S)/,'$1. '):a;
 export function photoSlot(cls=''){
   const s=el('div',`ph ${cls}`);s.hidden=true;
   s.append(s._img=el('img','ph-img'),s._qr=el('img','ph-qr'),s._cap=el('div','ph-cap'));

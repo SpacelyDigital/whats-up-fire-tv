@@ -176,7 +176,7 @@ test('shortAuthor: person names become an initial and the surname; agency photos
     if(!/ photo( by |$)/.test(m.author))assert.ok(s.endsWith(m.author.split(/\s+/).at(-1)),`${m.author} -> ${s}: the last word kept`);
   }
 });
-test('shortAuthor: a CC BY credit that is a username or an organisation is not turned into a wrong "initial + word"',{todo:'BUG: the initial rule also hits non-person credits: "BWard 1997" -> "B. 1997", "Curimedia Photography" -> "C. Photography", "N.C (Wikimedia Commons)" -> "N. (Wikimedia Commons)", "Armada Argentina" -> "A. Argentina" (FINDINGS-unit.md U-06)'},()=>{
+test('shortAuthor: a CC BY credit that is a username or an organisation is not turned into a wrong "initial + word"',()=>{
   const nonPersons=['BWard 1997','Curimedia Photography','N.C (Wikimedia Commons)','Armada Argentina','Kansai explorer','happy days photos and art',
     "Armchair Aviator's",'Jeroen Stroes Aviation Photography','Sudan Envoy','Ministerstwo Spraw Wewnętrznych i Administracji'];
   const inModels=new Set(Object.values(MODELS).map(m=>m.author));
