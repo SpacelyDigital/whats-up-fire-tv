@@ -123,10 +123,11 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 #settings .row i{font-size:12px;display:none;white-space:nowrap;align-self:center}
 #settings .row.focus i{display:block}
 #settings .row.nohint i{display:none!important}
-#settings .row.editing i{display:block}
-#settings .row.editing i::before{content:'‹ › change  ·  OK keep  ·  Back undo';}
-#settings .row.editing[data-big] i::before{content:'‹ › 1°  ▲▼ 10°  ·  OK keep';}
-#settings .row.editing i{font-size:0}#settings .row.editing i::before{font-size:12px}
+#settings .row.editing i{display:none}
+/* The keys hint while a value is being edited: on the title line, right-aligned. */
+#settings .card.editing .title{display:flex;align-items:baseline}
+#settings .card.editing .title::after{content:'‹ › change  ·  OK keep  ·  Back undo';margin-left:auto;font-size:14px;font-weight:600;color:var(--ui-dim);white-space:nowrap;letter-spacing:normal;text-transform:none}
+#settings .card.editing.big .title::after{content:'‹ › 1°  ·  ▲▼ 10°  ·  OK keep  ·  Back undo'}
 #settings .row.done{width:220px;margin:10px auto 0;display:block}
 
 /* Busy cog (theme accent): fades in only if the work lasts more than ~250 ms. */

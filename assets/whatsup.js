@@ -5604,8 +5604,14 @@ function editKey(e){
 // commit: the edit is kept. A kept change of Alert zone starts 'Recently above' afresh (the
 // old list was for the other zone shape); a cancelled or no-net-change edit keeps it.
 function stopEdit(commit=false){
-  const before=editSnap;editing?.classList.remove('editing');editing=null;editSnap=null;
+  const before=editSnap;editing?.classList.remove('editing');editHint(null,editing);editing=null;editSnap=null;
   if(commit&&before&&before.alertZone!==settings.alertZone){feed?.stop();feed=null;store.remove(HISTORY_KEY);clearTimeout(zoneTimer);restartFeed();}
+}
+// While a row is being edited its keys hint shows on the Settings title line, so the value
+// keeps the row's full width (in the narrow monospace layouts the hint left it no room).
+function editHint(row,was){
+  const card=$('settings').querySelector('.card');card.classList.toggle('editing',!!row);card.classList.toggle('big',row?.dataset.big!==undefined);
+  fitValue(row||was);
 }
 // Back while editing puts the value back as it was when OK was pressed.
 let editSnap=null;
@@ -5744,7 +5750,7 @@ function openLocate(help){
 
 function select(el){
   if(!el)return;
-  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');const {place,...rest}=settings;editSnap=rest;return;}
+  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');editHint(el);const {place,...rest}=settings;editSnap=rest;return;}
   if(el._place)return confirmPlace(el._place);
   if(el.dataset.key)return typeKey(el.dataset.key);
   switch(el.id){
