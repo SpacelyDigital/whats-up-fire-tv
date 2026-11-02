@@ -131,9 +131,9 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 #settings .row.done{width:220px;margin:10px auto 0;display:block}
 
 /* Busy cog (theme accent): fades in only if the work lasts more than ~250 ms. */
-.busy{position:absolute;right:18px;bottom:16px;z-index:30;width:30px;height:30px;opacity:0;pointer-events:none}
-.busy svg{width:100%;height:100%;fill:var(--ui-ink);filter:drop-shadow(0 0 4px var(--ui-glow));animation:busy-spin 1.1s linear infinite}
-.busy.on{opacity:1;transition:opacity .15s ease .25s}
+#busy{position:absolute;right:18px;bottom:16px;z-index:30;width:30px;height:30px;opacity:0;pointer-events:none}
+#busy svg{width:100%;height:100%;fill:var(--ui-ink);filter:drop-shadow(0 0 4px var(--ui-glow));animation:busy-spin 1.1s linear infinite}
+#busy.on{opacity:1;transition:opacity .15s ease .25s}
 @keyframes busy-spin{to{transform:rotate(360deg)}}
 #settings .hint{margin:3px 12px 0;font-size:11.5px;color:var(--ui-dim);white-space:nowrap}
 

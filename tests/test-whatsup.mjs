@@ -308,3 +308,9 @@ test('satellite credit: US imagery is credited as the USGS service asks, on scre
   assert.match(credits,/USDA, USGS The National Map/);
   assert.doesNotMatch(app,/'Imagery: USGS'/);
 });
+test('styles: the busy cog\'s rules target the cog only, so the search screen\'s "Searching for …" message (class "msg busy") stays in its column',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const css=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
+  assert.doesNotMatch(css,/(^|\})\s*\.busy(\{|\s|\.on|\s+svg)/m,'no bare .busy rule');
+  assert.match(css,/#busy\{position:absolute/);
+});
