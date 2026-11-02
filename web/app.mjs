@@ -683,11 +683,18 @@ function drawAdjust(){
   setText('adjust-moved',moved<1?'Not moved yet':`Moved ${moved>=1000?(moved/1000).toFixed(2)+' km':Math.round(moved)+' m'} ${compass((Math.atan2(dx,dy)*180/Math.PI+360)%360)}`);
   setText('adjust-where',adj.place.street||placeLabel(adj.place));
 }
+// Fine-tuning stays on the street map loaded around the place (ADJ_RANGE + 0.5 mi): at most
+// ADJ_MAX_M from where it started; farther is a job for Location. A held arrow speeds up to 4x.
+const ADJ_MAX_M=1500;
 function nudge(dir,held){
   adj.held=held?adj.held+1:0;
-  const step=STEP_M*(held?Math.min(8,1+adj.held/3):1),cos=Math.cos(adj.latitude*Math.PI/180);
+  const step=STEP_M*(held?Math.min(4,1+adj.held/3):1),cos=Math.cos(adj.place.latitude*Math.PI/180);
   const [e,n]={up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]}[dir];
-  adj.latitude+=n*step/111320;adj.longitude+=e*step/(111320*cos);
+  let dy=(adj.latitude-adj.place.latitude)*111320+n*step,dx=(adj.longitude-adj.place.longitude)*111320*cos+e*step;
+  const d=Math.hypot(dx,dy),limit=d>ADJ_MAX_M;
+  if(limit){dx*=ADJ_MAX_M/d;dy*=ADJ_MAX_M/d;}
+  adj.latitude=adj.place.latitude+dy/111320;adj.longitude=adj.place.longitude+dx/(111320*cos);
+  if(adj.map)setText('adjust-note',limit?'As far as fine-tuning goes. To move farther, change Location.':'');
   drawAdjust();
 }
 function endAdjust(save=false){
