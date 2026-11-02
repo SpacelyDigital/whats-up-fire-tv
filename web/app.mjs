@@ -56,7 +56,8 @@ function flashCredits(){
   c.classList.add('on');
   a._alts=[`${PROFILE.creditFlash} · Routes ADSB.lol · ${MAP_CREDIT}`,`${PROFILE.creditFlash} · ${MAP_CREDIT}`,`${PROFILE.creditFlash} · © OpenMapTiles © OpenStreetMap contributors`];
   a.textContent=a._alts[0];fitLine(a);
-  const img=sat&&(us?'Imagery: USGS':PROFILE.eox?`Imagery: ${EOX}`:'');
+  // US imagery: the credit the USGS imagery service asks for, word for word.
+  const img=sat&&(us?'Imagery: USDA, USGS The National Map':PROFILE.eox?`Imagery: ${EOX}`:'');
   b._alts=img?[img,...(us?[]:[EOX])]:[''];
   b.textContent=b._alts[0];if(img)fitLine(b);
   clearTimeout(creditTimer);creditTimer=setTimeout(()=>c.classList.remove('on'),5000);

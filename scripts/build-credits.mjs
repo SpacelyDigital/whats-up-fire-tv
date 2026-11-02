@@ -31,7 +31,7 @@ p('Map data © OpenStreetMap contributors, available under the Open Database Lic
 p('Vector tile schema © OpenMapTiles (openmaptiles.org), licensed under CC BY 4.0: creativecommons.org/licenses/by/4.0');
 p('Tiles served by OpenFreeMap: openfreemap.org');
 if(P.photos)p('Aircraft photos: Planespotters.net. Each photo is credited "Photo © photographer / Planespotters.net" beside it.');
-p('Satellite imagery in the U.S.: Map services and data available from U.S. Geological Survey, National Geospatial Program.');
+p('Satellite imagery in the U.S.: USDA, USGS The National Map. Map services and data available from U.S. Geological Survey, National Geospatial Program.');
 if(P.eox)p('Satellite imagery elsewhere: EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017), licensed under CC BY 4.0: creativecommons.org/licenses/by/4.0. Served from maps.eox.at. The imagery is resized and darkened for this app.');
 p('Place search: GeoNames via Open-Meteo (CC BY 4.0). Time zones for addresses: Open-Meteo.');
 p('Approximate location: GeoJS (geojs.io), using GeoLite2 data created by MaxMind (maxmind.com)');

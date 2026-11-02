@@ -22,7 +22,7 @@ Tiles served by OpenFreeMap: openfreemap.org
 
 Aircraft photos: Planespotters.net. Each photo is credited "Photo © photographer / Planespotters.net" beside it.
 
-Satellite imagery in the U.S.: Map services and data available from U.S. Geological Survey, National Geospatial Program.
+Satellite imagery in the U.S.: USDA, USGS The National Map. Map services and data available from U.S. Geological Survey, National Geospatial Program.
 
 Satellite imagery elsewhere: EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017), licensed under CC BY 4.0: creativecommons.org/licenses/by/4.0. Served from maps.eox.at. The imagery is resized and darkened for this app.
 

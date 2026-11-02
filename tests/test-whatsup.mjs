@@ -301,3 +301,10 @@ test('military: dbFlags bit 1, counted once a day in the local area, by type, co
   log=updateLog(log,[],new Date(2026,9,30,0,5).getTime()); // after midnight: a new day
   assert.equal(logSummary(log).militaryToday,0);
 });
+test('satellite credit: US imagery is credited as the USGS service asks, on screen and on the credits page',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8'),credits=readFileSync(new URL('../scripts/build-credits.mjs',import.meta.url),'utf8');
+  assert.match(app,/'Imagery: USDA, USGS The National Map'/);
+  assert.match(credits,/USDA, USGS The National Map/);
+  assert.doesNotMatch(app,/'Imagery: USGS'/);
+});
