@@ -262,7 +262,8 @@ const slim=p=>({callsign:text(p.callsign,10),_airports:Array.isArray(p._airports
 const LOL_MAX=800;
 export class Ledger {
   constructor(saved=null){
-    this.rows=new Map(Object.entries(saved&&typeof saved==='object'?saved:{}));this.dirty=false;
+    // Only well-formed rows are kept: one damaged row in storage must not stop the feed.
+    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)));this.dirty=false;
   }
   get(k,now){const row=this.rows.get(k);return row&&row.expires>now?row.value:undefined;}
   put(k,value,expires,now){

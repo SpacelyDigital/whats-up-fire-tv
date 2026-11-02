@@ -234,6 +234,7 @@ export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis
 // maps saved before map radius existed still count.
 const keyFor=range=>range===10?KEY:`${KEY}.r${range}`;
 const RECENT_KEY='whatsup.map.recent',KEEP_MAPS=2;
+const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[];}; // a damaged value counts as none
 export function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
@@ -241,7 +242,7 @@ export function savedMap(home,range,{stale=false}={}){
   return same?m:null;
 }
 export function saveMap(m){
-  const recent=[m.range,...(store.get(RECENT_KEY)||[]).filter(r=>r!==m.range)];
+  const recent=[m.range,...recentMaps().filter(r=>r!==m.range)];
   for(const r of recent.slice(KEEP_MAPS))store.remove(keyFor(r));
   store.set(RECENT_KEY,recent.slice(0,KEEP_MAPS));
   if(store.set(keyFor(m.range),m))return true;
@@ -254,10 +255,10 @@ export function saveMap(m){
 // base maps for other radii.
 // Any other save that finds storage full (logbook, settings) frees the saved maps but the
 // newest base map.
-store.onFull=()=>evictMaps({keepBase:(store.get(RECENT_KEY)||[])[0]??null});
+store.onFull=()=>evictMaps({keepBase:recentMaps()[0]??null});
 export function evictMaps({keepBase=null,keepDetail=null}={}){
   for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY])if(k!==keepDetail)try{localStorage.removeItem(k);}catch{/* none */}
-  for(const r of store.get(RECENT_KEY)||[])if(r!==keepBase)store.remove(keyFor(r));
+  for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
   store.set(RECENT_KEY,keepBase?[keepBase]:[]);
 }
 
@@ -398,7 +399,7 @@ export function saveDetail(m){
   if(store.sealed)return false;
   const key=detailKey({key:m.key||'street'}),json=JSON.stringify(m);
   try{localStorage.setItem(key,json);return true;}catch{/* full: make room */}
-  evictMaps({keepDetail:key,keepBase:(store.get(RECENT_KEY)||[])[0]??null});
+  evictMaps({keepDetail:key,keepBase:recentMaps()[0]??null});
   try{localStorage.setItem(key,json);return true;}
   catch{console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;}
 }
