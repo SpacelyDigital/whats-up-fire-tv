@@ -5438,9 +5438,15 @@ let pending=null;
 // A new home more than 2 mi away starts today's logbook and 'Recently above' afresh;
 // a closer one (Adjust position, a nearby address) keeps them, restarts the feed for the
 // new point (and its time zone) and redraws the map around it.
+// The saved place with its looked-up time zone: saved, the feed restarted, and a street map
+// being drawn for the old object (it stops as stale) started again.
+function adoptRefined(p){
+  settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();
+  if(detailBusy){detailToken++;detailBusy=false;ensureDetail();}
+}
 function choosePlace(place){
   // Chosen before its time zone came back: look it up once more for the saved place.
-  if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place){settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();}}).catch(()=>{});
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place)adoptRefined(p);}).catch(()=>{});
   const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
   const miles=old?Math.hypot((place.longitude-old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity;
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
@@ -6040,10 +6046,7 @@ async function boot(){
   if(settings.place){
     applyPlace(settings.place);
     // A time zone that was only a stand-in: look it up again (once per launch).
-    refineZone(settings.place).then(p=>{if(p&&settings.place?.latitude===p.latitude&&settings.place?.longitude===p.longitude){
-      settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();
-      // A street map being drawn for the old object stopped as stale: start it again.
-      if(detailBusy){detailToken++;detailBusy=false;ensureDetail();}}});
+    refineZone(settings.place).then(p=>{if(p&&settings.place?.latitude===p.latitude&&settings.place?.longitude===p.longitude)adoptRefined(p);});
     if(!settings.confirmed)showWelcome(settings.place);
     // Screenshot hooks: ?screen=settings|picker|welcome|adjust, ?screen=locate&typed=CHICAGO
     const screen=query.get('screen');

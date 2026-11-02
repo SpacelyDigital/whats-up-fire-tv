@@ -341,3 +341,10 @@ test('styles: a very long one-word place name wraps on the welcome and confirm c
   const {readFileSync}=await import('node:fs');
   assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.big-city\{[^}]*overflow-wrap:anywhere/);
 });
+test('place time zone refresh: both paths (pick and launch) go through one helper that restarts a street map in progress',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');
+  const helper=/function adoptRefined\(p\)\{[\s\S]*?\n\}/.exec(app)?.[0]||'';
+  assert.match(helper,/if\(detailBusy\)\{detailToken\+\+;detailBusy=false;ensureDetail\(\);\}/);
+  assert.equal((app.match(/adoptRefined\(p\)/g)||[]).length,3,'defined once, used by choosePlace and at launch');
+});
