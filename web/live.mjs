@@ -403,9 +403,10 @@ export function startLive(onUpdate,config){
     if(stopped||paused||my!==gen)return;
     if(status===200&&payload&&typeof payload==='object'){
       const now=Date.now()/1000,stamp=feedStamp(payload),ac=Array.isArray(payload.ac)?payload.ac:[];
-      // The TV's clock can be off by seconds or minutes: positions are judged against the
-      // feed's own clock (it was just received), and the offset goes to the display.
-      const skew=Math.abs(stamp-now)<86400?stamp-now:0,feedNow=now+skew;
+      // The TV's clock can be off by seconds, minutes or days: positions are judged against
+      // the feed's own clock (it was just received), and the offset goes to the display. Any
+      // plausible feed time is trusted (2023 to 2100); only a nonsense stamp is ignored.
+      const skew=stamp>1.7e9&&stamp<4.1e9?stamp-now:0,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
       if(ac.length)coverage.none=false;else await checkCoverage(Date.now());

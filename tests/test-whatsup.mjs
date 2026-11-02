@@ -222,9 +222,9 @@ test('feed etiquette: back-off on errors, 429 at least 60 s, other 4xx 5 min, pa
   }finally{globalThis.setTimeout=realSet;globalThis.clearTimeout=realClear;delete globalThis.fetch;}
 });
 
-test('clock skew: a TV clock a minute off the feed still shows the planes',async()=>{
+test('clock skew: a TV clock a minute, or days, off the feed still shows the planes',async()=>{
   const {startLive}=await import('../web/live.mjs');
-  for(const off of [-60000,60000]){
+  for(const off of [-60000,60000,-3*86400000,3*86400000,-25*3600000]){
     globalThis.fetch=async url=>({status:200,headers:{get:()=>null},url,
       text:async()=>JSON.stringify({now:Date.now()+off,ac:[{hex:'abc123',lat:39.05,lon:-84.67,alt_baro:3000,seen_pos:0.5,flight:'TST1'}]})});
     const got=await new Promise(resolve=>{
