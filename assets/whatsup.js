@@ -131,9 +131,11 @@ function airlineLogo(a,logos) {
   const call=clean(a.callsign).toUpperCase(),code=call.slice(0,3);
   return /^[A-Z]{3}[0-9]/.test(call)&&logos.has(code)?code:'';
 }
+// Longitude difference the short way round (across the date line too), in degrees.
+const dLon=(lon,home)=>((lon-home+540)%360)-180;
 function distanceMiles(home,a) {
   const r=Math.PI/180;
-  const x=(a.longitude-home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
+  const x=dLon(a.longitude,home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
   const y=(a.latitude-home.latitude)*r;
   return Math.hypot(x,y)*3958.7613;
 }
@@ -262,7 +264,7 @@ const snapped=p=>({latitude:Math.max(-85,Math.min(85,snapDeg(p.latitude))),longi
 const GRID_PAD_NM=2.2;
 const GRID_PAD_MI=GRID_PAD_NM*1.15078;
 
-return {IDS,number,coordinates,localClock,observation,project,mapGeometry,flightLabel,flightNumber,typeName,iconIndex,aircraftIcon,airlineLogo,distanceMiles,airspace,recentSightings,placeLabels,ABOVE_MI,norm,inBearings,inZone,zoneOutline,chimeGate,GRID_DEG,snapDeg,snapped,GRID_PAD_NM,GRID_PAD_MI};
+return {IDS,number,coordinates,localClock,observation,project,mapGeometry,flightLabel,flightNumber,typeName,iconIndex,aircraftIcon,airlineLogo,dLon,distanceMiles,airspace,recentSightings,placeLabels,ABOVE_MI,norm,inBearings,inZone,zoneOutline,chimeGate,GRID_DEG,snapDeg,snapped,GRID_PAD_NM,GRID_PAD_MI};
 })();
 // ---- silhouettes.mjs
 __modules["silhouettes.mjs"]=(()=>{
@@ -3014,7 +3016,7 @@ return {AIRCRAFT_TYPES,AIRCRAFT_ICONS};
 // ---- live.mjs
 __modules["live.mjs"]=(()=>{
 const {PROFILE}=__modules["profile.mjs"];
-const {IDS,number,coordinates,inZone,snapped,GRID_PAD_NM}=__modules["core.mjs"];
+const {IDS,number,coordinates,inZone,snapped,GRID_PAD_NM,dLon}=__modules["core.mjs"];
 // Standalone data source: builds the HA-shaped `states` the display already
 // reads, from adsb.fi positions and ADSB.lol standing routes. Ports the
 // selection/history template in home_assistant/packages/aircraft-package.yaml
@@ -3149,7 +3151,7 @@ function selection(ac,stamp,home,radius,now){
   for(const a of fresh&&Array.isArray(ac)?ac:[]){
     if(!a||typeof a!=='object'||!position(a.lat,a.lon)||typeof a.hex!=='string'||!/^[a-fA-F0-9]{6}$/.test(a.hex)||
       !number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||a.seen_pos+age<0||a.seen_pos+age>20)continue;
-    const x=(a.lon-home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
+    const x=dLon(a.lon,home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
     const miles=Math.sqrt(x*x+y*y)*3958.7613;
     const record={hex:a.hex,callsign:text(a.flight,10),registration:text(a.r,12),
       aircraft_type:text(a.t,6),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,speed_kt:a.gs??null,
@@ -3195,7 +3197,7 @@ function observations(raw,stamp,home,radius,history,now){
     if(!HEX.test(hex)||!position(lat,lon)||!number(seen)||now-stamp+seen<0||now-stamp+seen>20||!number(a.alt_baro))continue;
     const rate=finite(a.baro_rate)?a.baro_rate:a.geom_rate;
     const miles=haversine(home.latitude,home.longitude,lat,lon),r=0.017453292519943295;
-    const x=(lon-home.longitude)*r*Math.cos((home.latitude+lat)/2*r)*3958.7613,y=(lat-home.latitude)*r*3958.7613;
+    const x=dLon(lon,home.longitude)*r*Math.cos((home.latitude+lat)/2*r)*3958.7613,y=(lat-home.latitude)*r*3958.7613;
     found.set(hex,{hex,callsign:ident(a.flight),registration:ident(a.r),latitude:lat,longitude:lon,
       heading:a.track,speed_kt:a.gs,altitude_ft:a.alt_baro,vertical_rate:finite(rate)?rate:null,
       observed:stamp-seen,live:true,miles,inside:typeof radius==='object'?inZone(radius,x,y):miles<=radius});

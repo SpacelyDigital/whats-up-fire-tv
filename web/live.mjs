@@ -3,7 +3,7 @@
 // selection/history template in home_assistant/packages/aircraft-package.yaml
 // and the free (ADSB.lol) part of custom_components/office_aircraft_routes/model.py.
 import {PROFILE} from './profile.mjs';
-import {IDS,number,coordinates,inZone,snapped,GRID_PAD_NM} from './core.mjs';
+import {IDS,number,coordinates,inZone,snapped,GRID_PAD_NM,dLon} from './core.mjs';
 
 const HOUR=3600,SIX_HOURS=6*HOUR,DAY=24*HOUR;
 export const HISTORY_KEY='whatsup.history.v1',LEDGER_KEY='whatsup.ledger.v1';
@@ -133,7 +133,7 @@ export function selection(ac,stamp,home,radius,now){
   for(const a of fresh&&Array.isArray(ac)?ac:[]){
     if(!a||typeof a!=='object'||!position(a.lat,a.lon)||typeof a.hex!=='string'||!/^[a-fA-F0-9]{6}$/.test(a.hex)||
       !number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||a.seen_pos+age<0||a.seen_pos+age>20)continue;
-    const x=(a.lon-home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
+    const x=dLon(a.lon,home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
     const miles=Math.sqrt(x*x+y*y)*3958.7613;
     const record={hex:a.hex,callsign:text(a.flight,10),registration:text(a.r,12),
       aircraft_type:text(a.t,6),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,speed_kt:a.gs??null,
@@ -179,7 +179,7 @@ export function observations(raw,stamp,home,radius,history,now){
     if(!HEX.test(hex)||!position(lat,lon)||!number(seen)||now-stamp+seen<0||now-stamp+seen>20||!number(a.alt_baro))continue;
     const rate=finite(a.baro_rate)?a.baro_rate:a.geom_rate;
     const miles=haversine(home.latitude,home.longitude,lat,lon),r=0.017453292519943295;
-    const x=(lon-home.longitude)*r*Math.cos((home.latitude+lat)/2*r)*3958.7613,y=(lat-home.latitude)*r*3958.7613;
+    const x=dLon(lon,home.longitude)*r*Math.cos((home.latitude+lat)/2*r)*3958.7613,y=(lat-home.latitude)*r*3958.7613;
     found.set(hex,{hex,callsign:ident(a.flight),registration:ident(a.r),latitude:lat,longitude:lon,
       heading:a.track,speed_kt:a.gs,altitude_ft:a.alt_baro,vertical_rate:finite(rate)?rate:null,
       observed:stamp-seen,live:true,miles,inside:typeof radius==='object'?inZone(radius,x,y):miles<=radius});

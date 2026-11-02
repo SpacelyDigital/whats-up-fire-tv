@@ -78,9 +78,11 @@ export function airlineLogo(a,logos) {
   const call=clean(a.callsign).toUpperCase(),code=call.slice(0,3);
   return /^[A-Z]{3}[0-9]/.test(call)&&logos.has(code)?code:'';
 }
+// Longitude difference the short way round (across the date line too), in degrees.
+export const dLon=(lon,home)=>((lon-home+540)%360)-180;
 export function distanceMiles(home,a) {
   const r=Math.PI/180;
-  const x=(a.longitude-home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
+  const x=dLon(a.longitude,home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
   const y=(a.latitude-home.latitude)*r;
   return Math.hypot(x,y)*3958.7613;
 }

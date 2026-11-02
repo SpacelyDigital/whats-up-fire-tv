@@ -90,7 +90,7 @@ test('model offset: a plane across the date line is a mile east, not 15,000 mile
   assert.ok(offset(-16.5,179.99).x<-1&&offset(-16.5,179.99).x>-1.5);
   delete globalThis.fetch;
 });
-test('selection: a plane just across the antimeridian is inside the circle',{todo:'BUG: selection() (and observations() for Window view) take the raw longitude difference, so 179.99 vs -179.99 is ~15,000 mi (FINDINGS-unit.md U-01)'},()=>{
+test('selection: a plane just across the antimeridian is inside the circle',()=>{
   const home={latitude:-16.5,longitude:179.99}; // Taveuni, Fiji
   const s=selection([plane('abc001',{lat:-16.5,lon:-179.99})],NOW-1,home,3,NOW);
   assert.deepEqual(s.inside.map(a=>a.hex),['abc001']);
@@ -99,7 +99,7 @@ test('selection: a plane just across the antimeridian is inside the circle',{tod
   const w=observations([plane('abc001',{lat:-16.5,lon:-179.9})],NOW-1,home,{kind:'window',from:45,to:135,miles:20},[],NOW);
   assert.ok(w[0].inside,'due east is inside an east window');
 });
-test('airspace: distance across the antimeridian is the short way round',{todo:'BUG: core.distanceMiles has the same raw longitude difference; the map drops planes across the date line (FINDINGS-unit.md U-01)'},()=>{
+test('airspace: distance across the antimeridian is the short way round',()=>{
   assert.ok(distanceMiles({latitude:0,longitude:179.99},{latitude:0,longitude:-179.99})<2);
   const now=NOW*1000,states={[IDS.feed]:{state:String(NOW),attributes:{ac:[plane('abc001',{lat:-16.5,lon:-179.99})]}},
     [IDS.home]:{attributes:{latitude:-16.5,longitude:179.99}},[IDS.radius]:{state:'3'}};
