@@ -31,6 +31,9 @@ rm -rf "$NATIVE/build" "$NATIVE/dist" && cp -R "$OUT/native/keep-awake/build" "$
 STORE_VERSION=1.0.0 STORE_BUILD=1
 if [ "${WHATSUP_PROFILE:-personal}" = store ]; then
   sed -i '' "s/^version = \".*\"/version = \"$STORE_VERSION\"/" "$OUT/manifest.toml"
+  # The User-Agent names the app and its version (the privacy policy says so): 1.0 here.
+  sed -i '' "s#WhatsUp-FireTV/0\.1 #WhatsUp-FireTV/${STORE_VERSION%.*} #" "$OUT/src/App.tsx"
+  grep -q "WhatsUp-FireTV/${STORE_VERSION%.*} " "$OUT/src/App.tsx" || { echo "release: User-Agent version not set" >&2; exit 1; }
   VERSION_ARGS="--build-version $STORE_VERSION --build-number $STORE_BUILD"
 else VERSION_ARGS=""; fi
 (cd "$OUT" && npm run build:release -- $VERSION_ARGS >/tmp/spacely-build/app.log 2>&1) || { tail -20 /tmp/spacely-build/app.log; exit 1; }
