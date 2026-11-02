@@ -4531,8 +4531,8 @@ function saneLog(log){
   if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
   const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null;
   return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
-    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
-    typesAll:plain(log.typesAll)?log.typesAll:{},highest:rec(log.highest),fastest:rec(log.fastest),
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v)&&(v.d===undefined||Number.isFinite(v.d)))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isFinite(n))):{},highest:rec(log.highest),fastest:rec(log.fastest),
     cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
     mil:plain(log.mil)?log.mil:{}};
 }
@@ -5885,9 +5885,10 @@ function drawAdjust(){
   setText('adjust-moved',moved<1?'Not moved yet':`Moved ${moved>=1000?(moved/1000).toFixed(2)+' km':Math.round(moved)+' m'} ${compass((Math.atan2(dx,dy)*180/Math.PI+360)%360)}`);
   setText('adjust-where',adj.place.street||placeLabel(adj.place));
 }
-// Fine-tuning stays on the street map loaded around the place (ADJ_RANGE + 0.5 mi): at most
-// ADJ_MAX_M from where it started; farther is a job for Location. A held arrow speeds up to 4x.
-const ADJ_MAX_M=1500;
+// Fine-tuning keeps the whole view on the street map loaded around the place (ADJ_RANGE +
+// 0.5 mi, the view shows ADJ_RANGE around the dot): at most ADJ_MAX_M from where it started;
+// farther is a job for Location. A held arrow speeds up to 4x.
+const ADJ_MAX_M=800;
 function nudge(dir,held){
   adj.held=held?adj.held+1:0;
   const step=STEP_M*(held?Math.min(4,1+adj.held/3):1),cos=Math.cos(adj.place.latitude*Math.PI/180);

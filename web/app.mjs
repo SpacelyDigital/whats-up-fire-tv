@@ -693,9 +693,10 @@ function drawAdjust(){
   setText('adjust-moved',moved<1?'Not moved yet':`Moved ${moved>=1000?(moved/1000).toFixed(2)+' km':Math.round(moved)+' m'} ${compass((Math.atan2(dx,dy)*180/Math.PI+360)%360)}`);
   setText('adjust-where',adj.place.street||placeLabel(adj.place));
 }
-// Fine-tuning stays on the street map loaded around the place (ADJ_RANGE + 0.5 mi): at most
-// ADJ_MAX_M from where it started; farther is a job for Location. A held arrow speeds up to 4x.
-const ADJ_MAX_M=1500;
+// Fine-tuning keeps the whole view on the street map loaded around the place (ADJ_RANGE +
+// 0.5 mi, the view shows ADJ_RANGE around the dot): at most ADJ_MAX_M from where it started;
+// farther is a job for Location. A held arrow speeds up to 4x.
+const ADJ_MAX_M=800;
 function nudge(dir,held){
   adj.held=held?adj.held+1:0;
   const step=STEP_M*(held?Math.min(4,1+adj.held/3):1),cos=Math.cos(adj.place.latitude*Math.PI/180);

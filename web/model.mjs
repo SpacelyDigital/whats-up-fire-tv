@@ -103,8 +103,8 @@ export function saneLog(log){
   if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
   const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null;
   return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
-    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
-    typesAll:plain(log.typesAll)?log.typesAll:{},highest:rec(log.highest),fastest:rec(log.fastest),
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v)&&(v.d===undefined||Number.isFinite(v.d)))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isFinite(n))):{},highest:rec(log.highest),fastest:rec(log.fastest),
     cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
     mil:plain(log.mil)?log.mil:{}};
 }

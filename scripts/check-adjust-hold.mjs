@@ -1,7 +1,7 @@
 // node scripts/check-adjust-hold.mjs  (needs the dev server: node scripts/dev-server.mjs assets 8767)
 // Regression check for "holding an arrow in Adjust position runs off the map": Settings >
-// Fine-tune, hold Right for about 3 s (key repeats), and check the dot is still within 1.5 km
-// of the start (the street map covers 1.5 mi), the note says how to move farther, and a short
+// Fine-tune, hold Right for about 3 s (key repeats), and check the dot is still within 800 m
+// of the start (the whole view then stays on the street map), the note says how to move farther, and a short
 // tap back moves 50 m. Exit code 1 on any failure.
 import {spawn} from 'node:child_process';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
@@ -31,11 +31,11 @@ for(let i=0;i<75;i++){await send('Input.dispatchKeyEvent',{type:'keyDown',key:'A
 await send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});await sleep(400);
 const moved=await ev(`document.getElementById('adjust-moved').textContent`),note=await ev(`document.getElementById('adjust-note').textContent`);
 const m=/Moved ([\d.]+) (km|m)/.exec(moved||''),metres=m?Number(m[1])*(m[2]==='km'?1000:1):0;
-if(!(metres>1000&&metres<=1500))fails.push(`held Right ~3 s: "${moved}" (expected more than 1 km and at most 1.5 km)`);
+if(!(metres>600&&metres<=800))fails.push(`held Right ~3 s: "${moved}" (expected 600–800 m)`);
 if(!/change Location/.test(note||''))fails.push(`no note at the limit (note: "${note}")`);
 await key('ArrowLeft',37);await sleep(300);
 const back=await ev(`document.getElementById('adjust-moved').textContent`);
-if(!/1\.45 km|1450 m/.test(back||''))fails.push(`one tap back from the limit: "${back}" (expected 1.45 km)`);
+if(!/750 m/.test(back||''))fails.push(`one tap back from the limit: "${back}" (expected 750 m)`);
 ws.close();chrome.kill();
-console.log(fails.length?'FAIL\n  '+fails.join('\n  '):'ok   Adjust position: a held arrow stops at 1.5 km with a note; a tap moves 50 m');
+console.log(fails.length?'FAIL\n  '+fails.join('\n  '):'ok   Adjust position: a held arrow stops at 800 m with a note; a tap moves 50 m');
 process.exit(fails.length?1:0);

@@ -245,6 +245,9 @@ test('saneLog: a damaged saved logbook is repaired or dropped, never stops the d
     assert.ok(next&&Array.isArray(next.seen));
   }
   assert.equal(saneLog('x'),null);
+  const odd=saneLog({day,seen:[],planes:{xa:{t:'B738',d:'far'},xb:{t:'A320',d:2}},typesAll:{B738:'2',A320:3},cargo:{night:null,seen:{}},mil:{}});
+  assert.deepEqual(Object.keys(odd.planes),['xb'],'a plane with a non-numeric distance is dropped');
+  assert.deepEqual(odd.typesAll,{A320:3},'a non-numeric type count is dropped');
   const ok={day,pk:1,seen:['a1'],planes:{xa1:{t:'B738',d:1}},highest:{name:'A',value:3},fastest:null,typesToday:['B738'],typesAll:{B738:2},cargo:{night:null,seen:{}},mil:{}};
   assert.deepEqual(saneLog(ok),ok,'a good logbook is kept as is');
   resetLog();
