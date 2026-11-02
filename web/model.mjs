@@ -247,7 +247,8 @@ function liveSource(config,onModel){
     // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
     // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s".
     if(!ok&&lastGood&&now-lastOk<60000)return onModel({...lastGood,now,retryIn});
-    const {fresh,all}=airspace(states,now+(states.skew||0)*1000,now-lastOk<15000); // on the feed's clock
+    const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
+    const {fresh,all}=airspace(states,feedNow,now-lastOk<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
     const raw=new Map((states[IDS.feed]?.attributes?.ac||[]).filter(r=>r&&typeof r==='object').map(r=>[String(r.hex).toLowerCase(),r])); // one bad entry must not drop the update
     // A 250-mile map over a busy region can hold 500+ aircraft: draw the nearest MAX_PLANES
@@ -257,11 +258,11 @@ function liveSource(config,onModel){
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
-    if(fresh){log=updateLog(log,planes,now);saveLogSoon(log,now);}
+    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,feedNow);}
     const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
     // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
-    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(now)?log:null),retryIn};
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn};
     if(ok&&fresh)lastGood=model;
     onModel(model);
   },config);

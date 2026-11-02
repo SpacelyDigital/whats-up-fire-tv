@@ -222,7 +222,7 @@ test('live: after midnight with no fresh feed yet, yesterday\'s tallies are not 
   assert.equal(m.at(-1).log.today,1,'a new day: the same plane counts again, once');
   resetLog();
 });
-test('live: the logbook day follows the feed\'s clock when the TV\'s clock is off',{todo:'BUG: liveSource passes the TV clock (Date.now) to updateLog, though positions are judged on the feed clock; a TV 40 min slow keeps adding to yesterday after midnight (FINDINGS-unit.md U-03)'},async()=>{
+test('live: the logbook day follows the feed\'s clock when the TV\'s clock is off',async()=>{
   resetLog();
   const eve=H(2026,10,3,4,30); // 23:30 EST 2 Nov
   await liveOnce({tvMs:eve,feedMs:eve,ac:[near('a0c001')]});
