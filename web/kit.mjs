@@ -39,7 +39,7 @@ export const psCredit=name=>[...new Set([`Photo © ${name} / Planespotters.net`,
 // Only a person's name becomes "J. Herzog"; usernames, studios and agencies ("BWard 1997",
 // "Curimedia Photography", "Armada Argentina") stay as credited.
 const ORG=/\b(Armada|Envoy|Photography|Aviat(?:ion|or)|Museum|Archives?|Navy|Army|Force|Ministry|Ministerstwo|Marina|Secretar[ií]a|Agency|Department)\b/i;
-const personName=a=>{const w=a.split(/\s+/);return w.length>=2&&w.length<=3&&w.every(x=>/^[A-ZÀ-Þ][a-zß-ÿ'’-]+$|^[A-Z]\.$|^(van|von|de|da|di|der|den|le|la|du)$/.test(x))&&!ORG.test(a);};
+const personName=a=>{const w=a.split(/\s+/);return w.length>=2&&w.length<=3&&w.every(x=>/^\p{Lu}[\p{Ll}'’-]+$|^\p{Lu}\.$|^(van|von|de|da|di|der|den|le|la|du)$/u.test(x))&&!ORG.test(a);};
 export const shortAuthor=a=>/^Author unknown$/.test(a)?a:/ photo( by |$)/.test(a)?a.replace(/ by .*$/,''):
   personName(a.replace(/,.*$/,''))?a.replace(/,.*$/,'').replace(/^(\S)\S*\s+(?=\S)/,'$1. '):a;
 export function photoSlot(cls=''){
