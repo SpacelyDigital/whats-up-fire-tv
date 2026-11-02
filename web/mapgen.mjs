@@ -95,7 +95,7 @@ async function tileTemplate(net){
 // `alive()` false (the user moved on) stops it between tiles.
 export const STALE='stale';
 const MAX_TILES=90;
-async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true){
+async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,requireData=false){
   const cos=Math.cos(home.latitude*DEG);
   const toMiles=(lon,lat)=>[(lon-home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
   const c=snapped(home),wide=lim+GRID_PAD_MI,ccos=Math.cos(c.latitude*DEG);
@@ -144,7 +144,7 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true){
   }
   // Every tile empty (even open sea carries a water layer): something answered 200 with
   // nothing. That is a failed build, never a blank map saved for 30 days.
-  if(fetched&&!withData)throw new Error('map tiles empty');
+  if(requireData&&fetched&&!withData)throw new Error('map tiles empty'); // main passes only: the small extra passes may be empty
   return fetched;
 }
 const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').slice(0,60);
@@ -210,7 +210,7 @@ export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*100)/100,y:Math.round(y*100)/100});
     });
-  },alive);
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   if(zoom<10&&range<=AIRFIELD_MAX_RANGE){
     const flim=range*.85; // Atlas, the layout that shows airfields, sees ~0.7x the radius sideways
@@ -355,7 +355,7 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000});
     });
-  },alive);
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   // Side streets near home from z12 (the wide map's own zoom doesn't carry them).
   if(inner>0){
