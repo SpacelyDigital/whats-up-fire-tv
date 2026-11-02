@@ -23,7 +23,7 @@ function ui(){
       <div class="status"></div>
     </div>`;
   for(const c of ['city','clock','kicker','giant','num','unit','flight','route','mapbox','marks','facts','status'])$[c]=root.querySelector('.'+c);
-  fit($.city,$.route);
+  fit($.city,$.route,$.facts);
   $.side=root.querySelector('.side');$.side.append($.pic=photoSlot());
   $.canvas=makeCanvas(MAPSIZE,MAPSIZE,'map');$.mapbox.prepend($.canvas);
   view={cx:MAPSIZE/2,cy:MAPSIZE/2,ppm:MAPSIZE/2/BASE_RANGE,clip:{x:0,y:0,w:MAPSIZE,h:MAPSIZE}};
