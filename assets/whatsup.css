@@ -34,7 +34,7 @@ kbd{font:inherit;border:1px solid var(--ui-faint);padding:0 4px;border-radius:3p
 .card.wide{width:760px}
 .title{font-size:24px;font-weight:800;margin-bottom:12px}
 .label{color:var(--ui-dim);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
-.big-city{font-size:40px;font-weight:800;line-height:1.15;margin:4px 0 10px}
+.big-city{font-size:40px;font-weight:800;line-height:1.15;margin:4px 0 10px;overflow-wrap:anywhere} /* a very long one-word name wraps, never runs off */
 .note{color:var(--ui-dim);font-size:14px;margin:6px 0 0}
 .note.small{font-size:11px;line-height:1.5;margin-top:12px;color:var(--ui-faint)}
 .buttons{display:flex;gap:16px;margin-top:22px}

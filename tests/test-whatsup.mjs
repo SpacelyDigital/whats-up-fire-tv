@@ -337,3 +337,7 @@ test('map: when every tile comes back empty (a 200 with nothing), the build fail
   await assert.rejects(buildMap({latitude:39.10,longitude:-84.41},10,{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
   await assert.rejects(buildDetail({latitude:39.10,longitude:-84.41},{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
 });
+test('styles: a very long one-word place name wraps on the welcome and confirm cards instead of running off the screen',async()=>{
+  const {readFileSync}=await import('node:fs');
+  assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.big-city\{[^}]*overflow-wrap:anywhere/);
+});
