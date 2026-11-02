@@ -106,7 +106,9 @@ const root=$('layout');
 const ctx={settings:()=>settings,place:()=>settings.place,layout:()=>active?.id,demo};
 async function useLayout(id){
   id=validLayout(id);
-  if(active?.id===id)return;
+  // Already showing it: still cancel any switch in flight (Back in the picker while a
+  // preview loads must not let that preview land after the revert).
+  if(active?.id===id){++layoutToken;if(!busyNow)$('busy').classList.remove('on');return;}
   const token=++layoutToken;
   $('busy').classList.add('on'); // a layout switch can take a moment on the stick
   const done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===layoutToken&&!busyNow)$('busy').classList.remove('on');}));

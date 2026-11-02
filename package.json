@@ -23,7 +23,8 @@
     "build:vendor": "cd vendor && npm install && npm run build",
     "build:native": "cd native/keep-awake && npm install && npm run build",
     "check:drawn": "node scripts/check-drawn.mjs",
-    "check:settings-edit": "node scripts/check-settings-edit.mjs"
+    "check:settings-edit": "node scripts/check-settings-edit.mjs",
+    "check:picker-race": "node scripts/check-picker-race.mjs"
   },
   "dependencies": {
     "@amazon-devices/react-native-kepler": "^4.0.0",
