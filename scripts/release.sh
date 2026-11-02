@@ -26,7 +26,14 @@ mkdir -p "$OUT/vendor" && ln -sfn "$(readlink -f "$DEPS/vendor/node_modules")" "
 NATIVE=$(readlink -f "$DEPS/node_modules/@whatsup/keep-awake")
 rm -rf "$NATIVE/build" "$NATIVE/dist" && cp -R "$OUT/native/keep-awake/build" "$OUT/native/keep-awake/dist" "$NATIVE/"
 
-(cd "$OUT" && npm run build:release >/tmp/spacely-build/app.log 2>&1) || { tail -20 /tmp/spacely-build/app.log; exit 1; }
+# The store build is the public release: version 1.0.0, build 1 (higher than any build
+# installed during development, which were all 0.1.0 build 0). The personal build keeps 0.1.0.
+STORE_VERSION=1.0.0 STORE_BUILD=1
+if [ "${WHATSUP_PROFILE:-personal}" = store ]; then
+  sed -i '' "s/^version = \".*\"/version = \"$STORE_VERSION\"/" "$OUT/manifest.toml"
+  VERSION_ARGS="--build-version $STORE_VERSION --build-number $STORE_BUILD"
+else VERSION_ARGS=""; fi
+(cd "$OUT" && npm run build:release -- $VERSION_ARGS >/tmp/spacely-build/app.log 2>&1) || { tail -20 /tmp/spacely-build/app.log; exit 1; }
 
 # WHATSUP_PROFILE=store: the store package goes to build/store/ (never over the TV's build).
 if [ "${WHATSUP_PROFILE:-personal}" = store ]; then DEST="$SRC/build/store"; NAME=whatsup_armv7-store.vpkg; else DEST="$SRC/build/armv7-release"; NAME=whatsup_armv7.vpkg; fi
