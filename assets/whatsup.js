@@ -5914,9 +5914,16 @@ let busyNow=false;
 // Keys are ignored while the cog shows. It clears after the next paint, or after 1.5 s at
 // the latest: animation frames pause on a hidden or starved page (fuzz seed 281).
 let busyToken=0;
+// Except one OK: pressed while the cog shows, it is kept and acted on when the cog clears, if the
+// screen, the focused row and the edit are as they were (Back forgets it; more OKs aren't kept, so
+// mashing still can't stack). Dropped, on a slow stick a change then OK at a normal pace left the
+// row in edit mode, and the next Down changed the value instead of moving down.
+let heldOk=null;
 function busy(fn){
   const token=++busyToken;busyNow=true;$('busy').classList.add('on');
-  const done=()=>{if(token!==busyToken)return;busyNow=false;$('busy').classList.remove('on');};
+  const done=()=>{if(token!==busyToken)return;busyNow=false;$('busy').classList.remove('on');
+    const h=heldOk;heldOk=null;
+    if(h&&h.layer===layer&&h.focused===focused&&h.editing===editing&&h.adj===adj)document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));};
   setTimeout(()=>{try{fn();}finally{requestAnimationFrame(()=>requestAnimationFrame(done));setTimeout(done,1500);}},20);
 }
 // Window bearings: OK on the row to edit, then Left/Right 1°, Up/Down 10°, OK or Back to finish.
@@ -6197,7 +6204,12 @@ function endAdjust(save=false){
 
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
 document.addEventListener('keydown',e=>{
-  if(busyNow){e.preventDefault();return;}
+  if(busyNow){
+    e.preventDefault();
+    if(e.key==='Enter'&&!e.repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
+    else if(['Escape','GoBack','BrowserBack','Back'].includes(e.key)||e.keyCode===4)heldOk=null;
+    return;
+  }
   const k=e.key,dir=DIRS[k];
   // A held OK repeats: it would open and close the picker, or run through screens.
   if(e.repeat&&(k==='Enter'||k===' ')){e.preventDefault();return;}

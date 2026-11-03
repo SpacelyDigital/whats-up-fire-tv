@@ -28,7 +28,8 @@
     "check:adjust-hold": "node scripts/check-adjust-hold.mjs",
     "check:browse": "node scripts/check-browse.mjs",
     "check:safe-area": "node scripts/check-safe-area.mjs",
-    "check:refit": "node scripts/check-refit.mjs"
+    "check:refit": "node scripts/check-refit.mjs",
+    "check:settings-ok": "node scripts/check-settings-ok.mjs"
   },
   "dependencies": {
     "@amazon-devices/react-native-kepler": "^4.0.0",
