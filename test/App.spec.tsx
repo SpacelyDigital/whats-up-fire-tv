@@ -101,4 +101,56 @@ describe('App', () => {
     r.unmount();
     jest.useRealTimers();
   });
+
+  // The fetch bridge: the backup positions (api.adsb.lol) only on the 0.05° grid, with the
+  // same User-Agent as adsb.fi; any other adsb.lol API URL is refused at once.
+  it('fetches the adsb.lol backup feed on the grid with the app User-Agent, nothing else there', async () => {
+    const inject = jest.fn();
+    const realFetch = global.fetch;
+    const realError = console.error;
+    console.error = jest.fn();
+    const fetchMock = jest.fn(async (url: string, _init: any) => ({
+      status: 200,
+      url,
+      headers: {get: () => null},
+      text: async () => '{"ac":[],"now":1}',
+    }));
+    (global as any).fetch = fetchMock;
+    const r = render(<App />, {createNodeMock: () => ({injectJavaScript: inject})});
+    const send = async (id: number, url: string) => {
+      act(() =>
+        r.UNSAFE_root.findByType('WebView' as any).props.onMessage({
+          nativeEvent: {data: JSON.stringify({type: 'get', id, url, timeoutMs: 4480})},
+        }),
+      );
+      await act(async () => {
+        await new Promise(done => setTimeout(done, 0));
+      });
+    };
+    try {
+      await send(1, 'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18');
+      await send(2, 'https://opendata.adsb.fi/api/v3/lat/39.05/lon/-84.65/dist/18');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const agent = (n: number) => fetchMock.mock.calls[n][1].headers['User-Agent'];
+      expect(agent(0)).toMatch(/^WhatsUp-FireTV\/\d+\.\d+ \(Spacely Digital; spacelydigital@gmail\.com\)$/);
+      expect(agent(0)).toBe(agent(1));
+      expect(inject.mock.calls.map(c => c[0]).join('\n')).toContain('__whatsupReply(1,200,');
+      const refused = [
+        'https://api.adsb.lol/v2/lat/39.0512/lon/-84.65/dist/18',
+        'https://api.adsb.lol/v2/mil',
+        'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18?key=x',
+        'http://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18',
+        'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/1000',
+      ];
+      for (const [i, url] of refused.entries()) {
+        await send(10 + i, url);
+        expect(inject.mock.calls.at(-1)?.[0]).toContain(`__whatsupReply(${10 + i},"blocked","")`);
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      (global as any).fetch = realFetch;
+      console.error = realError;
+      r.unmount();
+    }
+  });
 });

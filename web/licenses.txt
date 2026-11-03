@@ -10,6 +10,8 @@ Airline, operator and aircraft-manufacturer names are trademarks of their owners
 
 Aircraft data: adsb.fi, https://adsb.fi (scan the code on this page).
 
+Backup aircraft positions, only while adsb.fi isn’t answering: adsb.lol, https://adsb.lol. Contains information from adsb.lol, which is made available here under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/
+
 Flight routes: adsb.lol, from Virtual Radar Server standing data (CC0). Routes are community-sourced and may be wrong.
 
 adsb.lol data is made available under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/

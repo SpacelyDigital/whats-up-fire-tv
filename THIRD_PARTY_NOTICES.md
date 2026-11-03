@@ -34,7 +34,7 @@ trademarks or imagery.
 | Service | Used for | Terms to keep in mind |
 | --- | --- | --- |
 | [adsb.fi](https://github.com/adsbfi/opendata) open data | aircraft positions, polled every 5 s | personal, non-commercial use with attribution; max 1 request/s. **Commercial distribution needs a different feed or permission.** Shown on screen. |
-| [ADSB.lol](https://www.adsb.lol/) standing data | flight routes, ≤1 request per 5 s, cached | ODbL data; attribution shown on screen. |
+| [ADSB.lol](https://www.adsb.lol/) standing data and API | flight routes, ≤1 request per 5 s, cached; backup aircraft positions (`api.adsb.lol/v2`) only while adsb.fi isn't answering, on adsb.fi's schedule | ODbL data; attribution shown on screen. |
 | [OpenFreeMap](https://openfreemap.org/) vector tiles (OpenMapTiles schema) | the maps, fetched once per location and saved on the device: 4–9 tiles at z10 for every layout; the street-detail layouts add ~16 tiles at z12 and ~9 at z14 (buildings near home) | free, no key, commercial use OK; attribution required and shown: "© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors". |
 | [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api) | ZIP/postcode or city search, time zone | free for non-commercial use under 10,000 calls/day; commercial use needs an Open-Meteo API subscription. Data from GeoNames (CC BY 4.0). |
 | [US Census Geocoder](https://geocoding.geo.census.gov/) | US street addresses (one request per Search) | free, no key, public-domain US government service. |

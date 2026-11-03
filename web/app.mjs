@@ -44,7 +44,7 @@ setLogRadius(()=>settings.mapMiles||CONFIG.rangeMiles);
 let settings=loadSettings(),feed=null,lastModel=null,placeToken=0;
 useSettings(settings);
 const mapMiles=()=>settings.mapMiles||CONFIG.rangeMiles;
-// The feed follows the map radius: adsb.fi is asked for ~1.5x the radius (wide layouts
+// The feed follows the map radius: adsb.fi (or adsb.lol) is asked for ~1.5x the radius (wide layouts
 // show that far sideways), at most its 250 NM, and polled less often over big areas.
 const feedConfig=()=>{
   const r=mapMiles();
@@ -60,17 +60,21 @@ const maps={base:null,detail:null};
 // the app opens, the layout changes or a new location's map is drawn. It is always shown for
 // the full 5 s with nothing over it: while a screen is open it waits, and a screen opened
 // over it puts it back in the queue (syncApp).
-let creditTimer=0,creditDue=false;
+let creditTimer=0,creditDue=false,credited=PROFILE.feed;
 const MAP_CREDIT='Map © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
+// The positions' source as shown: adsb.fi, or adsb.lol while it stands in (live.mjs). The line
+// is shown again when the source changes (render), so the feed in use is the one credited.
+const feedSource=()=>lastModel?.source||PROFILE.feed;
 function flashCredits(){
   if(pick||layer||adj){creditDue=true;return;} // shown when the screen closes
-  creditDue=false;
+  creditDue=false;credited=feedSource();
+  const aircraft=credited===PROFILE.backup?PROFILE.backupCreditFlash:PROFILE.creditFlash;
   const c=$('credit-flash'),a=$('credit-a'),b=$('credit-b'),sat=active?.id==='atlas-satellite',us=['US','PR'].includes(settings.place?.countryCode);
   // Positions, routes and map credits on the first line (shorter wordings keep both map
   // credits); the satellite credit, exact, on a second line of its own. About has them all.
   const EOX='EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017)';
   c.classList.add('on');
-  a._alts=[`${PROFILE.creditFlash} · Routes ADSB.lol · ${MAP_CREDIT}`,`${PROFILE.creditFlash} · ${MAP_CREDIT}`,`${PROFILE.creditFlash} · © OpenMapTiles © OpenStreetMap contributors`];
+  a._alts=[`${aircraft} · Routes ADSB.lol · ${MAP_CREDIT}`,`${aircraft} · ${MAP_CREDIT}`,`${aircraft} · © OpenMapTiles © OpenStreetMap contributors`];
   a.textContent=a._alts[0];fitLine(a);
   // US imagery: the credit the USGS imagery service asks for, word for word.
   const img=sat&&(us?'Imagery: USDA, USGS The National Map':PROFILE.eox?`Imagery: ${EOX}`:'');
@@ -206,7 +210,7 @@ function announce(m){
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
-function render(m){lastModel=m;listen(m);draw(m);}
+function render(m){lastModel=m;listen(m);draw(m);if(m.source&&m.source!==credited)flashCredits();}
 
 // --- Left/Right on the dashboard step through the planes on the map, closest first; the chosen
 // one takes the card (browse.mjs has the rules). Back, the plane leaving the map, a minute

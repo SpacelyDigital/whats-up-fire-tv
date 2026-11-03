@@ -13,7 +13,7 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   street address (press Search): US Census geocoder for US addresses, else Nominatim, and the
   match is shown back before it is used. *Adjust position* (Settings, or from the match) shows a
   close-up street map (OpenFreeMap z13) and the remote's arrows move the home dot ~50 m a press
-  (faster when held); OK saves. Exact coordinates stay on the device: adsb.fi gets them rounded
+  (faster when held); OK saves. Exact coordinates stay on the device: adsb.fi (and adsb.lol, as a backup) gets them rounded
   to 2 decimals (~1 km; the 15 NM query loses nothing), the time-zone lookup the same, the
   geocoders only the typed text, and map tiles only the z10/z12/z13/z14 tile area.
 * **Settings** (press Select on the dashboard): layout, location, alert radius 1–10 mi, map
@@ -47,6 +47,12 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   looked up only once it has stayed on the card about a second (`web/browse.mjs`).
 * **Store build.** Draws the whole screen at 90%, centred, so no text sits in the outer 5% of
   any edge (TV overscan); the personal build fills the screen (`web/profile.mjs`).
+* **Backup feed.** While adsb.fi isn't answering (two failed polls in a row, or 15 s of
+  failures), positions come from adsb.lol (`api.adsb.lol/v2`): the same rounded point, radius
+  and interval, never on the same poll as adsb.fi. adsb.fi is checked about once a minute
+  (respecting its back-off) and takes over again with its first good reply; an adsb.lol 429
+  or other 4xx pauses it 15 minutes. The credit line names adsb.lol while it's in use. Both
+  builds (`web/live.mjs`).
 
 ## Code
 
@@ -55,7 +61,7 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   placement, credits), `layouts/<id>.mjs` + `layouts/<id>.css` (one per layout, see the
   contract at the top of `kit.mjs`), `model.mjs` (enrichment, cargo, logbook, demo),
   `mapgen.mjs` (vector tiles → base and detail maps), `place.mjs` (IP location, geocoding,
-  settings), `live.mjs` (adsb.fi + ADSB.lol), `mvt.js` (bundled vector-tile
+  settings), `live.mjs` (adsb.fi, adsb.lol backup positions, ADSB.lol routes), `mvt.js` (bundled vector-tile
   decoder, rebuild with `npm run build:vendor`), `fonts/` (OFL fonts, Latin subsets).
 * `scripts/build-web.mjs` joins the shared modules into `assets/whatsup.js` (ES modules don't
   load from `file:///pkg/assets/`) and turns each layout into `assets/layouts/<id>.js`, which

@@ -1,0 +1,434 @@
+// node --test tests/test-backup.mjs — the adsb.lol backup positions (web/live.mjs): used only
+// while adsb.fi isn't answering, from the same rounded point, radius and interval.
+// The live source runs on a simulated clock: Date.now, setTimeout and fetch are replaced, and
+// each host answers from its own script. CVG is the test place (no one's home).
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {startLive,fromBackup,feedStamp,outage,resetOutage,store,LEDGER_KEY,HISTORY_KEY,BACKUP_PAUSE_S} from '../web/live.mjs';
+import {start} from '../web/model.mjs';
+import {quietText} from '../web/kit.mjs';
+import {IDS} from '../web/core.mjs';
+
+const T0=Date.parse('2026-11-03T05:00:00Z');
+const CVG={latitude:39.05,longitude:-84.65};
+const CFG={...CVG,radiusMiles:3,pollSeconds:5,searchNm:15};
+const FI=/^https:\/\/opendata\.adsb\.fi\/api\/v3\/lat\/(-?[\d.]+)\/lon\/(-?[\d.]+)\/dist\/(\d+)$/;
+const LOL=/^https:\/\/api\.adsb\.lol\/v2\/lat\/(-?[\d.]+)\/lon\/(-?[\d.]+)\/dist\/(\d+)$/;
+// One plane from each feed, 1 mi north of CVG, so the source of every update is plain.
+const plane=(hex,flight,extra={})=>({hex,flight:flight.padEnd(8),r:'N1'+hex.slice(-3),t:'B738',lat:39.065,lon:-84.65,
+  alt_baro:4000,gs:220,track:90,baro_rate:-640,squawk:'2214',seen_pos:0.4,seen:0.2,...extra});
+const FI_PLANE=plane('a1f1f1','FIX101'),LOL_PLANE=plane('a10101','LOL202');
+
+// The rig: `feeds.fi` / `feeds.lol` say how each host answers now ({mode, retryAfter, body,
+// nowShiftMs, seconds}); modes: ok, offline, timeout, s<code>, garbage, empty, portal, nolist.
+function rig(){
+  const real={now:Date.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
+  let t=T0,inFlight=0;const timers=new Set(),calls=[],updates=[];
+  const feeds={fi:{mode:'ok'},lol:{mode:'ok'}};
+  Date.now=()=>t;Math.random=()=>.5; // jitter ×1: back-offs are exact
+  globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
+  globalThis.clearTimeout=h=>{timers.delete(h);};
+  const res=(status,text,headers={})=>({status,url:'',headers:{get:k=>headers[k.toLowerCase()]??null},text:async()=>text});
+  globalThis.fetch=(url,opts={})=>{
+    url=String(url);
+    const which=FI.test(url)?'fi':LOL.test(url)?'lol':/vrs-standing-data\.adsb\.lol/.test(url)?'route':'other';
+    const call={t,url,which,done:null};calls.push(call);
+    if(which==='route'||which==='other')return Promise.resolve(res(404,''));
+    const f=feeds[which];inFlight++;
+    if(inFlight>1)call.overlap=true;
+    const settle=p=>p.finally(()=>{inFlight--;call.done=t;});
+    const now=t+(f.nowShiftMs||0),stamp=f.seconds?now/1000:now;
+    switch(f.mode){
+      case 'ok':return settle(Promise.resolve(res(200,JSON.stringify(f.body||{ac:[which==='fi'?FI_PLANE:LOL_PLANE],msg:'No error',now:stamp,total:1}))));
+      case 'offline':return settle(Promise.reject(new TypeError('offline')));
+      case 'timeout':return settle(new Promise((_,no)=>opts.signal?.addEventListener('abort',()=>no(new Error('aborted')))));
+      case 'garbage':return settle(Promise.resolve(res(200,'\u0000ÿ{"ac":[{"hex":'+'x'.repeat(40))));
+      case 'portal':return settle(Promise.resolve(res(200,'<!DOCTYPE html><title>Guest Wi-Fi</title>')));
+      case 'empty':return settle(Promise.resolve(res(200,'')));
+      case 'nolist':return settle(Promise.resolve(res(200,JSON.stringify({msg:'maintenance'}))));
+    }
+    const code=Number(/^s(\d+)$/.exec(f.mode)[1]);
+    return settle(Promise.resolve(res(code,'',f.retryAfter!==undefined?{'retry-after':String(f.retryAfter)}:{})));
+  };
+  const flush=async()=>{for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));};
+  // Run the clock forward, firing timers in order.
+  async function advance(ms){
+    const end=t+ms;
+    for(;;){
+      await flush();
+      const due=[...timers].filter(h=>h.at<=end).sort((a,b)=>a.at-b.at)[0];
+      if(!due)break;
+      timers.delete(due);t=Math.max(t,due.at);due.fn();
+    }
+    t=end;await flush();
+  }
+  const live=(config=CFG)=>startLive((states,ok)=>updates.push({t,ok,source:states.source||'',
+    hexes:(states[IDS.feed]?.attributes?.ac||[]).map(a=>a.hex),retryAt:states.retryAt,skew:states.skew,coverage:states.coverage,states}),config);
+  const feedCalls=()=>calls.filter(c=>c.which==='fi'||c.which==='lol');
+  const at=(which,from=0,to=Infinity)=>calls.filter(c=>c.which===which&&c.t>=T0+from&&c.t<=T0+to).map(c=>c.t-T0);
+  const restore=()=>{Date.now=real.now;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;Math.random=real.random;};
+  return {feeds,calls,updates,advance,live,feedCalls,at,restore,get t(){return t-T0;}};
+}
+// A clean start for each test: no outage known, no saved pause.
+function fresh(){resetOutage();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig();}
+const lastData=r=>r.updates.filter(u=>u.ok&&u.source).at(-1);
+
+test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point, radius and interval',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'timeout'}; // adsb.fi not answering at all, as on 3 November
+    const live=r.live();
+    await r.advance(20000);
+    // adsb.fi asked twice: at the start, and after its first 5 s back-off (each waits 4.48 s).
+    assert.deepEqual(r.at('fi'),[0,9480]);
+    const lol=r.at('lol');
+    assert.ok(lol.length>=1&&lol[0]<=15000,`adsb.lol asked at ${lol[0]} ms`);
+    const first=r.updates.find(u=>u.ok&&u.source==='adsb.lol');
+    assert.ok(first&&first.t-T0<=20000,'planes from adsb.lol within 20 s');
+    assert.deepEqual(first.hexes,['a10101']);
+    // The same 0.05° point and distance adsb.fi gets.
+    const [fi1]=r.calls.filter(c=>c.which==='fi'),[lol1]=r.calls.filter(c=>c.which==='lol');
+    assert.deepEqual(LOL.exec(lol1.url).slice(1),FI.exec(fi1.url).slice(1));
+    assert.deepEqual(LOL.exec(lol1.url).slice(1),['39.05','-84.65','18']);
+    // Then every 5 s, like adsb.fi, and adsb.fi left alone until its once-a-minute check.
+    await r.advance(40000);
+    const gaps=r.at('lol').slice(1).map((v,i)=>v-r.at('lol')[i]);
+    assert.ok(gaps.length>=8&&gaps.every(g=>g===5000),`adsb.lol every 5 s: ${gaps}`);
+    assert.deepEqual(r.at('fi'),[0,9480],'no adsb.fi request within a minute of the last');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: adsb.fi recovers, positions come from adsb.fi again (checked about once a minute)',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'s503'};
+    const live=r.live();
+    await r.advance(30000);
+    assert.equal(lastData(r).source,'adsb.lol');
+    r.feeds.fi={mode:'ok'}; // back
+    await r.advance(60000);
+    const fi=r.at('fi');
+    // 0 and 5 s (503s), then one check about a minute after the last ask, which answers.
+    assert.deepEqual(fi.slice(0,2),[0,5000]);
+    assert.ok(fi[2]-fi[1]>=60000&&fi[2]-fi[1]<=66000,`checked ${fi[2]-fi[1]} ms after the last ask`);
+    const back=r.updates.find(u=>u.ok&&u.source==='adsb.fi');
+    assert.ok(back&&back.t-T0===fi[2],'its first good reply is shown');
+    assert.deepEqual(back.hexes,['a1f1f1']);
+    assert.equal(outage.down,false);
+    // From then on adsb.fi only, every 5 s.
+    const n=r.at('lol').length;
+    await r.advance(30000);
+    assert.equal(r.at('lol').length,n,'no adsb.lol request once adsb.fi answers');
+    assert.ok(r.at('fi',fi[2]+1).length>=5);
+    assert.equal(lastData(r).source,'adsb.fi');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: both down shows "No live data, reconnecting in N s"',async()=>{
+  const r=fresh();const models=[];
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s503'};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({...m,at:r.t}));
+    await r.advance(120000);
+    const m=models.at(-1);
+    assert.equal(m.fresh,false);assert.equal(m.connecting,false);
+    assert.match(quietText(m,false),/^No live data right now\. Reconnecting in \d+ s\.$/);
+    assert.ok(m.retryIn>0);
+    // Both still asked, each backing off: adsb.lol 5, 10, 20, 40 s apart.
+    const lol=r.at('lol'),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
+    assert.deepEqual(gaps.slice(0,3),[5000,10000,20000]);
+    assert.ok(r.at('fi').length>=2);
+    // When adsb.lol answers again its planes show, adsb.fi still down.
+    r.feeds.lol={mode:'ok'};await r.advance(90000);
+    assert.equal(models.at(-1).fresh,true);assert.equal(models.at(-1).source,'adsb.lol');
+    s.stop();
+  }finally{r.restore();}
+});
+
+test('backup: never both feeds on one poll, never at the same time (90 min of random outages)',async()=>{
+  const r=fresh();
+  try{
+    const modes=['ok','ok','ok','offline','timeout','s503','s500','s429','s403','garbage','empty','portal','nolist'];
+    let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+    const live=r.live();
+    for(let step=0;step<180;step++){
+      r.feeds.fi={mode:modes[Math.floor(rnd()*modes.length)],retryAfter:rnd()<.3?Math.floor(rnd()*200):undefined};
+      r.feeds.lol={mode:modes[Math.floor(rnd()*modes.length)]};
+      await r.advance(30000);
+    }
+    const calls=r.feedCalls();
+    const count=w=>calls.filter(c=>c.which===w).length;
+    assert.ok(count('lol')>20&&count('fi')>20,`both feeds exercised: adsb.fi ${count('fi')}, adsb.lol ${count('lol')}`);
+    assert.ok(!calls.some(c=>c.overlap),'one feed request in flight at a time');
+    // Each request starts after the previous one has finished: one feed per poll.
+    for(let i=1;i<calls.length;i++)assert.ok(calls[i].t>=calls[i-1].done,`request ${i} started before ${i-1} finished`);
+    // adsb.lol only right after a failed adsb.fi request (it isn't answering), never after a good one.
+    const isOk=c=>c.which==='fi'&&r.updates.some(u=>u.ok&&u.source==='adsb.fi'&&u.t===c.done);
+    let lastFi=null;
+    for(const c of calls){if(c.which==='fi')lastFi=c;else assert.ok(lastFi&&!isOk(lastFi),'adsb.lol asked while adsb.fi was answering');}
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: an adsb.lol 429 or other 4xx pauses its positions for 15 minutes, across a restart',async()=>{
+  for(const mode of ['s429','s403']){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'offline'};r.feeds.lol={mode,retryAfter:mode==='s429'?30:undefined};
+      let live=r.live();
+      await r.advance(20000);
+      const [hit]=r.at('lol');assert.ok(hit!==undefined,'adsb.lol asked');
+      r.feeds.lol={mode:'ok'};
+      await r.advance(5*60000);
+      // A restart (new radius) mid-pause doesn't ask it again.
+      live.stop();live=r.live({...CFG,searchNm:30});
+      await r.advance(9*60000);
+      assert.deepEqual(r.at('lol'),[hit],`${mode}: no adsb.lol request for 15 minutes`);
+      // adsb.fi is still checked meanwhile: once a minute at first, then as its back-off grows
+      // (80 s, 160 s, 5 min).
+      assert.ok(r.at('fi',hit).length>=5,`${mode}: adsb.fi checked ${r.at('fi',hit).length} times`);
+      await r.advance(BACKUP_PAUSE_S*1000-14*60000+6000);
+      const after=r.at('lol');
+      assert.ok(after.length>=2,`${mode}: asked again after the pause`);
+      assert.ok(after[1]-hit>=BACKUP_PAUSE_S*1000&&after[1]-hit<=BACKUP_PAUSE_S*1000+6000,`${mode}: after ${after[1]-hit} ms`);
+      assert.equal(lastData(r).source,'adsb.lol');
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('backup: the 15-minute pause is saved, so a relaunch within it doesn\'t ask adsb.lol either',async()=>{
+  const saved=new Map();
+  globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,setItem:(k,v)=>saved.set(k,String(v)),removeItem:k=>saved.delete(k)};
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s429'};
+    let live=r.live();
+    await r.advance(20000);
+    const [hit]=r.at('lol');
+    live.stop();r.feeds.lol={mode:'ok'};
+    // The app is closed and opened again 2 minutes later: a new page, nothing in memory.
+    await r.advance(120000);resetOutage();
+    live=r.live();
+    await r.advance(10*60000);
+    assert.deepEqual(r.at('lol'),[hit],'no adsb.lol request within the saved pause');
+    await r.advance(4*60000);
+    assert.ok(r.at('lol').length>=2,'asked again when it ends');
+    assert.ok(r.at('lol')[1]-hit>=BACKUP_PAUSE_S*1000&&r.at('lol')[1]-hit<=BACKUP_PAUSE_S*1000+6000,`after ${r.at('lol')[1]-hit} ms`);
+    live.stop();
+  }finally{r.restore();delete globalThis.localStorage;}
+});
+
+test('backup: adsb.fi checks respect its back-off and Retry-After; 15 s of failures switch over',async()=>{
+  const r=fresh();
+  try{
+    // A 429 with Retry-After 120 on the first poll: adsb.lol after 15 s, not 2 minutes.
+    r.feeds.fi={mode:'s429',retryAfter:120};
+    const live=r.live();
+    await r.advance(20000);
+    assert.deepEqual(r.at('fi'),[0]);
+    assert.equal(r.at('lol')[0],15000);
+    assert.equal(lastData(r).source,'adsb.lol');
+    // The next check waits out the Retry-After (not one minute)...
+    r.feeds.fi={mode:'s404'};
+    await r.advance(130000);
+    assert.equal(r.at('fi')[1],120000);
+    // ...and after a 404 (any other 4xx: 5 minutes), five minutes.
+    await r.advance(5*60000);
+    assert.deepEqual(r.at('fi'),[0,120000,420000]);
+    // Network errors: about once a minute, until the doubling back-off is longer.
+    r.feeds.fi={mode:'offline'};
+    await r.advance(15*60000);
+    const gaps=r.at('fi',420000).map((v,i,a)=>i?v-a[i-1]:null).slice(1);
+    assert.ok(gaps.every(g=>g>=60000),`checks ${gaps}`);
+    assert.ok(gaps.at(-1)>=300000,`back-off reached 5 min: ${gaps}`);
+    // adsb.lol kept the planes up throughout.
+    assert.ok(r.updates.filter(u=>u.ok&&u.source==='adsb.lol').length>200);
+    assert.ok(!r.updates.some(u=>!u.ok&&u.t-T0>20000),'a failed check on adsb.fi changes nothing shown');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: no 250 NM coverage check on adsb.lol, and no "no coverage" claim from it',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'ok',body:{ac:[],now:T0,msg:'No error'}};r.feeds.lol={mode:'ok',body:{ac:[],now:T0,msg:'No error'}};
+    // adsb.fi up and empty: its usual widest check (and the area really has no receivers).
+    let live=r.live();
+    await r.advance(3000);
+    assert.equal(r.calls.filter(c=>/\/dist\/250$/.test(c.url)).length,1);
+    assert.equal(r.updates.filter(u=>u.ok).at(-1).coverage.none,true);
+    live.stop();
+    // adsb.fi down, adsb.lol empty: no wide check anywhere, and only "quiet skies".
+    r.feeds.fi={mode:'s503'};
+    live=r.live();
+    await r.advance(3*3600000);
+    assert.equal(r.calls.filter(c=>/\/dist\/250$/.test(c.url)).length,1,'no widest check on the backup');
+    const u=r.updates.filter(u=>u.ok&&u.source==='adsb.lol').at(-1);
+    assert.equal(u.coverage.none,false);
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: a restarted feed (new place or radius) stays on adsb.lol while adsb.fi is down',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'timeout'};
+    let live=r.live();
+    await r.advance(30000);
+    assert.equal(lastData(r).source,'adsb.lol');
+    live.stop();
+    const n=r.calls.length;live=r.live({...CFG,searchNm:30});
+    await r.advance(2000);
+    const next=r.calls.slice(n).filter(c=>c.which!=='route');
+    assert.equal(next[0].which,'lol','the new feed asks adsb.lol first');
+    assert.match(next[0].url,/\/lat\/39\.05\/lon\/-84\.65\/dist\/33$/);
+    assert.equal(lastData(r).source,'adsb.lol');
+    live.stop();
+    // adsb.fi up: a restart asks adsb.fi at once, as before.
+    resetOutage();r.feeds.fi={mode:'ok'};
+    const m=r.calls.length;live=r.live();await r.advance(1000);
+    assert.equal(r.calls.slice(m)[0].which,'fi');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: pause and resume keep the schedule; nothing is asked while hidden',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};
+    const live=r.live();
+    await r.advance(20000);
+    live.pause();const n=r.feedCalls().length;
+    await r.advance(10*60000);
+    assert.equal(r.feedCalls().length,n,'nothing asked while hidden');
+    live.resume();await r.advance(100);
+    // Back on screen after more than a minute: adsb.fi is checked first, then adsb.lol.
+    const next=r.feedCalls().slice(n);
+    assert.equal(next[0].which,'fi');
+    await r.advance(6000);
+    assert.equal(r.feedCalls().slice(n).filter(c=>c.which==='lol').length,1);
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: field mapping from adsb.lol v2 to what the app reads from adsb.fi',()=>{
+  // Shaped like a real api.adsb.lol/v2 reply (3 November 2026).
+  const row={hex:'a513b9',type:'adsb_icao',flight:'UPS1443 ',r:'N426UP',t:'B752',alt_baro:20000,alt_geom:20850,gs:389.8,
+    track:234.92,baro_rate:0,geom_rate:64,squawk:'4575',emergency:'none',category:'A4',nav_qnh:1012.8,nav_altitude_mcp:6016,
+    nav_heading:243.28,nav_modes:['vnav','tcas'],lat:39.110413,lon:-84.758626,nic:8,rc:186,seen_pos:0.11,version:2,nic_baro:1,
+    nac_p:10,nac_v:1,sil:3,sil_type:'perhour',gva:2,sda:2,alert:0,spi:0,mlat:[],tisb:[],messages:16399,seen:0.1,rssi:-10.6,dst:6.221,dir:305.7};
+  const mil={hex:'ae1234',flight:'RCH401  ',r:'05-5140',t:'C17',alt_baro:12000,gs:330,track:40,lat:39.0,lon:-84.6,seen_pos:1.2,seen:0.5,dbFlags:1,
+    lastPosition:{lat:1,lon:2}};
+  const out=fromBackup({ac:[row,mil,null,'x'],msg:'No error',now:1793680938000,total:2,ctime:1793680938000,ptime:0});
+  assert.equal(out.now,1793680938000);
+  assert.deepEqual(Object.keys(out.ac[0]).sort(),['alt_baro','baro_rate','category','emergency','flight','geom_rate','gs','hex','lat','lon','r','seen','seen_pos','squawk','t','track']);
+  assert.deepEqual(out.ac[0],{hex:'a513b9',flight:'UPS1443 ',r:'N426UP',t:'B752',category:'A4',lat:39.110413,lon:-84.758626,
+    alt_baro:20000,gs:389.8,track:234.92,baro_rate:0,geom_rate:64,squawk:'4575',emergency:'none',seen:0.1,seen_pos:0.11});
+  assert.equal(out.ac[1].dbFlags,1,'military flag kept');assert.equal(out.ac[1].lastPosition,undefined);
+  assert.equal(out.ac.length,2,'non-objects dropped');
+  // Not a feed reply: no aircraft list, a list itself, nothing.
+  for(const bad of [{msg:'No error',now:1},[],null,'text',{ac:'x'}])assert.equal(fromBackup(bad),null);
+  // `now`: milliseconds in both feeds (feedStamp also takes seconds).
+  assert.equal(feedStamp({now:1793680938000}),1793680938);assert.equal(feedStamp({now:1793680938}),1793680938);
+});
+
+test('backup: an adsb.lol plane reads like an adsb.fi one on the dashboard (military, emergency, climb)',async()=>{
+  const r=fresh();const models=[];
+  try{
+    r.feeds.fi={mode:'offline'};
+    r.feeds.lol={mode:'ok',body:{now:T0,msg:'No error',ac:[
+      plane('ae1234','RCH401',{t:'C17',dbFlags:1,baro_rate:1200}),
+      plane('a20202','DAL1213',{squawk:'7700',lat:39.06,rssi:-3,nav_qnh:1013}),
+      {...plane('a30303','SWA1',{}),alt_baro:'ground'}]}};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    // Keep the feed clock in step with the simulated one.
+    for(let i=0;i<5;i++){r.feeds.lol.body.now=Date.now();await r.advance(5000);}
+    const m=models.filter(m=>m.fresh).at(-1);
+    assert.equal(m.source,'adsb.lol');
+    const by=Object.fromEntries(m.planes.map(a=>[a.hex,a]));
+    assert.equal(by.ae1234.military,true);assert.equal(by.ae1234.vertical,1200);assert.equal(by.ae1234.flight,'RCH401');
+    assert.equal(by.a20202.emergency,'EMERGENCY');assert.equal(m.hero.hex,'a20202');
+    assert.equal(by.a30303,undefined,'on the ground: not drawn, as with adsb.fi');
+    assert.equal(by.ae1234.year,'','no build year from adsb.lol');
+    s.stop();
+  }finally{r.restore();}
+});
+
+test('backup: feed-clock skew is measured with each feed, in ms or s',async()=>{
+  for(const feed of ['fi','lol'])for(const seconds of [false,true])for(const off of [-60000,60000,-3*86400000,3*86400000]){
+    const r=fresh();
+    try{
+      if(feed==='lol')r.feeds.fi={mode:'s503'};
+      r.feeds[feed]={mode:'ok',nowShiftMs:off,seconds,body:null};
+      const live=r.live();
+      await r.advance(30000);
+      const u=lastData(r);
+      assert.equal(u.source,feed==='fi'?'adsb.fi':'adsb.lol');
+      assert.ok(Math.abs(u.skew*1000-off)<1000,`${feed} ${seconds?'s':'ms'} ${off}: skew ${u.skew}`);
+      assert.deepEqual(u.hexes,[feed==='fi'?'a1f1f1':'a10101']);
+      assert.equal(u.states[IDS.candidate].state,feed==='fi'?'a1f1f1':'a10101',`${feed}: plane kept with the feed ${off>0?'ahead':'behind'}`);
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('backup: a reply that isn\'t a feed counts as a failure, from either service',async()=>{
+  for(const mode of ['garbage','portal','empty','nolist']){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode};
+      const live=r.live();
+      await r.advance(20000);
+      assert.equal(r.at('fi').length,2,`${mode}: two tries on adsb.fi`);
+      assert.equal(lastData(r)?.source,'adsb.lol',`${mode}: then adsb.lol`);
+      // The same from adsb.lol: no planes, and it backs off.
+      r.feeds.lol={mode};const n=r.at('lol').length;
+      await r.advance(40000);
+      assert.equal(lastData(r).t-T0<=20000,true,`${mode}: nothing new shown from a bad adsb.lol reply`);
+      // From the last good one: the next poll 5 s on, then back-offs of 5, 10, 20 s.
+      const lol=r.at('lol').slice(n-1),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
+      assert.deepEqual(gaps.slice(0,4),[5000,5000,10000,20000],`${mode}: adsb.lol backs off`);
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('feed etiquette: back-off on errors, 429 at least 60 s, other 4xx 5 min, with adsb.lol standing in',async()=>{
+  const r=fresh();
+  try{
+    // adsb.fi: 503, 503, 503, 429 (Retry-After 120), 404, then good; adsb.lol good throughout.
+    const script=[{mode:'s503'},{mode:'s503'},{mode:'s503'},{mode:'s429',retryAfter:120},{mode:'s404'},{mode:'ok'}];
+    let i=0;const next=()=>{r.feeds.fi=script[Math.min(i++,script.length-1)];};
+    next();
+    const real=globalThis.fetch;
+    globalThis.fetch=(url,opts)=>{const p=real(url,opts);if(FI.test(String(url)))p.finally(next);return p;};
+    const live=r.live();
+    await r.advance(20*60000);
+    const fi=r.at('fi'),gaps=fi.slice(1).map((v,k)=>v-fi[k]);
+    // 5 s back-off; then the backup, checking adsb.fi once a minute (its 10 s and 20 s
+    // back-offs are shorter), then the 429's 120 s, then the 404's 5 minutes; then every 5 s.
+    assert.equal(gaps[0],5000);
+    assert.ok(gaps[1]>=60000&&gaps[1]<=65000&&gaps[2]>=60000&&gaps[2]<=65000,`once a minute: ${gaps}`);
+    assert.ok(gaps[3]>=120000&&gaps[3]<=125000,`429 honours Retry-After: ${gaps[3]}`);
+    assert.ok(gaps[4]>=300000&&gaps[4]<=305000,`other 4xx waits 5 min: ${gaps[4]}`);
+    assert.ok(gaps.slice(5).every(g=>g===5000),'then every 5 s');
+    assert.equal(lastData(r).source,'adsb.fi');
+    // Pause and resume: nothing while hidden; after a good reply, resume polls at once.
+    live.pause();const before=r.feedCalls().length;
+    await r.advance(60000);
+    assert.equal(r.feedCalls().length,before,'nothing is polled while paused');
+    live.resume();await r.advance(10);
+    assert.equal(r.feedCalls().length,before+1,'after a good reply, resume polls at once');
+    // A 429 then pause/resume: resume keeps the 429 pause (adsb.fi isn't asked before it ends).
+    script.push({mode:'s429',retryAfter:120},{mode:'s429',retryAfter:120});i=script.length-2;next();
+    await r.advance(5000);
+    const n=r.at('fi').length,hit=r.at('fi').at(-1);
+    live.pause();await r.advance(1000);live.resume();await r.advance(30000);
+    assert.equal(r.at('fi').length,n,'resume keeps the 429 pause');
+    assert.ok(r.at('lol',hit).length>=1,'adsb.lol stands in after 15 s');
+    live.stop();
+  }finally{r.restore();}
+});

@@ -18,9 +18,11 @@ import {
 // The page (assets/, built from web/) asks the app to fetch for it: adsb.fi
 // sends no CORS header, so the WebView cannot read it directly. The other
 // services do send CORS headers; they are allowed here as a fallback. Only
-// these read-only GETs are reachable through the bridge.
+// these read-only GETs are reachable through the bridge, each with USER_AGENT.
 const ALLOWED = [
   /^https:\/\/opendata\.adsb\.fi\/api\/v3\/lat\/-?\d{1,2}\.\d{2}\/lon\/-?\d{1,3}\.\d{2}\/dist\/\d{1,3}$/,
+  // Backup positions, asked only while adsb.fi isn't answering (web/live.mjs).
+  /^https:\/\/api\.adsb\.lol\/v2\/lat\/-?\d{1,2}\.\d{2}\/lon\/-?\d{1,3}\.\d{2}\/dist\/\d{1,3}$/,
   /^https:\/\/vrs-standing-data\.adsb\.lol\/routes\/[A-Z0-9-]{2}\/[A-Z0-9-]{2,10}\.json$/,
   /^https:\/\/get\.geojs\.io\/v1\/ip\/geo\.json$/,
   /^https:\/\/geocoding-api\.open-meteo\.com\/v1\/search\?name=[^&#]{1,200}&count=\d{1,2}&language=en&format=json$/,

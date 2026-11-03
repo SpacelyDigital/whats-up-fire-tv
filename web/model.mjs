@@ -1,4 +1,4 @@
-// The display model: live aircraft (live.mjs: adsb.fi + ADSB.lol routes) enriched
+// The display model: live aircraft (live.mjs: adsb.fi, or adsb.lol standing in, + ADSB.lol routes) enriched
 // with operator, cargo brand, look-up angles, closest approach, trend and a daily
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
 // a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
@@ -279,7 +279,8 @@ function liveSource(config,onModel){
     const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
     // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
-    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn};
+    // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn,source:states.source||''};
     if(ok&&fresh)lastGood=model;
     onModel(model);
   },config);

@@ -25,6 +25,8 @@ p('Airline, operator and aircraft-manufacturer names are trademarks of their own
 h('Data');
 if(P.feed==='adsb.fi')p('Aircraft data: adsb.fi, https://adsb.fi (scan the code on this page).');
 else p('Positions: adsb.lol. Contains information from adsb.lol, which is made available here under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/');
+// The backup feed (web/live.mjs), credited as its ODbL licence asks (adsb.lol/docs/open-data/api).
+if(P.backup==='adsb.lol')p('Backup aircraft positions, only while adsb.fi isn’t answering: adsb.lol, https://adsb.lol. Contains information from adsb.lol, which is made available here under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/');
 p('Flight routes: adsb.lol, from Virtual Radar Server standing data (CC0). Routes are community-sourced and may be wrong.');
 p('adsb.lol data is made available under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/');
 p('Map data © OpenStreetMap contributors, available under the Open Database License (ODbL): openstreetmap.org/copyright');

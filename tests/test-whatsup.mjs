@@ -190,37 +190,8 @@ test('layout stylesheets never style the shared screens by accident (generic cla
 });
 function require_fs(){return {readdirSync:(u)=>globalThis.__fs.readdirSync(u)};}
 
-test('feed etiquette: back-off on errors, 429 at least 60 s, other 4xx 5 min, pause and resume',async()=>{
-  const {startLive}=await import('../web/live.mjs');
-  const realSet=globalThis.setTimeout,realClear=globalThis.clearTimeout,waits=[];let next=null;
-  globalThis.setTimeout=(fn,ms)=>{if(fn.name==='poll'){waits.push(ms);next=fn;return 1;}return realSet(fn,ms);};
-  globalThis.clearTimeout=id=>{if(id!==1)realClear(id);};
-  const replies=[];let calls=0;
-  globalThis.fetch=async url=>{calls++;const r=replies.shift()||{status:200,body:{now:Date.now(),ac:[]}};
-    return {status:r.status,headers:{get:k=>k==='retry-after'?r.retry||null:null},text:async()=>JSON.stringify(r.body||{}),url};};
-  const tick=async()=>{const f=next;next=null;await f?.();await new Promise(r=>realSet(r,5));};
-  try{
-    replies.push({status:503},{status:503},{status:503},{status:429,retry:'120'},{status:404},{status:200,body:{now:Date.now(),ac:[{hex:'abc123'}]}});
-    const live=startLive(()=>{}, {latitude:39.05,longitude:-84.67,radiusMiles:3,pollSeconds:5,searchNm:15});
-    await new Promise(r=>realSet(r,20));
-    for(let i=0;i<5;i++)await tick();
-    // 503s: ~5 s, ~10 s, ~20 s (±20% jitter); 429 with Retry-After 120: 120 s; 404: 300 s
-    assert.ok(waits[0]>=4000&&waits[0]<=6000,`first back-off ${waits[0]}`);
-    assert.ok(waits[1]>=8000&&waits[1]<=12000,`second back-off ${waits[1]}`);
-    assert.ok(waits[2]>=16000&&waits[2]<=24000,`third back-off ${waits[2]}`);
-    assert.equal(waits[3],120000,'429 honours Retry-After');
-    assert.equal(waits[4],300000,'other 4xx waits 5 min');
-    live.pause();const before=calls;await tick();
-    assert.equal(calls,before,'nothing is polled while paused');
-    live.resume();await new Promise(r=>realSet(r,20));
-    assert.equal(waits.at(-1),0,'after a good reply, resume polls at once');
-    await tick();assert.ok(calls>before);
-    replies.push({status:429,retry:'120'});await tick();
-    live.pause();live.resume();
-    assert.ok(waits.at(-1)>115000,`resume keeps the 429 pause (${waits.at(-1)})`);
-    live.stop();
-  }finally{globalThis.setTimeout=realSet;globalThis.clearTimeout=realClear;delete globalThis.fetch;}
-});
+// The feed etiquette test (adsb.fi back-off, pause and resume) is in test-backup.mjs: since the
+// adsb.lol backup, adsb.fi's retries after the second failure are its once-a-minute checks.
 
 test('clock skew: a TV clock a minute, or days, off the feed still shows the planes',async()=>{
   const {startLive}=await import('../web/live.mjs');
