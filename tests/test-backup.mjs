@@ -4,6 +4,7 @@
 // each host answers from its own script. CVG is the test place (no one's home).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {startLive,fromBackup,feedStamp,outage,resetOutage,store,LEDGER_KEY,HISTORY_KEY,BACKUP_PAUSE_S} from '../web/live.mjs';
 import {start,resetLog} from '../web/model.mjs';
 import {quietText} from '../web/kit.mjs';
@@ -374,6 +375,133 @@ test('backup: pause and resume keep the schedule; nothing is asked while hidden'
     assert.equal(r.feedCalls().slice(n).filter(c=>c.which==='lol').length,1);
     live.stop();
   }finally{r.restore();}
+});
+
+// An hour in the background (Home, then back): nothing is asked meanwhile, and coming back
+// asks once, at adsb.fi's pace, with no burst of timers that piled up while hidden.
+const HOUR=3600000;
+const gapsOf=ts=>ts.slice(1).map((v,i)=>v-ts[i]);
+test('background: an hour hidden on adsb.fi, then back: one request at once, no burst, nothing from adsb.lol',async()=>{
+  const r=fresh();
+  try{
+    const live=r.live();
+    await r.advance(30000);
+    live.pause();const n=r.feedCalls().length,back=r.t+HOUR;
+    await r.advance(HOUR);
+    assert.equal(r.feedCalls().length,n,'nothing asked while hidden');
+    live.resume();await r.advance(100);
+    assert.deepEqual(r.at('fi',back,back+100),[back],'adsb.fi asked once, at once');
+    await r.advance(60000);
+    const fi=r.at('fi',back);
+    assert.ok(fi.length>=10&&gapsOf(fi).every(g=>g>=5000),`then every 5 s, never closer: ${gapsOf(fi)}`);
+    assert.deepEqual(r.at('lol'),[],'adsb.lol never asked');
+    assert.equal(lastData(r).source,'adsb.fi');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('background: an hour hidden on the backup, adsb.fi back meanwhile: adsb.fi is asked first and takes over',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};
+    const live=r.live();
+    await r.advance(40000);
+    assert.equal(lastData(r).source,'adsb.lol','on the backup before Home');
+    live.pause();r.feeds.fi={mode:'ok'};const back=r.t+HOUR;
+    await r.advance(HOUR);live.resume();await r.advance(60000);
+    const next=r.feedCalls().filter(c=>c.t-T0>=back);
+    assert.equal(next[0].which,'fi','adsb.fi first');
+    assert.deepEqual(r.at('lol',back),[],'no adsb.lol request once adsb.fi answers');
+    assert.equal(lastData(r).source,'adsb.fi');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('background: an hour hidden through the 15-minute adsb.lol pause: back on the backup at once if adsb.fi is still down',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s403'};
+    const live=r.live();
+    await r.advance(60000);
+    const hit=r.at('lol');assert.equal(hit.length,1,'one adsb.lol 403: paused');
+    live.pause();r.feeds.lol={mode:'ok'};const back=r.t+HOUR;
+    await r.advance(HOUR);live.resume();await r.advance(30000);
+    const next=r.feedCalls().filter(c=>c.t-T0>=back);
+    assert.equal(next[0].which,'fi','adsb.fi first');
+    const lol=r.at('lol',back);
+    assert.ok(lol.length&&lol[0]-back<=11000,`adsb.lol again within 11 s (the pause is over): ${lol[0]-back} ms`);
+    assert.ok(gapsOf(lol).every(g=>g>=10000),`at its 10 s pace: ${gapsOf(lol)}`);
+    assert.equal(lastData(r).source,'adsb.lol');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('background: back after an hour with both feeds down, the hour-old planes are not shown as live',async()=>{
+  const r=fresh();const models=[];
+  try{
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    await r.advance(30000);
+    assert.ok(models.at(-1).fresh&&models.at(-1).planes.length===1,'live before Home');
+    s.pause();r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'offline'};
+    await r.advance(HOUR);const from=models.length;
+    s.resume();await r.advance(20000);
+    const after=models.slice(from);
+    assert.ok(after.length,'the screen is updated on return');
+    assert.ok(after.every(m=>!m.fresh&&!m.planes.length),`no planes from an hour ago: ${after.map(m=>m.planes.length)}`);
+    assert.match(quietText(after.at(-1),false),/^No live data right now\. Reconnecting in \d+ s\.$/);
+    s.stop();
+  }finally{r.restore();}
+});
+
+// Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
+function withStorage(saved,full=false){
+  const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,removeItem:k=>saved.delete(k),
+    setItem:(k,v)=>{if(full){const e=new Error('The quota has been exceeded.');e.name='QuotaExceededError';throw e;}saved.set(k,String(v));}};
+  return ()=>{if(had)Object.defineProperty(globalThis,'localStorage',had);else delete globalThis.localStorage;};
+}
+
+test('storage full: the backup, its 15-minute pause and today\'s log carry on for this launch, and nothing throws',async()=>{
+  const r=fresh();const models=[],saved=new Map(),unset=withStorage(saved,true);
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s403'};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    await r.advance(60000);
+    assert.equal(r.at('lol').length,1,'one adsb.lol 403');
+    r.feeds.lol={mode:'ok'};
+    await r.advance(10*60000);
+    assert.equal(r.at('lol').length,1,'the pause holds, kept in memory');
+    await r.advance(6*60000);
+    assert.ok(r.at('lol').length>=2,'asked again after the pause');
+    const m=models.at(-1);
+    assert.equal(m.source,'adsb.lol');assert.ok(m.fresh&&m.planes.length===1,'its planes on screen');
+    assert.equal(m.log.today,1,'today\'s log counts the plane');
+    assert.equal(saved.size,0,'nothing could be stored');
+    s.stop();
+  }finally{r.restore();unset();}
+});
+
+// tests/fixtures/storage-4e866d1.json: what the build on the TV (4e866d1) saved at CVG after
+// adsb.fi went down: a plane logged today, its route answer, and a 15-minute adsb.lol pause
+// that started at 05:02:10 UTC.
+test('upgrade from the TV build (4e866d1): its saved adsb.lol pause, route answers and today\'s log carry over',async()=>{
+  const {storage}=JSON.parse(readFileSync(new URL('./fixtures/storage-4e866d1.json',import.meta.url),'utf8'));
+  const t0=Date.parse('2026-11-03T05:05:00Z'),end=Date.parse('2026-11-03T05:17:10Z')-t0; // relaunched 3 minutes later
+  const r=fresh(t0);const models=[],unset=withStorage(new Map(Object.entries(storage)));
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'ok'};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    await r.advance(end-1000);
+    assert.deepEqual(r.at('lol'),[],'no adsb.lol positions within the pause the TV build saved');
+    await r.advance(30000);
+    const lol=r.at('lol');
+    assert.ok(lol.length>=2&&lol[0]>=end-1000,`asked once it is over (first at +${lol[0]} ms)`);
+    const m=models.at(-1);
+    assert.equal(m.source,'adsb.lol');assert.ok(m.fresh&&m.planes.length===1);
+    assert.equal(m.log.today,1,'the plane the TV build logged today counts once');
+    assert.equal(r.calls.filter(c=>c.which==='route').length,0,'its saved route answer is used, not asked again');
+    s.stop();
+  }finally{r.restore();unset();}
 });
 
 test('backup: field mapping from adsb.lol v2 to what the app reads from adsb.fi',()=>{
