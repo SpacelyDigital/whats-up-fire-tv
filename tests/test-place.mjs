@@ -222,3 +222,22 @@ test('address search privacy: a failed Census search never falls through to Nomi
   for(const t of ['SW1A 2AA','M5V 3L9','75008','10115'])assert.ok(looksLikePostcode(t),t);
   for(const t of ['CHICAGOO','St Johns','Springfield'])assert.ok(!looksLikePostcode(t),t);
 });
+test('search text from the break-it list: empty, long, right-to-left, markup or script, emoji, a ZIP and an address at CVG',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  let seen=stub([meteo()]);
+  for(const q of ['','   ','​​'])assert.deepEqual(await searchPlaces(q),[],JSON.stringify(q));
+  assert.equal(seen.length,0,'nothing is asked for empty text');
+  const name=u=>decodeURIComponent(new URL(u).searchParams.get('name'));
+  seen=stub([meteo()]);await searchPlaces('Hebron '.repeat(40));
+  // No match: one more try without the last word (as for "Rosemont IL"), no more.
+  assert.ok(seen.length>=1&&seen.length<=2&&seen.every(u=>name(u).length<=60),`long text is cut to 60 characters: ${seen.map(u=>name(u).length)}`);
+  for(const q of ['القاهرة','<script>alert(1)</script>','"Hebron" & <b>KY</b>','✈ Hebron ✈']){
+    seen=stub([meteo()]);assert.deepEqual(await searchPlaces(q),[],q);
+    assert.equal(name(seen[0]),q,`${q}: sent as typed, encoded`);assert.ok(seen.length<=2&&seen.every(u=>!/[<>"\s]/.test(u.split('?')[1])),`${q}: nothing raw in the URL`);
+  }
+  // A ZIP is a postcode, not an address; CVG's own street address is a U.S. address (Census).
+  assert.ok(looksLikePostcode('41048')&&!looksLikeAddress('41048'));
+  assert.ok(looksLikeUSAddress('3087 Terminal Dr, Hebron, KY 41048'));
+  seen=stub([meteo({name:'Hebron',admin1:'Kentucky',country:'United States',country_code:'US',latitude:39.07,longitude:-84.7,timezone:'America/New_York'})]);
+  assert.equal(placeLabel((await searchPlaces('41048'))[0]),'Hebron, KY');assert.equal(name(seen[0]),'41048');
+});
