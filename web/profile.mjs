@@ -24,8 +24,8 @@ const PROFILES={
     backupUrl:(lat,lon,nm)=>`https://api.adsb.lol/v2/lat/${lat.toFixed(2)}/lon/${lon.toFixed(2)}/dist/${nm}`,
     photos:true,eox:true,nominatim:true,
     creditFlash:'Aircraft adsb.fi',
-    backupCreditFlash:'Aircraft adsb.lol',
-    consent:'To show planes near you, this app sends your approximate location, rounded to a few miles, to public flight and map services (adsb.fi, or adsb.lol while adsb.fi is down, OpenFreeMap, Open-Meteo, USGS, EOX). It looks up the planes it shows with ADSB.lol and Planespotters. Your first city guess comes from your internet address (GeoJS). What you type in search goes to Open-Meteo, the U.S. Census Bureau or OpenStreetMap to find the place. Every service also sees your TV’s internet address. Your settings and history are saved only on this TV. No accounts, ads or analytics. You can erase it all in Settings.',
+    backupCreditFlash:'Aircraft and routes ADSB.lol', // the opening credit line while adsb.lol stands in
+    consent:'To show planes near you, this app sends your approximate location, rounded to a few miles, to public flight and map services (adsb.fi, or ADSB.lol while adsb.fi is down, OpenFreeMap, Open-Meteo, USGS, EOX). It looks up the planes it shows with ADSB.lol and Planespotters. Your first city guess comes from your internet address (GeoJS). What you type in search goes to Open-Meteo, the U.S. Census Bureau or OpenStreetMap to find the place. Every service also sees your TV’s internet address. Your settings and history are saved only on this TV. No accounts, ads or analytics. You can erase it all in Settings.',
     searchAlts:['Search uses Open-Meteo, the U.S. Census Bureau and OpenStreetMap.','Search: Open-Meteo, U.S. Census Bureau, OpenStreetMap'],
   },
   // The public app: the same services as the personal build (adsb.fi agreed to this app;
