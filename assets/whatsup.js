@@ -4687,7 +4687,9 @@ function updateLog(log,planes,now){
     const name=a.flight;
     if(number(a.altitude_ft)&&(!log.highest||a.altitude_ft>log.highest.value))log.highest={name,value:a.altitude_ft};
     if(number(a.speed_kt)&&(!log.fastest||a.speed_kt>log.fastest.value))log.fastest={name,value:a.speed_kt};
-    if(night&&a.cargo&&!log.cargo.seen[a.hex])log.cargo.seen[a.hex]=a.cargo;
+    // Amazon is told by the owner, which the backup feed (adsb.lol) doesn't send: a plane first
+    // logged under its callsign's operator (ATN: ATI) becomes Amazon once the owner is known.
+    if(night&&a.cargo&&(!log.cargo.seen[a.hex]||a.cargo==='Amazon'))log.cargo.seen[a.hex]=a.cargo;
     // Military today: once per aircraft per day, same local area as Seen; kept with its type.
     if(a.military){log.mil=log.mil||{};if(!(a.hex in log.mil)){log.mil[a.hex]=String(a.aircraft_type||'').slice(0,4);const k=Object.keys(log.mil);if(k.length>500)delete log.mil[k[0]];}}
   }

@@ -171,6 +171,19 @@ function cargoNight(tz,eveningUtc,morningUtc){
   log=updateLog(log,[],morningUtc+MIN);
   return {lost,after:logSummary(log).cargoTonight};
 }
+// adsb.lol (the backup feed) sends no owner, so an Amazon flight it reports is told by its
+// callsign's operator (ATN: ATI); once adsb.fi names the owner it must count as Amazon.
+test('cargo tonight: an Amazon flight first logged from adsb.lol (no owner) counts as Amazon once the owner is known',()=>{
+  home('America/New_York');
+  const t=H(2026,10,3,2); // 21:00 EST
+  let log=updateLog(null,[P('a8f0a3',{flight:'ATN3417',cargo:'ATI'})],t);
+  log=updateLog(log,[P('a8f0a3',{flight:'ATN3417',cargo:'Amazon'})],t+MIN);
+  assert.deepEqual(log.cargo.seen,{a8f0a3:'Amazon'});
+  // adsb.lol standing in again doesn't turn it back, and it counts once.
+  log=updateLog(log,[P('a8f0a3',{flight:'ATN3417',cargo:'ATI'})],t+2*MIN);
+  assert.deepEqual(log.cargo.seen,{a8f0a3:'Amazon'});
+  assert.equal(logSummary(log).cargoTonight,1);
+});
 test('cargo tonight: kept all night over the fall-back night (31 Oct to 1 Nov 2026, New York)',()=>{
   const r=cargoNight('America/New_York',H(2026,9,31,22),H(2026,10,1,11)); // 18:00 EDT .. 06:00 EST
   assert.deepEqual(r.lost,[]);assert.equal(r.after,0,'over at 6 am');
