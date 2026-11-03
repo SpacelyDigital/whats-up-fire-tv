@@ -3308,8 +3308,11 @@ const slim=p=>({callsign:text(p.callsign,10),_airports:Array.isArray(p._airports
 const LOL_MAX=800;
 class Ledger {
   constructor(saved=null){
-    // Only well-formed rows are kept: one damaged row in storage must not stop the feed.
-    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)));this.dirty=false;
+    // Only well-formed rows are kept: one damaged row in storage must not stop the feed. Nothing
+    // here lasts more than a day, so a row expiring later is damage (or a TV clock that jumped
+    // back): kept, it would hold a cached answer or a route-lookup pause for years.
+    const latest=Date.now()/1000+25*3600;
+    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)&&r.expires<=latest));this.dirty=false;
   }
   get(k,now){const row=this.rows.get(k);return row&&row.expires>now?row.value:undefined;}
   put(k,value,expires,now){
@@ -3839,7 +3842,9 @@ function parsePhoto(payload){
 
 // One lookup at a time, GAP_MS apart; null while paused.
 let chain=Promise.resolve(),last=0;
-const pausedUntil=()=>Math.max(Number(store.get(PAUSE_KEY)?.until)||0,0);
+// A saved pause further off than the longest the app sets (a 403's 6 hours) is damage, or a TV
+// clock that jumped back: it counts as none rather than stopping photos for years.
+const pausedUntil=()=>{const until=Number(store.get(PAUSE_KEY)?.until)||0;return until>Date.now()+6*3600000?0:Math.max(until,0);};
 function lookup(url){
   const run=chain.then(async()=>{
     if(Date.now()<pausedUntil())return {status:'paused'};
@@ -4139,6 +4144,9 @@ const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contribut
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
 const KEY='whatsup.map.v2',VERSION=4,MAX_AGE=30*86400000; // v3: airfields, v4: shore
+// Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
+// ahead) counts as old, so it is rebuilt rather than kept for ever.
+const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
 const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=4; // v2: shore, v3: whole-radius reach, v4: inner side streets
 // z10: one tile is ~19 mi wide at 40° latitude, so a 10-mile scope needs 4-9 tiles,
 // and z10 already carries runways and IATA-coded airport labels. Wider map radii use
@@ -4367,7 +4375,7 @@ const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[]
 function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
-    Math.abs(m.longitude-home.longitude)<.01&&(stale||Date.now()-m.built<MAX_AGE);
+    Math.abs(m.longitude-home.longitude)<.01&&(stale||freshMap(m));
   return same?m:null;
 }
 function saveMap(m){
@@ -4521,7 +4529,7 @@ function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
     return m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
-      (stale||Date.now()-m.built<MAX_AGE)?m:null;
+      (stale||freshMap(m))?m:null;
   }catch{return null;}
 }
 function saveDetail(m){

@@ -287,12 +287,14 @@ test('styles: the busy cog\'s rules target the cog only, so the search screen\'s
 });
 test('ledger: damaged saved rows are ignored, so the feed still starts',async()=>{
   const {Ledger}=await import('../web/live.mjs');
-  for(const saved of [{'route:abc':null,'lol:UAL1':{expires:'never',value:5},'route:ok':{expires:2e9,value:{origin:'CVG'}}},[1,2],'x',null,{'route:x':7}]){
+  // A good row expires within the day (a row years ahead counts as damaged: test-saved-times.mjs).
+  const now=Date.now()/1000;
+  for(const saved of [{'route:abc':null,'lol:UAL1':{expires:'never',value:5},'route:ok':{expires:now+3600,value:{origin:'CVG'}}},[1,2],'x',null,{'route:x':7}]){
     const l=new Ledger(saved);
-    assert.doesNotThrow(()=>l.routes(1e9),JSON.stringify(saved));
-    assert.doesNotThrow(()=>l.put('route:new',{origin:'ORD'},2e9,1e9),JSON.stringify(saved));
+    assert.doesNotThrow(()=>l.routes(now),JSON.stringify(saved));
+    assert.doesNotThrow(()=>l.put('route:new',{origin:'ORD'},now+3600,now),JSON.stringify(saved));
   }
-  assert.deepEqual(new Ledger({'route:abc':null,'route:ok':{expires:2e9,value:{origin:'CVG'}}}).routes(1e9),[{origin:'CVG'}]);
+  assert.deepEqual(new Ledger({'route:abc':null,'route:ok':{expires:now+3600,value:{origin:'CVG'}}}).routes(now),[{origin:'CVG'}]);
 });
 test('map cache list: a damaged "recent maps" value counts as none (no rebuild loop)',async()=>{
   const {readFileSync}=await import('node:fs');

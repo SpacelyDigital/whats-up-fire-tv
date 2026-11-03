@@ -14,6 +14,9 @@ export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap co
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
 const KEY='whatsup.map.v2',VERSION=4,MAX_AGE=30*86400000; // v3: airfields, v4: shore
+// Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
+// ahead) counts as old, so it is rebuilt rather than kept for ever.
+const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
 const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=4; // v2: shore, v3: whole-radius reach, v4: inner side streets
 // z10: one tile is ~19 mi wide at 40° latitude, so a 10-mile scope needs 4-9 tiles,
 // and z10 already carries runways and IATA-coded airport labels. Wider map radii use
@@ -242,7 +245,7 @@ const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[]
 export function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
-    Math.abs(m.longitude-home.longitude)<.01&&(stale||Date.now()-m.built<MAX_AGE);
+    Math.abs(m.longitude-home.longitude)<.01&&(stale||freshMap(m));
   return same?m:null;
 }
 export function saveMap(m){
@@ -396,7 +399,7 @@ export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
     return m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
-      (stale||Date.now()-m.built<MAX_AGE)?m:null;
+      (stale||freshMap(m))?m:null;
   }catch{return null;}
 }
 export function saveDetail(m){

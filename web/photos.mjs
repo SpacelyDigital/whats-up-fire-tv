@@ -33,7 +33,9 @@ export function parsePhoto(payload){
 
 // One lookup at a time, GAP_MS apart; null while paused.
 let chain=Promise.resolve(),last=0;
-const pausedUntil=()=>Math.max(Number(store.get(PAUSE_KEY)?.until)||0,0);
+// A saved pause further off than the longest the app sets (a 403's 6 hours) is damage, or a TV
+// clock that jumped back: it counts as none rather than stopping photos for years.
+const pausedUntil=()=>{const until=Number(store.get(PAUSE_KEY)?.until)||0;return until>Date.now()+6*3600000?0:Math.max(until,0);};
 function lookup(url){
   const run=chain.then(async()=>{
     if(Date.now()<pausedUntil())return {status:'paused'};
