@@ -4,14 +4,11 @@
 // arrives, the search screen's source line and the Settings rows under it must still fit
 // (fuzz seed 7059 found "Search uses Open-Meteo, the U.S. Census Bureau and OpenStre" cut).
 //   CHECK_URL=http://127.0.0.1:8767/index.html node scripts/check-refit.mjs
-import {spawn} from 'node:child_process';import {mkdtempSync,readFileSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';
+import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';
 const BASE=process.env.CHECK_URL||'http://127.0.0.1:8767/index.html';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-// Chrome picks its own debugging port (written to DevToolsActivePort), so checks run side by side never meet.
 const profile=mkdtempSync(join(tmpdir(),'refit'));
-const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--remote-debugging-port=0',
-  '--user-data-dir='+profile,'--window-size=960,540','about:blank'],{stdio:'ignore'});
-let port=0;for(let i=0;i<80&&!port;i++){await sleep(250);try{port=Number(readFileSync(join(profile,'DevToolsActivePort'),'utf8').split('\n')[0])||0;}catch{}}
+const {chrome,port}=await launch(profile,['--window-size=960,540','about:blank']);
 let tabs;for(let i=0;i<40&&!tabs;i++){try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{await sleep(250);}}
 const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map(),errors=[];
 ws.onmessage=async e=>{const m=JSON.parse(e.data);

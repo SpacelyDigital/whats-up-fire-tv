@@ -5,7 +5,7 @@
 // at two map radii, draws a plane mark inside its map for every one of the snapshot's
 // airborne aircraft within the map radius, each one by its hex (data-hex on the marks).
 // Exit code 1 if any is missing.
-import {spawn} from 'node:child_process';import {readFileSync,mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {readFileSync,mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
 const HOME={latitude:41.85003,longitude:-87.65005}; // ?q=Chicago (Open-Meteo's first result)
@@ -29,9 +29,7 @@ const miles=a=>{const c=Math.cos(HOME.latitude*Math.PI/180);return Math.hypot((a
 const expected=r=>feed.ac.filter(a=>typeof a.alt_baro==='number'&&miles(a)<=r*.98).map(a=>a.hex.toLowerCase()); // 2%: flat-earth vs the app's distance at the rim
 
 async function page(){
-  const port=9400+Math.floor(Math.random()*500);
-  const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-    '--user-data-dir='+mkdtempSync(tmpdir()+'/drawn'),'--window-size=960,540','about:blank'],{stdio:'ignore'});
+  const {chrome,port}=await launch(mkdtempSync(tmpdir()+'/drawn'),['--window-size=960,540','about:blank']);
   let tabs;for(let i=0;i<40&&!tabs;i++){await new Promise(r=>setTimeout(r,250));try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
   const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map();
   ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}};
@@ -58,10 +56,12 @@ for(const [layout,{marks,area}] of Object.entries(LAYOUTS)){
       const box=typeof A==='string'?(r=>({x:(r.x-st.x)/k,y:(r.y-st.y)/k,w:r.width/k,h:r.height/k}))(document.querySelector('#stage '+A).getBoundingClientRect()):A;
       const inside=(x,y)=>box.r?Math.hypot(x-box.cx,y-box.cy)<=box.r:x>=box.x&&x<=box.x+box.w&&y>=box.y&&y<=box.y+box.h;
       return [...document.querySelectorAll('#stage .layout ${marks}')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&inside((r.x+r.width/2-st.x)/k,(r.y+r.height/2-st.y)/k);}).map(e=>e.dataset.hex);})()`;
-    const drawn=(await p.send('Runtime.evaluate',{expression:js,returnByValue:true})).result?.value;
+    // A loaded machine, or slow map tiles, can need more than the 9 s: look again for up to 16 s.
+    const want=expected(map);let drawn=[];
+    for(let i=0;i<=32;i++){drawn=(await p.send('Runtime.evaluate',{expression:js,returnByValue:true})).result?.value||[];if(want.every(h=>drawn.includes(h)))break;await new Promise(r=>setTimeout(r,500));}
     if(process.env.CHECK_DEBUG)console.log('  drawn:',(drawn||[]).join(' '),'\n  urls:',(await p.send('Runtime.evaluate',{expression:'JSON.stringify(window.__urls)',returnByValue:true})).result?.value);
     p.close();
-    const want=expected(map),shown=new Set(drawn||[]),missing=want.filter(h=>!shown.has(h)),ok=!missing.length;
+    const shown=new Set(drawn),missing=want.filter(h=>!shown.has(h)),ok=!missing.length;
     console.log(`${ok?'ok  ':'FAIL'} ${layout.padEnd(16)} ${String(map).padStart(2)} mi ${zone.padEnd(6)} feed ${want.length} airborne within the radius, map draws ${want.length-missing.length} of them${missing.length?` (missing ${missing.join(' ')})`:''}`);
     if(!ok)fails.push(layout);
   }

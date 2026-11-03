@@ -11,7 +11,7 @@
 // map tiles come through the dev server. Prints the text closest to the edges per layout and,
 // from those distances, the largest stage scale that would keep it all inside 5%.
 // CHECK_SIZES=1080 or 720 runs one size. Exit code 1 if any text is inside the outer 5%.
-import {spawn} from 'node:child_process';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
 const LAYOUTS=['atlas-dark','atlas','atlas-satellite','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
@@ -28,9 +28,8 @@ const MOCK=`(()=>{let v;const PLACES=[['Chicago','Illinois',41.85,-87.65],['Chic
     pm(d);};v=b;}});})();`;
 
 async function page(w,h,{consent=true,layout}){
-  const port=9400+Math.floor(Math.random()*500),profile=mkdtempSync(tmpdir()+'/safe');
-  const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-    '--user-data-dir='+profile,`--window-size=${w},${h}`,'about:blank'],{stdio:'ignore'});
+  const profile=mkdtempSync(tmpdir()+'/safe');
+  const {chrome,port}=await launch(profile,[`--window-size=${w},${h}`,'about:blank']);
   let tabs;for(let i=0;i<40&&!tabs;i++){await sleep(250);try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
   const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map(),errors=[];
   ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}

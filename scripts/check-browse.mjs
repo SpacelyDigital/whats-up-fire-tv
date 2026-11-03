@@ -9,7 +9,7 @@
 // here, so the bundled model photos show, and the demo planes hold still (&still=1) so the order
 // can't change under the presses. CHECK_SIZES=1080 or 720 runs one size.
 // Exit code 1 on any failure.
-import {spawn} from 'node:child_process';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
 const SIZES=[[1920,1080],[1280,720]].filter(([,h])=>!process.env.CHECK_SIZES||process.env.CHECK_SIZES.split(',').includes(String(h)));
@@ -33,9 +33,8 @@ const MOCK=`(()=>{let v;window.__ui=[];Object.defineProperty(window,'ReactNative
     if(/planespotters/.test(r.url||''))return setTimeout(()=>window.__whatsupReply(r.id,404,''),30);pm(d);};v=b;}});})();`;
 
 async function page(w,h,layout){
-  const port=9400+Math.floor(Math.random()*500),profile=mkdtempSync(tmpdir()+'/browse');
-  const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-    '--user-data-dir='+profile,`--window-size=${w},${h}`,'about:blank'],{stdio:'ignore'});
+  const profile=mkdtempSync(tmpdir()+'/browse');
+  const {chrome,port}=await launch(profile,[`--window-size=${w},${h}`,'about:blank']);
   let tabs;for(let i=0;i<40&&!tabs;i++){await sleep(250);try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
   const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map(),errors=[];
   ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}

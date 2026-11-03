@@ -4,13 +4,11 @@
 // Layout, Right (start previewing the next layout), then Back at once; after the slow script
 // arrives, the dashboard must still show the saved layout, and Settings must agree with it.
 // Then Right, Right, OK quickly must keep the second preview. Exit code 1 on any failure.
-import {spawn} from 'node:child_process';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const port=9400+Math.floor(Math.random()*500);
-const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-  '--user-data-dir='+mkdtempSync(tmpdir()+'/race'),'--window-size=960,540','about:blank'],{stdio:'ignore'});
+const {chrome,port}=await launch(mkdtempSync(tmpdir()+'/race'),['--window-size=960,540','about:blank']);
 let tabs;for(let i=0;i<40&&!tabs;i++){await sleep(250);try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
 const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map();
 ws.onmessage=async e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}
