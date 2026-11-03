@@ -14,8 +14,21 @@ import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText}
 const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
 const stage=$('stage');
-const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540);stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+// The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
+// reaches the outer 5% of any edge (overscan); the personal build fills the screen.
+const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
+// The margin around an inset stage shows the layout's own background (its --edge colour where
+// that background is a gradient; Adjust position's own background while it is open), shaded
+// like the stage while screens with a shade are open over it.
+const clear=c=>!c||c==='transparent'||/^rgba\(.*,\s*0\)$/.test(c);
+function paintEdge(){
+  if(!(PROFILE.stageScale<1))return;
+  const cs=getComputedStyle(stage),own=cs.getPropertyValue('--edge').trim(),bg=getComputedStyle($('layout')).backgroundColor;
+  const edge=stage.classList.contains('adjusting')?cs.backgroundColor:own||(clear(bg)?cs.backgroundColor:bg);
+  const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o).backgroundColor).filter(c=>!clear(c));
+  document.body.style.background=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
+}
 
 // --- Bridge to the Vega app: it handles the remote's Back button and asks us first.
 const native=window.ReactNativeWebView;
@@ -123,7 +136,7 @@ async function useLayout(id){
   unloadExcept(id);
   root.replaceChildren();root.className='layout';
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));stage.dataset.layout=id;
-  active={id,mod};
+  active={id,mod};paintEdge();
   if(mod.map!=='detail')maps.detail=null; // free it; it reloads from storage when needed
   try{
     mod.mount(root,ctx);
@@ -332,7 +345,7 @@ function syncApp(){
   const c=$('credit-flash');
   if(layer||adj||pick){if(c.classList.contains('on')){c.classList.remove('on');clearTimeout(creditTimer);creditDue=true;}}
   else if(creditDue)flashCredits();
-  hideBehind();tellApp({type:'ui',overlay:!!adj||!!layer&&!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length)});}
+  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||!!layer&&!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length)});}
 
 function move(dir){
   const items=focusables();
@@ -796,7 +809,7 @@ function agree(){giveConsent();closeAll();const r=consentDone;consentDone=null;r
 // The chosen layout's colours for the consent screen, without starting the layout (its
 // code may fetch map imagery): only its stylesheets and stage classes.
 function themeOnly(id){
-  for(const sheet of sheetsOf(id))addCss(sheet,()=>{});
+  for(const sheet of sheetsOf(id))addCss(sheet,paintEdge);
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));
 }
 // assets/privacy.txt as plain text: a blank line starts a paragraph, "## " a heading.

@@ -1,7 +1,7 @@
 /* Layout 7, Blueprint: navy drafting paper, white/cyan linework, condensed lettering. */
 @font-face{font-family:'Barlow Condensed';src:url(../fonts/BarlowCondensed-Medium.woff2) format('woff2');font-weight:500;font-display:block}
 @font-face{font-family:'Barlow Condensed';src:url(../fonts/BarlowCondensed-SemiBold.woff2) format('woff2');font-weight:600 800;font-display:block}
-.L-blueprint{--ui-ink:#eaf6ff;--ui-dim:rgba(200,230,255,.7);--ui-faint:rgba(200,230,255,.35);--ui-bg:#0c2d5a;--ui-shade:rgba(6,22,46,.8);
+.L-blueprint{--edge:#081e40;--ui-ink:#eaf6ff;--ui-dim:rgba(200,230,255,.7);--ui-faint:rgba(200,230,255,.35);--ui-bg:#0c2d5a;--ui-shade:rgba(6,22,46,.8);
   --ui-on:#0c2d5a;--ui-glow:rgba(140,215,255,.2);--ui-font:'Barlow Condensed',sans-serif;--ui-radius:0px;
   --bp-ink:#eef7ff;--bp-cyan:#8cd7ff;--bp-dim:rgba(200,230,255,.62);--bp-red:#ff6a5c;--bp-paper:#0c2d5a}
 .L-blueprint .layout{background:radial-gradient(ellipse at 40% 50%,#10376b,#0a2650 70%,#081e40);color:var(--bp-ink);font-family:'Barlow Condensed',sans-serif}

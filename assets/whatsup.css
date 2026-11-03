@@ -8,6 +8,8 @@
   --mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#000}
+/* The store build's inset margin: app.mjs (paintEdge) paints body in the layout's background (a layout
+   with a gradient background names its outer colour as --edge). */
 [hidden]{display:none!important}
 .stage{position:absolute;left:50%;top:50%;width:960px;height:540px;transform-origin:center;overflow:hidden;
   background:#000;color:var(--ui-ink);font-family:var(--mono);font-size:14px;line-height:1.45}

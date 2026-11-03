@@ -25,7 +25,8 @@
     "check:drawn": "node scripts/check-drawn.mjs",
     "check:settings-edit": "node scripts/check-settings-edit.mjs",
     "check:picker-race": "node scripts/check-picker-race.mjs",
-    "check:adjust-hold": "node scripts/check-adjust-hold.mjs"
+    "check:adjust-hold": "node scripts/check-adjust-hold.mjs",
+    "check:safe-area": "node scripts/check-safe-area.mjs"
   },
   "dependencies": {
     "@amazon-devices/react-native-kepler": "^4.0.0",
