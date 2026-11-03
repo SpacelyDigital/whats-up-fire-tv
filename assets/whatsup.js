@@ -5548,12 +5548,16 @@ async function useLayout(id){
   }catch(e){console.error(`layout ${id}`,e);}
   if(mod.map==='detail')ensureDetail();
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
+  refitScreens(); // screens open over the switch now have this layout's fonts
   flashCredits();done();
 }
 function draw(m){
   if(!active||adj)return;
   m=shown(m);
   try{active.mod.render(m);}catch(e){console.error(`render ${active.id}`,e);}
+  // A photo credit is fitted when its photo loads; when the card's other lines take room from
+  // it later, it is fitted again here (fuzz seed 7008: cut by 3 px).
+  for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
   announce(m);
 }
 function mapsChanged(){
@@ -5775,8 +5779,16 @@ function refitSettings(){
   const refit=()=>{if(layer?.id!=='settings')return;for(const r of layer.querySelectorAll('.row'))fitValue(r);showTipJar();};
   refit();document.fonts?.ready.then(refit);setTimeout(refit,700);
 }
+// Text fitted on a screen that stays open while the layout changes, or while its font arrives,
+// is fitted again: Settings rows (also under the search screen), the search screen's source
+// line, and the card's photo credit. Without this they stayed cut (fuzz seeds 7008, 7059).
+function refitScreens(){
+  if(!$('settings').hidden){for(const r of $('settings').querySelectorAll('.row'))fitValue(r);showTipJar();}
+  if(!$('locate').hidden)fitLine($('search-src'));
+  for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
+}
 // A layout's font arriving changes text widths: fit the settings and the dashboard again.
-document.fonts?.addEventListener?.('loadingdone',()=>{if(layer?.id==='settings')refitSettings();if(lastModel)draw(lastModel);});
+document.fonts?.addEventListener?.('loadingdone',()=>{if(layer?.id==='settings')refitSettings();refitScreens();if(lastModel)draw(lastModel);});
 function closeAll(){while(layer){if(layer.id==='picker')endPick(false);layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;}setFocus(null);syncApp();}
 // The app swallows Back only while a screen is open (and there's somewhere to go).
 function syncApp(){
