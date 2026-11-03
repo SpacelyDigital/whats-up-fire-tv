@@ -12,7 +12,7 @@ import {fileURLToPath} from 'node:url';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const web=join(root,'web'),out=process.env.WHATSUP_OUT||join(root,'assets'); // WHATSUP_OUT: build elsewhere (checks)
 // Dependency order.
-const MODULES=['config.js','profile.mjs','core.mjs','silhouettes.mjs','routes.mjs','aircraft-types.mjs','live.mjs','models.mjs','photos.mjs','place.mjs','mapgen.mjs','model.mjs','kit.mjs','app.mjs'];
+const MODULES=['config.js','profile.mjs','core.mjs','silhouettes.mjs','routes.mjs','aircraft-types.mjs','live.mjs','models.mjs','photos.mjs','place.mjs','mapgen.mjs','model.mjs','kit.mjs','browse.mjs','app.mjs'];
 
 // Rewrites `import {a,b} from './x.mjs'` (paths relative to `dir` inside web/) and
 // `export const|function ...`. Returns the body plus the import lines and exported names.

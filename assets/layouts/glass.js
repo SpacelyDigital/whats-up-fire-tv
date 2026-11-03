@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
-  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts}=__modules["kit.mjs"];
+  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 5, Glass: a near-black street map (roads by class, water, parks, faint
 // buildings) under see-through glass cards: time and place, the hero flight with
 // route and four instrument tiles, the nearest aircraft in range, and today's tallies.
@@ -65,7 +65,7 @@ function ui(){
   for(const c of ['clock','city','status','date','kicker','flight','sub','o','oc','d','dc','line','alt','spd','look','cpa','quiet-t','list','seen','seen-by','mil','mil-by','cargo','cargo-by'])
     $[c]=root.querySelector('.gl-'+c);
   $.lineFill=$.line.firstChild;
-  fit($.city,$.flight,$.alt,$.spd,$.look,$.cpa);
+  fit($.city,$.kicker,$.flight,$.alt,$.spd,$.look,$.cpa);
 }
 
 function drawMap(){
@@ -111,7 +111,7 @@ function render(m){
   if(hero?.emergency)$.alert.replaceChildren(el('b','',`Squawk ${hero.squawk}`),el('span','',hero.emergency));
   if(!hero)setText($['quiet-t'],quietText(m,demo));
   if(hero){
-    setText($.kicker,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`);
+    setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.flight,hero.flight);
     setText($.sub,[hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''),hero.type||hero.aircraft_type].filter(Boolean).join(' · ')||'Unknown aircraft');
     const r=hero.route;

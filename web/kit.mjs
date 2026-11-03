@@ -16,7 +16,9 @@
 // route {origin,destination,from,to}, progress {flown,left,share}, x/y (miles east/
 // north of home), ground (miles), bearing, elevation (deg up), cpa {seconds,miles,
 // receding}, inside (within the alert radius), trend {alt,speed,trail[]}, year;
-// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency').
+// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency'); while Left/Right
+// browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
+// {index, count} (headingAlts words the card's heading).
 import {PROFILE} from './profile.mjs';
 import {number,zoneOutline,snapped,GRID_PAD_MI} from './core.mjs';
 export {snapped,GRID_PAD_MI};
@@ -167,6 +169,14 @@ export const windowView=()=>S.alertZone==='window';
 // SVG path of the alert zone; at(x,y) maps miles east/north of home to screen {x,y}.
 export const zonePath=at=>'M'+zoneOutline(alertZone()).map(([x,y])=>{const p=at(x,y);return `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;}).join('L')+'Z';
 export const routeText=(r,sep=' → ')=>r?`${r.origin}${sep}${r.destination}`:'';
+// The card's heading. While Left/Right browse the planes (browse.mjs) it gives the plane's place
+// in the list and where it is, "Plane 3 of 9 · 4.2 mi NE", with shorter wordings for a tight
+// line that all keep the number; otherwise `line`, the layout's own heading.
+export function headingAlts(hero,line){
+  const b=hero?.browse;if(!b)return [line];
+  const d=fmt.dist(hero.ground),at=`${d} ${compass(hero.bearing)}`;
+  return [`Plane ${b.index} of ${b.count} · ${at}`,`${b.index} of ${b.count} · ${at}`,`${b.index}/${b.count} · ${at}`,`${b.index}/${b.count} · ${d}`];
+}
 export const routeCities=r=>r?[r.from?.city||r.origin,r.to?.city||r.destination]:null;
 // "Live" / "Preview" / "Connecting…" / "No signal", and what to say when nothing is near.
 export const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting':m.fresh?'Live':'No signal';

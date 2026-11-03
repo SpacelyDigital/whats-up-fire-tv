@@ -3,7 +3,7 @@
 // silhouettes with drafting callouts on leader lines, the hero gets a dimension line
 // from home, and the data lives in a title block and a revision table.
 import {svg,el,setText,fmt,placeName,statusText,quietText,shapeFor,byInterest,makeCanvas,paintMap,toView,
-  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts} from '../kit.mjs';
+  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,LIMIT=10.4,VIEW={cx:372,cy:292,ppm:24.5}; // the whole map radius fits below home (248 px); the frame keeps its size
 // The survey limit: linework stops at a drafted border where the detail map ends.
@@ -60,7 +60,7 @@ function ui(){
     <div class="bp-scale"></div>`);
   for(const c of ['city','clock','date','status','rev-b','stamp','stamp-a','stamp-b','fl','op','type','route','alt','spd','hdg','cpa','vs','note','scale'])
     $[c]=root.querySelector('.bp-'+c);
-  fit($.city);
+  $.obj=root.querySelector('.bp-obj i');fit($.city,$.obj);
   $.cells=[...root.querySelectorAll('.bp-block .bp-cell:not(.bp-note):not(.bp-foot)')];
   $.side=root.querySelector('.bp-side');$.fig=root.querySelector('.bp-fig');$.fig.append($.pic=photoSlot());
 }
@@ -156,7 +156,7 @@ function render(m){
   for(const c of $.cells)c.hidden=!hero;$.note.hidden=!!hero;
   if(!hero)setText($.note,`NOTE 1: ${quietText(m,demo).toUpperCase()}`);
   if(hero){
-    setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
+    setText($.obj,'',headingAlts(hero,'Object'));setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
     $.type._alts=[...new Set([hero.type,hero.aircraft_type,'UNKNOWN'].filter(Boolean).map(s=>s.toUpperCase()))];fitLine($.type);
     setText($.route,hero.route?`${hero.route.origin} → ${hero.route.destination}`:'NOT FILED');
     setText($.alt,fmt.alt(hero.altitude_ft).toUpperCase());setText($.spd,fmt.speed(hero.speed_kt).toUpperCase());

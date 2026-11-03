@@ -286,6 +286,11 @@ export class Ledger {
   toJSON(){return Object.fromEntries(this.rows);}
 }
 
+// The plane picked with Left/Right, once it has stayed on the card about a second (app.mjs,
+// browse.mjs): its route is the next one asked for.
+let routeFocus=()=>'';
+export const setRouteFocus=fn=>{routeFocus=fn;};
+
 export class Enricher {
   constructor(ledger,request){this.ledger=ledger;this.request=request;this.status='idle';}
   publish(a,route,now){
@@ -322,11 +327,12 @@ export class Enricher {
       else if(cached._airports)this.publish(a,commercialRoute(slim(cached),a,this.previous(a,now)),now); // older caches were checked less
     }
     // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
-    // pause after a 429, 1 min after other errors. The
-    // one asked for: inside the zone first, then the nearest (the plane on the card).
+    // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
+    // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
     if(missing.length&&!L.get('cooldown:adsblol',now)){
       L.put('cooldown:adsblol',true,now+5,now);
-      const a=missing.sort((x,y)=>Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
+      const f=routeFocus();
+      const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
       const {status,payload}=await this.request(ROUTE_URL(call));
       this.status=String(status);
       if((status===200&&payload&&typeof payload==='object')||status===404){

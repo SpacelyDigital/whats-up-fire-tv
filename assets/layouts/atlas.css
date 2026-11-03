@@ -46,7 +46,7 @@
 .L-atlas .at-status:empty{display:none}
 .L-atlas .at-date{font:500 14px Inter;color:var(--at-dim);margin-top:2px;padding-bottom:9px;border-bottom:2px solid var(--at-ink)}
 .L-atlas .at-hero{display:flex;flex-direction:column;gap:4px}
-.L-atlas .at-kicker{font:700 12.5px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--at-red)}
+.L-atlas .at-kicker{white-space:nowrap;font:700 12.5px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--at-red)}
 .L-atlas .at-flight{display:flex;flex-direction:column;gap:1px}
 .L-atlas .at-fl{font:900 32px/1.05 Inter;letter-spacing:-.02em}
 .L-atlas .at-op{font:600 15px/1.25 Inter;color:var(--at-dim)}

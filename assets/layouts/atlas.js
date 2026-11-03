@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
-  airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit}=__modules["kit.mjs"];
+  airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit,headingAlts}=__modules["kit.mjs"];
 const {PROFILE}=__modules["profile.mjs"];
 // Layout 2, Atlas Light: a light, fully detailed printed city map (landuse, parks, water,
 // buildings, every road class with casings, rail, aeroways, place names) with planes
@@ -145,7 +145,7 @@ function ui(){
   for(const c of ['city','clock','status','date','hero','alert','kicker','fl','op','route','prog','bar','progt','alt','spd','vs','hdg','look','cpa',
     'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','mil-n','mil-by','log','rec'])$[c]=side.querySelector('.at-'+c);
   $.credit._whole=true; // attribution: wraps rather than losing words
-  $.barFill=$.bar.firstChild;fit($.city);
+  $.barFill=$.bar.firstChild;fit($.city,$.kicker);
   root.append(map,side);
 }
 
@@ -322,7 +322,7 @@ function render(m){
   if(!hero)setText($.quiet,quietText(m,demo));
   if(hero){
     $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`Squawk ${hero.squawk} · ${hero.emergency}`:'');
-    setText($.kicker,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`);
+    setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.fl,hero.flight);setText($.op,hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''));
     const r=hero.route;
     setText($.route,r?`${r.from?.city||r.origin} → ${r.to?.city||r.destination}`:'Route not reported');

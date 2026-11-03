@@ -9,7 +9,7 @@
 .L-swiss .city:before{content:'';width:18px;height:18px;background:var(--red);flex:none}
 .L-swiss .clock{font-weight:700}
 .L-swiss .rule{position:absolute;left:36px;right:36px;top:60px;height:3px;background:var(--ink)}
-.L-swiss .kicker{position:absolute;left:36px;top:76px;font:700 18px 'Inter';color:var(--red);letter-spacing:.01em}
+.L-swiss .kicker{position:absolute;left:36px;top:76px;width:560px;white-space:nowrap;font:700 18px 'Inter';color:var(--red);letter-spacing:.01em}
 .L-swiss .giant{position:absolute;left:24px;top:84px;width:580px;height:300px;display:flex;align-items:flex-end;gap:6px}
 /* The gap after the number is in em, so it scales with the number: 1, 2 or 3 digits,
    miles or km, the red rule and unit keep the same breathing room. .065em undoes the

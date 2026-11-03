@@ -46,7 +46,7 @@
 .L-sectional .box{background:#fbf8ee;border:1.5px solid var(--ink);box-shadow:2px 2px 0 rgba(42,38,34,.18)}
 .L-sectional .box header{display:flex;justify-content:space-between;background:#cfe0ef;border-bottom:1.2px solid var(--ink);padding:1px 8px;
   font:700 13px var(--bc);letter-spacing:.12em;text-transform:uppercase}
-.L-sectional .box header .tr{color:var(--mag)}
+.L-sectional .box header .tr{color:var(--mag);min-width:0;white-space:nowrap}
 .L-sectional .layout .title{padding:6px 10px 6px;border-width:2.5px;text-align:center}
 .L-sectional .city{font:700 28px/1.05 var(--bc);letter-spacing:.06em;white-space:nowrap;overflow:hidden}
 .L-sectional .sub{display:flex;justify-content:center;gap:10px;font:600 15px var(--bc);letter-spacing:.06em;margin-top:2px}

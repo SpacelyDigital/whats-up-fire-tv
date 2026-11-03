@@ -1,7 +1,7 @@
 // Layout 4, Radar: the green phosphor scope (10-mile range, sweep, data blocks) and
 // a panel with the hero flight, cargo tonight, today's logbook and recent sightings.
 import {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
-  makeCanvas,paintMap,airportsNear,mapShift,offset,compass,number,BASE_RANGE,range,zoom,niceStep,zonePath,windowView,alertZone,fitLine,photoSlot,showPhotoIn,fit,placeAlts,airlineAlts} from '../kit.mjs';
+  makeCanvas,paintMap,airportsNear,mapShift,offset,compass,number,BASE_RANGE,range,zoom,niceStep,zonePath,windowView,alertZone,fitLine,photoSlot,showPhotoIn,fit,placeAlts,airlineAlts,headingAlts} from '../kit.mjs';
 
 const CX=270,CY=270,R=250,PPM0=R/BASE_RANGE;
 let PPM=PPM0; // px per mile at the current map radius (set before each draw)
@@ -27,7 +27,7 @@ function ui(){
   for(const id of ['rings','labels','trails','blips','blocks'])$.scope.append($[id]=svg('g'));
   $.note=el('div','scope-note');
   $.ringNote=el('div','corner br');
-  wrap.append(el('div','sweep'),$.canvas,$.scope,$.note,$.ringNote,el('div','corner tr','Select ▸ Settings'),$.pic=photoSlot('corner tl'));
+  wrap.append(el('div','sweep'),$.canvas,$.scope,$.note,$.ringNote,el('div','corner tr','Select ▸ Settings · ‹ › Planes'),$.pic=photoSlot('corner tl'));
   panel.innerHTML=`
     <header class="head"><div class="city"></div><div class="clock"></div></header>
     <div class="where"><span class="today"></span><span class="status"></span></div>
@@ -52,7 +52,7 @@ function ui(){
     <div class="recent-wrap"><div class="label">Recently above</div><div class="recent"></div></div>`;
   for(const c of ['city','clock','today','status','hero','hero-label','alert','fl','op','route','progress','bar','prog','alt','spd','look','cpa',
     'aircraft','empty-sky','cargo-n','cargo-by','mil-n','mil-by','log','recent'])$[c]=panel.querySelector('.'+c);
-  fit([...panel.querySelectorAll('.stats b')],$.city,$.op,$.route,$.aircraft);
+  fit([...panel.querySelectorAll('.stats b')],$.city,$['hero-label'],$.op,$.route,$.aircraft);
   $.barFill=$.bar.firstChild;
 }
 
@@ -157,7 +157,7 @@ function render(m){
   $.hero.hidden=!hero;$['empty-sky'].hidden=!!hero;
   if(!hero)setText($['empty-sky'],quietText(m,demo));
   if(hero){
-    setText($['hero-label'],`${hero.status} · ${fmt.dist(hero.distance_mi??hero.ground)}`);
+    setText($['hero-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.distance_mi??hero.ground)}`));
     $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`SQUAWK ${hero.squawk} · ${hero.emergency}`:'');
     setText($.fl,hero.flight);setText($.op,'',airlineAlts(hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':'')));
     const r=hero.route,city=p=>p?.city?` ${p.city}`:'';

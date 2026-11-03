@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,byInterest,paintMap,airportsNear,
-  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts}=__modules["kit.mjs"];
+  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 9, Synthwave: a neon sunset. The map is a glowing grid floor tilted with a
 // CSS 3D transform (looking north from behind home); planes are glowing chevrons in a
 // flat overlay, placed with the same perspective maths and lifted by altitude, so
@@ -68,7 +68,7 @@ function ui(){
   for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m2','quiet','q2',
     's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city);
+  fit($.city,$['h-label']);
 }
 
 function drawMap(){
@@ -144,7 +144,7 @@ function render(m){
   showPhotoIn($.pic,hero);
   if(!hero)setText($.q2,quietText(m,demo));
   else{
-    setText($['h-label'],`${hero.status} · ${fmt.dist(hero.ground)}`);
+    setText($['h-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     setText($['h-fl'],hero.flight);$['h-fl'].classList.toggle('long',hero.flight.length>8);
     setText($['h-rt'],hero.route?`${hero.route.from?.city||hero.route.origin} → ${hero.route.to?.city||hero.route.destination}`:(hero.operator||'Route not reported'));
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));

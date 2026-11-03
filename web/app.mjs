@@ -1,15 +1,18 @@
 // The page. Owns the data (feed model, settings, maps) and the shared
 // screens (Settings, location, Adjust position, layout picker); the chosen layout
 // (web/layouts/<id>.mjs, loaded on demand, only one at a time) draws the dashboard.
-// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings.
+// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings;
+// on the dashboard Up/Down change the map radius and Left/Right step through the planes.
 import {CONFIG} from './config.js';
 import {PROFILE} from './profile.mjs';
 import {chimeGate} from './core.mjs';
-import {HISTORY_KEY,MAX_NM,store} from './live.mjs';
+import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText} from './kit.mjs';
+import {setPhotoGate} from './photos.mjs';
+import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
 const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
@@ -141,7 +144,7 @@ async function useLayout(id){
   try{
     mod.mount(root,ctx);
     mod.setMap?.({...maps});
-    if(lastModel&&!adj)mod.render(lastModel);
+    if(lastModel&&!adj)mod.render(shown(lastModel));
   }catch(e){console.error(`layout ${id}`,e);}
   if(mod.map==='detail')ensureDetail();
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
@@ -149,7 +152,9 @@ async function useLayout(id){
 }
 function draw(m){
   if(!active||adj)return;
+  m=shown(m);
   try{active.mod.render(m);}catch(e){console.error(`render ${active.id}`,e);}
+  announce(m);
 }
 function mapsChanged(){
   try{active?.mod.setMap?.({...maps});}catch(e){console.error('setMap',e);}
@@ -192,15 +197,45 @@ function listen(m){
   const r=chimeGate(chime,m.planes.filter(a=>a.inside).length,m.now,m.live&&m.fresh);chime=r.state;
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
-// Screen readers: one polite announcement when the closest plane changes.
+// Screen readers: one polite announcement when the plane on the card changes (or Left/Right
+// browsing starts or ends on it).
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex:'';
+  const h=m.hero,key=h?h.hex+(h.browse?'+':''):'';
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
-function render(m){lastModel=m;listen(m);draw(m);announce(m);}
+function render(m){lastModel=m;listen(m);draw(m);}
+
+// --- Left/Right on the dashboard step through the planes on the map, closest first; the chosen
+// one takes the card (browse.mjs has the rules). Back, the plane leaving the map, a minute
+// without Left or Right, or an emergency give the card back to the hero.
+let browse=null,browseTimer=0,browseFrame=0;
+const gate=new LookupGate(),redraw=()=>{if(lastModel)draw(lastModel);};
+// Its photo and route are looked up once it has stayed on the card about a second.
+setPhotoGate(hex=>gate.wait(hex));
+setRouteFocus(()=>held(browse,Date.now())?browse.hex:'');
+// The model as drawn: while browsing, the chosen plane is the hero. The lookup gate learns which
+// plane the card is about to show (a layout asks for its photo while drawing).
+function shown(m){
+  if(browse){
+    const r=applyBrowse(browse,m,mapMiles(),Date.now());
+    if(!r.state){browse=null;clearTimeout(browseTimer);queueMicrotask(syncApp);}
+    m=r.m;
+  }
+  gate.update(m.hero?.hex||'',browse,Date.now());
+  return m;
+}
+function stepPlanes(dir){
+  const next=stepBrowse(browse,lastModel,mapMiles(),dir,Date.now());
+  if(!next)return; // nothing on the map, or an emergency has the card
+  const was=browse;browse=next;
+  clearTimeout(browseTimer);browseTimer=setTimeout(redraw,IDLE_MS+50);
+  if(!was)syncApp(); // Back now ends browsing instead of leaving the app
+  cancelAnimationFrame(browseFrame);browseFrame=requestAnimationFrame(redraw); // a held key: one draw a frame
+}
+function endBrowse(){if(!browse)return;browse=null;clearTimeout(browseTimer);syncApp();redraw();}
 // Restart only the aircraft feed (alert zone or alert radius changed): the maps stay as
 // they are. Re-reading and re-decoding the saved maps blocked the stick for seconds.
 function restartFeed(){
@@ -345,7 +380,7 @@ function syncApp(){
   const c=$('credit-flash');
   if(layer||adj||pick){if(c.classList.contains('on')){c.classList.remove('on');clearTimeout(creditTimer);creditDue=true;}}
   else if(creditDue)flashCredits();
-  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||!!layer&&!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length)});}
+  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||(layer?!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length):!!browse)});}
 
 function move(dir){
   const items=focusables();
@@ -657,6 +692,7 @@ function back(){
   const now=Date.now();if(now-lastBack<350)return;lastBack=now;
   if(editing)return cancelEdit();
   if(adj)return endAdjust();
+  if(!layer&&browse)return endBrowse();
   close();
 }
 window.__whatsupBack=back;
@@ -758,6 +794,8 @@ document.addEventListener('keydown',e=>{
   if(!layer){
     // Up/Down on the dashboard: zoom the map in/out (Settings > Map radius).
     if(dir==='up'||dir==='down'){e.preventDefault();return stepMap(dir==='up'?-1:1);}
+    // Left/Right: the next or previous plane on the card (a held key repeats).
+    if(dir==='left'||dir==='right'){e.preventDefault();return stepPlanes(dir==='right'?1:-1);}
     if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();showSettings();open('settings');}
     return;
   }

@@ -47,7 +47,7 @@
 .L-synthwave .clock{font:900 48px/1.05 var(--orb);color:#fff;text-shadow:0 0 6px #fff,0 0 18px var(--cyan),0 0 36px var(--cyan);margin-top:4px}
 .L-synthwave .date{font:600 13px var(--orb);color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
 .L-synthwave .hcard{position:absolute;right:24px;top:18px;width:330px;text-align:right}
-.L-synthwave .h-label{font:700 12px var(--orb);color:var(--cyan);letter-spacing:.18em;text-transform:uppercase}
+.L-synthwave .h-label{white-space:nowrap;font:700 12px var(--orb);color:var(--cyan);letter-spacing:.18em;text-transform:uppercase}
 .L-synthwave .h-fl{font:900 38px/1.1 var(--orb);color:#fff;text-shadow:0 0 8px var(--pink),0 0 24px var(--pink);white-space:nowrap}
 .L-synthwave .h-fl.long{font-size:28px}
 .L-synthwave .h-rt{font:700 17px var(--orb);color:var(--sun1);text-shadow:0 0 8px rgba(255,180,70,.7);line-height:1.3}

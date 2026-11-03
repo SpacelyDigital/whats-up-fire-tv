@@ -1,7 +1,8 @@
 // The display model: live aircraft (live.mjs: adsb.fi + ADSB.lol routes) enriched
 // with operator, cargo brand, look-up angles, closest approach, trend and a daily
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
-// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off).
+// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
+// &still=1: the planes hold where they start, for checks that step through them in order).
 import {IDS,airspace,recentSightings,number,inZone,ABOVE_MI} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
 import {startLive,haversine,store} from './live.mjs';
@@ -9,7 +10,7 @@ import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
 
 // Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
 export const query=new URLSearchParams(typeof location!=='undefined'&&!globalThis.window?.__whatsupRelease?location.search:'');
-export const demo=query.get('demo')==='1',scene=query.get('scene')||'';
+export const demo=query.get('demo')==='1',scene=query.get('scene')||'',still=query.get('still')==='1';
 let HOME={latitude:0,longitude:0,elevationFt:0},TZ='UTC';
 export const tz=()=>TZ;
 
@@ -339,7 +340,7 @@ function demoSource(config,onModel,airports){
     DEMO[5]=['a7c3b9','SWA4499','N8731J','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg('DFW','FRA')];
   }
   const tick=()=>{
-    const now=Date.now(),t=(now-started)/1000;
+    const now=Date.now(),t=still?0:(now-started)/1000;
     const planes=DEMO.map(([hex,callsign,registration,aircraft_type,ownOp,year,e,n,alt,gs,track,fpm,route])=>{
       const v=gs*1.15078/3600,east=e+v*t*Math.sin(track*Math.PI/180),north=n+v*t*Math.cos(track*Math.PI/180);
       const latitude=HOME.latitude+north/69,longitude=HOME.longitude+east/(69.172*Math.cos(HOME.latitude*Math.PI/180));

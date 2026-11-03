@@ -32,7 +32,7 @@
 .L-glass .gl-status.off{color:var(--gl-red)}
 .L-glass .gl-date{font:400 13px Inter;color:var(--gl-dim)}
 .L-glass .gl-col{position:absolute;left:640px;top:18px;width:298px;bottom:18px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
-.L-glass .gl-kicker{font:400 9.5px Michroma;letter-spacing:.16em;text-transform:uppercase;color:var(--gl-accent)}
+.L-glass .gl-kicker{white-space:nowrap;font:400 9.5px Michroma;letter-spacing:.16em;text-transform:uppercase;color:var(--gl-accent)}
 .L-glass .gl-flight{font:400 30px/1.2 Michroma;margin-top:6px;white-space:nowrap;overflow:hidden}
 .L-glass .gl-sub{font:500 14px/1.35 Inter;color:var(--gl-dim)}
 .L-glass .gl-route{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-top:10px}

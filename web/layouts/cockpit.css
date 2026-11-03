@@ -83,7 +83,7 @@
 .L-cockpit .flag{fill:#000;stroke:var(--a);stroke-width:2}
 .L-cockpit .flag-t{fill:var(--a);font:700 15px var(--b6)}
 .L-cockpit .pfd-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;gap:2px}
-.L-cockpit .sel{color:var(--c);font-size:11px;letter-spacing:.12em}
+.L-cockpit .sel{color:var(--c);font-size:11px;letter-spacing:.12em;white-space:nowrap;max-width:100%}
 .L-cockpit .fl{color:var(--m);font-size:26px;line-height:1.1;max-width:100%;overflow:hidden;white-space:nowrap}
 .L-cockpit .op{color:var(--w);font-size:13px;max-width:100%;white-space:nowrap;overflow:hidden}
 .L-cockpit .rt{color:var(--c);font-size:19px;font-weight:700;margin-top:6px}

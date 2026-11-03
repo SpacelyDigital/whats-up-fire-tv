@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,fmt,placeName,statusText,quietText,shapeFor,byInterest,makeCanvas,paintMap,toView,
-  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts}=__modules["kit.mjs"];
+  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 7, Blueprint: a technical drawing on navy drafting paper. The map is
 // linework only (roads by weight, water outlines, runways); aircraft are outline
 // silhouettes with drafting callouts on leader lines, the hero gets a dimension line
@@ -63,7 +63,7 @@ function ui(){
     <div class="bp-scale"></div>`);
   for(const c of ['city','clock','date','status','rev-b','stamp','stamp-a','stamp-b','fl','op','type','route','alt','spd','hdg','cpa','vs','note','scale'])
     $[c]=root.querySelector('.bp-'+c);
-  fit($.city);
+  $.obj=root.querySelector('.bp-obj i');fit($.city,$.obj);
   $.cells=[...root.querySelectorAll('.bp-block .bp-cell:not(.bp-note):not(.bp-foot)')];
   $.side=root.querySelector('.bp-side');$.fig=root.querySelector('.bp-fig');$.fig.append($.pic=photoSlot());
 }
@@ -159,7 +159,7 @@ function render(m){
   for(const c of $.cells)c.hidden=!hero;$.note.hidden=!!hero;
   if(!hero)setText($.note,`NOTE 1: ${quietText(m,demo).toUpperCase()}`);
   if(hero){
-    setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
+    setText($.obj,'',headingAlts(hero,'Object'));setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
     $.type._alts=[...new Set([hero.type,hero.aircraft_type,'UNKNOWN'].filter(Boolean).map(s=>s.toUpperCase()))];fitLine($.type);
     setText($.route,hero.route?`${hero.route.origin} → ${hero.route.destination}`:'NOT FILED');
     setText($.alt,fmt.alt(hero.altitude_ft).toUpperCase());setText($.spd,fmt.speed(hero.speed_kt).toUpperCase());

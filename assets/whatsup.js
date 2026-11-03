@@ -3312,6 +3312,11 @@ class Ledger {
   toJSON(){return Object.fromEntries(this.rows);}
 }
 
+// The plane picked with Left/Right, once it has stayed on the card about a second (app.mjs,
+// browse.mjs): its route is the next one asked for.
+let routeFocus=()=>'';
+const setRouteFocus=fn=>{routeFocus=fn;};
+
 class Enricher {
   constructor(ledger,request){this.ledger=ledger;this.request=request;this.status='idle';}
   publish(a,route,now){
@@ -3348,11 +3353,12 @@ class Enricher {
       else if(cached._airports)this.publish(a,commercialRoute(slim(cached),a,this.previous(a,now)),now); // older caches were checked less
     }
     // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
-    // pause after a 429, 1 min after other errors. The
-    // one asked for: inside the zone first, then the nearest (the plane on the card).
+    // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
+    // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
     if(missing.length&&!L.get('cooldown:adsblol',now)){
       L.put('cooldown:adsblol',true,now+5,now);
-      const a=missing.sort((x,y)=>Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
+      const f=routeFocus();
+      const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
       const {status,payload}=await this.request(ROUTE_URL(call));
       this.status=String(status);
       if((status===200&&payload&&typeof payload==='object')||status===404){
@@ -3458,7 +3464,7 @@ function startLive(onUpdate,config){
     resume(){if(!paused)return;paused=false;gen++;clearTimeout(timer);timer=setTimeout(poll,Math.max(0,(states.retryAt||0)-Date.now()));}};
 }
 
-return {HISTORY_KEY,MAX_NM,FEED_URL,feedUrlFor,ROUTE_URL,getJson,tileStats,getBytes,store,haversine,feedStamp,selection,mergeHistory,ident,provider,observations,commercialRoute,text,Ledger,Enricher,startLive};
+return {HISTORY_KEY,MAX_NM,FEED_URL,feedUrlFor,ROUTE_URL,getJson,tileStats,getBytes,store,haversine,feedStamp,selection,mergeHistory,ident,provider,observations,commercialRoute,text,Ledger,setRouteFocus,Enricher,startLive};
 })();
 // ---- models.mjs
 __modules["models.mjs"]=(()=>{
@@ -3718,7 +3724,8 @@ const {PROFILE}=__modules["profile.mjs"];
 // carrying the API's link URL unchanged (no clickable surface on a TV); show the thumbnail
 // whole; fetch the image straight from their URL on this device, keep it only while shown,
 // never store it; JSON cached at most 24 h; identify with a User-Agent (the app bridge
-// sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen, at most
+// sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen (one picked
+// with Left/Right once it has stayed on the card about a second, browse.mjs), at most
 // one every 1.5 s; "no photo" kept 24 h, failures 5 min; a 429 waits out Retry-After, a 403
 // stops lookups for 6 h (kept across restarts). Store profile: no lookups at all.
 
@@ -3757,11 +3764,20 @@ function lookup(url){
   return run;
 }
 
-// Resolves the photo for an aircraft, or null (none, paused, failure, or slower than 3 s).
+// While Left/Right browse the planes, the app's gate holds a lookup (and a cached photo's
+// image) until the plane has stayed on the card, and answers false for one passed over:
+// nothing is sent or cached for it.
+let gate=()=>Promise.resolve(true);
+const setPhotoGate=fn=>{gate=fn;};
+
+// Resolves the photo for an aircraft, or null (none, paused, failure, passed over, or slower than 3 s).
 function photoFor(a){
   if(!PROFILE.photos)return Promise.resolve(null);
   const hex=String(a?.hex||'').toLowerCase();
   if(!/^[0-9a-f]{6}$/.test(hex))return Promise.resolve(null);
+  return gate(hex).then(ok=>ok?lookupPhoto(a,hex):null);
+}
+function lookupPhoto(a,hex){
   const hit=cache.get(hex);
   if(hit&&Date.now()<hit.until)return hit.promise;
   const reg=String(a.registration||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
@@ -3809,7 +3825,7 @@ function qrFor(link,{dark='#000',light='#fff'}={}){
   }catch{return '';}
 }
 
-return {PHOTO_URL,parsePhoto,photoFor,qrColours,qrFor,modelPhoto};
+return {PHOTO_URL,parsePhoto,setPhotoGate,photoFor,qrColours,qrFor,modelPhoto};
 })();
 // ---- place.mjs
 __modules["place.mjs"]=(()=>{
@@ -4438,14 +4454,15 @@ const {AIRCRAFT_TYPES}=__modules["aircraft-types.mjs"];
 // The display model: live aircraft (live.mjs: adsb.fi + ADSB.lol routes) enriched
 // with operator, cargo brand, look-up angles, closest approach, trend and a daily
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
-// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off).
+// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
+// &still=1: the planes hold where they start, for checks that step through them in order).
 
 
 
 
 // Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
 const query=new URLSearchParams(typeof location!=='undefined'&&!globalThis.window?.__whatsupRelease?location.search:'');
-const demo=query.get('demo')==='1',scene=query.get('scene')||'';
+const demo=query.get('demo')==='1',scene=query.get('scene')||'',still=query.get('still')==='1';
 let HOME={latitude:0,longitude:0,elevationFt:0},TZ='UTC';
 const tz=()=>TZ;
 
@@ -4775,7 +4792,7 @@ function demoSource(config,onModel,airports){
     DEMO[5]=['a7c3b9','SWA4499','N8731J','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg('DFW','FRA')];
   }
   const tick=()=>{
-    const now=Date.now(),t=(now-started)/1000;
+    const now=Date.now(),t=still?0:(now-started)/1000;
     const planes=DEMO.map(([hex,callsign,registration,aircraft_type,ownOp,year,e,n,alt,gs,track,fpm,route])=>{
       const v=gs*1.15078/3600,east=e+v*t*Math.sin(track*Math.PI/180),north=n+v*t*Math.cos(track*Math.PI/180);
       const latitude=HOME.latitude+north/69,longitude=HOME.longitude+east/(69.172*Math.cos(HOME.latitude*Math.PI/180));
@@ -4831,7 +4848,9 @@ const {tz,compass,offset}=__modules["model.mjs"];
 // route {origin,destination,from,to}, progress {flown,left,share}, x/y (miles east/
 // north of home), ground (miles), bearing, elevation (deg up), cpa {seconds,miles,
 // receding}, inside (within the alert radius), trend {alt,speed,trail[]}, year;
-// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency').
+// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency'); while Left/Right
+// browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
+// {index, count} (headingAlts words the card's heading).
 
 
 
@@ -4979,6 +4998,14 @@ const windowView=()=>S.alertZone==='window';
 // SVG path of the alert zone; at(x,y) maps miles east/north of home to screen {x,y}.
 const zonePath=at=>'M'+zoneOutline(alertZone()).map(([x,y])=>{const p=at(x,y);return `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;}).join('L')+'Z';
 const routeText=(r,sep=' → ')=>r?`${r.origin}${sep}${r.destination}`:'';
+// The card's heading. While Left/Right browse the planes (browse.mjs) it gives the plane's place
+// in the list and where it is, "Plane 3 of 9 · 4.2 mi NE", with shorter wordings for a tight
+// line that all keep the number; otherwise `line`, the layout's own heading.
+function headingAlts(hero,line){
+  const b=hero?.browse;if(!b)return [line];
+  const d=fmt.dist(hero.ground),at=`${d} ${compass(hero.bearing)}`;
+  return [`Plane ${b.index} of ${b.count} · ${at}`,`${b.index} of ${b.count} · ${at}`,`${b.index}/${b.count} · ${at}`,`${b.index}/${b.count} · ${d}`];
+}
 const routeCities=r=>r?[r.from?.city||r.origin,r.to?.city||r.destination]:null;
 // "Live" / "Preview" / "Connecting…" / "No signal", and what to say when nothing is near.
 const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting':m.fresh?'Live':'No signal';
@@ -5187,22 +5214,99 @@ const militaryAlts=L=>{
   return [...new Set([w(4),w(3),w(2),w(1)])];
 };
 
-return {themedQr,psCredit,shortAuthor,photoSlot,photoAlt,showPhotoIn,DATA_ATTRIBUTION,BASE_RANGE,range,zoom,svg,el,setText,fit,placeAlts,airlineAlts,overlap,placeBox,useSettings,KM,metric,fmt,placeName,cityName,alertRadius,alertZone,windowView,zonePath,routeText,routeCities,statusText,quietText,PLANE,HELI,SINGLE,isHeli,isLight,shapeFor,planeIcon,silhouette,fitLine,byInterest,TrailBook,pixelRatio,makeCanvas,mapShift,ppmOf,niceStep,niceDistance,paintMap,toView,placeKinds,placesNear,shortField,airfieldsNear,airportsNear,credits,militaryAlts,snapped,GRID_PAD_MI,photoFor,qrFor,modelPhoto,number,compass,offset,placeLabel,MAP_ATTRIBUTION};
+return {themedQr,psCredit,shortAuthor,photoSlot,photoAlt,showPhotoIn,DATA_ATTRIBUTION,BASE_RANGE,range,zoom,svg,el,setText,fit,placeAlts,airlineAlts,overlap,placeBox,useSettings,KM,metric,fmt,placeName,cityName,alertRadius,alertZone,windowView,zonePath,routeText,headingAlts,routeCities,statusText,quietText,PLANE,HELI,SINGLE,isHeli,isLight,shapeFor,planeIcon,silhouette,fitLine,byInterest,TrailBook,pixelRatio,makeCanvas,mapShift,ppmOf,niceStep,niceDistance,paintMap,toView,placeKinds,placesNear,shortField,airfieldsNear,airportsNear,credits,militaryAlts,snapped,GRID_PAD_MI,photoFor,qrFor,modelPhoto,number,compass,offset,placeLabel,MAP_ATTRIBUTION};
+})();
+// ---- browse.mjs
+__modules["browse.mjs"]=(()=>{
+
+// Left/Right on the dashboard step through the planes on the map; the chosen one takes the main
+// card, shown the way the hero is (app.mjs reads the keys and draws; the rules live here, where
+// tests/test-browse.mjs drives them with a clock):
+//  - Order: distance from home, closest first, among the planes within the map radius (the ones
+//    the map draws). It is worked out again on every update and the choice follows the
+//    aircraft's hex, so its number changes as planes move.
+//  - The first press starts from the plane on the card (the hero): Right the next one out, Left
+//    the one before, wrapping round at either end.
+//  - Back to automatic on Back (app.mjs), when the chosen plane leaves the map, after IDLE_MS
+//    without Left or Right, and while an emergency squawk has the card.
+//  - A plane's photo and route are looked up only once it has stayed chosen HOLD_MS, so
+//    stepping quickly through the list sends nothing for the planes passed over.
+const IDLE_MS=60000,HOLD_MS=1000;
+
+// The planes the map draws, closest first.
+const browseOrder=(planes,miles)=>planes.filter(a=>a.ground<=miles)
+  .sort((a,b)=>a.ground-b.ground||(a.hex<b.hex?-1:a.hex>b.hex?1:0));
+
+// One press (dir 1 = Right, -1 = Left). state: {hex, since, last} while browsing (the chosen
+// plane, when it was chosen, the last press), null for automatic. Returns the new state, or
+// null when there is nothing to step through (or an emergency has the card).
+function step(state,m,miles,dir,now){
+  if(!m||m.hero?.emergency)return null;
+  const list=browseOrder(m.planes,miles);if(!list.length)return null;
+  const at=list.findIndex(a=>a.hex===(state?.hex??m.hero?.hex));
+  const hex=list[at<0?(dir>0?0:list.length-1):(at+dir+list.length)%list.length].hex;
+  return {hex,since:hex===state?.hex?state.since:now,last:now};
+}
+
+// The model as the card shows it. While browsing, a copy of the chosen plane takes the hero's
+// place, carrying its place in the list ({index, count}) and the status "Plane 3 of 9"; the
+// copy also replaces it in planes, so a layout's `a===hero` marks it on the map. Returns
+// {state, m}; state is null once browsing has ended.
+function apply(state,m,miles,now){
+  if(!state||!m)return {state:null,m};
+  if(m.hero?.emergency||now-state.last>=IDLE_MS)return {state:null,m};
+  const list=browseOrder(m.planes,miles),i=list.findIndex(a=>a.hex===state.hex);
+  if(i<0)return {state:null,m}; // it left the map
+  const a=list[i],hero={...a,status:`Plane ${i+1} of ${list.length}`,browse:{index:i+1,count:list.length}};
+  return {state,m:{...m,hero,planes:m.planes.map(p=>p===a?hero:p)}};
+}
+
+// Chosen long enough for its photo and route to be looked up.
+const held=(state,now)=>!!state&&now-state.since>=HOLD_MS;
+
+// The photo lookup for the plane on the card waits on wait(hex): true at once outside
+// browsing, true once a browsed plane has been on the card HOLD_MS, false as soon as another
+// plane takes the card. app.mjs calls update() with the plane about to be drawn on the card,
+// before every draw (a layout asks for the photo while it draws).
+class LookupGate{
+  constructor(){this.waiting=[];this.card='';this.state=null;this.timer=0;}
+  wait(hex){
+    if(!this.state)return Promise.resolve(true);
+    return new Promise(resolve=>{this.waiting.push({hex,resolve});this.update(this.card,this.state,Date.now());});
+  }
+  update(card,state,now){
+    this.card=card;this.state=state;clearTimeout(this.timer);
+    const ready=!state||held(state,now);
+    this.waiting=this.waiting.filter(({hex,resolve})=>{
+      if(hex!==card){resolve(false);return false;}
+      if(ready){resolve(true);return false;}
+      return true;
+    });
+    if(this.waiting.length)this.timer=setTimeout(()=>this.update(this.card,this.state,Date.now()),Math.max(0,state.since+HOLD_MS-now)+10);
+  }
+}
+
+return {IDLE_MS,browseOrder,step,apply,held,LookupGate};
 })();
 // ---- app.mjs
 __modules["app.mjs"]=(()=>{
 const {CONFIG}=__modules["config.js"];
 const {PROFILE}=__modules["profile.mjs"];
 const {chimeGate}=__modules["core.mjs"];
-const {HISTORY_KEY,MAX_NM,store}=__modules["live.mjs"];
+const {HISTORY_KEY,MAX_NM,store,setRouteFocus}=__modules["live.mjs"];
 const {start,demo,query,compass,resetLog,setLogRadius,flushLog}=__modules["model.mjs"];
 const {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone}=__modules["place.mjs"];
 const {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE}=__modules["mapgen.mjs"];
 const {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit:fitText}=__modules["kit.mjs"];
+const {setPhotoGate}=__modules["photos.mjs"];
+const {step:stepBrowse,apply:applyBrowse,held,LookupGate,IDLE_MS}=__modules["browse.mjs"];
 // The page. Owns the data (feed model, settings, maps) and the shared
 // screens (Settings, location, Adjust position, layout picker); the chosen layout
 // (web/layouts/<id>.mjs, loaded on demand, only one at a time) draws the dashboard.
-// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings.
+// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings;
+// on the dashboard Up/Down change the map radius and Left/Right step through the planes.
+
+
 
 
 
@@ -5341,7 +5445,7 @@ async function useLayout(id){
   try{
     mod.mount(root,ctx);
     mod.setMap?.({...maps});
-    if(lastModel&&!adj)mod.render(lastModel);
+    if(lastModel&&!adj)mod.render(shown(lastModel));
   }catch(e){console.error(`layout ${id}`,e);}
   if(mod.map==='detail')ensureDetail();
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
@@ -5349,7 +5453,9 @@ async function useLayout(id){
 }
 function draw(m){
   if(!active||adj)return;
+  m=shown(m);
   try{active.mod.render(m);}catch(e){console.error(`render ${active.id}`,e);}
+  announce(m);
 }
 function mapsChanged(){
   try{active?.mod.setMap?.({...maps});}catch(e){console.error('setMap',e);}
@@ -5392,15 +5498,45 @@ function listen(m){
   const r=chimeGate(chime,m.planes.filter(a=>a.inside).length,m.now,m.live&&m.fresh);chime=r.state;
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
-// Screen readers: one polite announcement when the closest plane changes.
+// Screen readers: one polite announcement when the plane on the card changes (or Left/Right
+// browsing starts or ends on it).
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex:'';
+  const h=m.hero,key=h?h.hex+(h.browse?'+':''):'';
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
-function render(m){lastModel=m;listen(m);draw(m);announce(m);}
+function render(m){lastModel=m;listen(m);draw(m);}
+
+// --- Left/Right on the dashboard step through the planes on the map, closest first; the chosen
+// one takes the card (browse.mjs has the rules). Back, the plane leaving the map, a minute
+// without Left or Right, or an emergency give the card back to the hero.
+let browse=null,browseTimer=0,browseFrame=0;
+const gate=new LookupGate(),redraw=()=>{if(lastModel)draw(lastModel);};
+// Its photo and route are looked up once it has stayed on the card about a second.
+setPhotoGate(hex=>gate.wait(hex));
+setRouteFocus(()=>held(browse,Date.now())?browse.hex:'');
+// The model as drawn: while browsing, the chosen plane is the hero. The lookup gate learns which
+// plane the card is about to show (a layout asks for its photo while drawing).
+function shown(m){
+  if(browse){
+    const r=applyBrowse(browse,m,mapMiles(),Date.now());
+    if(!r.state){browse=null;clearTimeout(browseTimer);queueMicrotask(syncApp);}
+    m=r.m;
+  }
+  gate.update(m.hero?.hex||'',browse,Date.now());
+  return m;
+}
+function stepPlanes(dir){
+  const next=stepBrowse(browse,lastModel,mapMiles(),dir,Date.now());
+  if(!next)return; // nothing on the map, or an emergency has the card
+  const was=browse;browse=next;
+  clearTimeout(browseTimer);browseTimer=setTimeout(redraw,IDLE_MS+50);
+  if(!was)syncApp(); // Back now ends browsing instead of leaving the app
+  cancelAnimationFrame(browseFrame);browseFrame=requestAnimationFrame(redraw); // a held key: one draw a frame
+}
+function endBrowse(){if(!browse)return;browse=null;clearTimeout(browseTimer);syncApp();redraw();}
 // Restart only the aircraft feed (alert zone or alert radius changed): the maps stay as
 // they are. Re-reading and re-decoding the saved maps blocked the stick for seconds.
 function restartFeed(){
@@ -5545,7 +5681,7 @@ function syncApp(){
   const c=$('credit-flash');
   if(layer||adj||pick){if(c.classList.contains('on')){c.classList.remove('on');clearTimeout(creditTimer);creditDue=true;}}
   else if(creditDue)flashCredits();
-  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||!!layer&&!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length)});}
+  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||(layer?!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length):!!browse)});}
 
 function move(dir){
   const items=focusables();
@@ -5857,6 +5993,7 @@ function back(){
   const now=Date.now();if(now-lastBack<350)return;lastBack=now;
   if(editing)return cancelEdit();
   if(adj)return endAdjust();
+  if(!layer&&browse)return endBrowse();
   close();
 }
 window.__whatsupBack=back;
@@ -5958,6 +6095,8 @@ document.addEventListener('keydown',e=>{
   if(!layer){
     // Up/Down on the dashboard: zoom the map in/out (Settings > Map radius).
     if(dir==='up'||dir==='down'){e.preventDefault();return stepMap(dir==='up'?-1:1);}
+    // Left/Right: the next or previous plane on the card (a held key repeats).
+    if(dir==='left'||dir==='right'){e.preventDefault();return stepPlanes(dir==='right'?1:-1);}
     if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();showSettings();open('settings');}
     return;
   }

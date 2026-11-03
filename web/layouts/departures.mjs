@@ -1,7 +1,7 @@
 // Layout 6, Departures: an amber split-flap board. Rows are the aircraft in range
 // now (hero first) and then those recently above; only the characters that change
 // flip. A small dark map inset shows where they are.
-import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts} from '../kit.mjs';
+import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts} from '../kit.mjs';
 
 // Columns: [key, label, width in characters, align]
 const COLS=[['flight','Flight',7],['dest','Destination',11],['type','Type',4],['alt','Alt',5,'r'],['dist','Dist',4,'r'],['remark','Remarks',10]];
@@ -117,7 +117,10 @@ function render(m){
   if(hero){
     const r=hero.route,from=city(r?.from?.city)||r?.origin,to=city(r?.to?.city)||r?.destination;
     const rt=r?` · ${from} → ${to}`:'',op=hero.operator?` · ${hero.operator}`:'';
-    ticker($['hero-line'],[`${hero.status}: ${hero.flight}${op}${rt}`,`${hero.flight}${op}${rt}`,`${hero.flight}${rt}`]);
+    // Browsing (Left/Right): every wording keeps the plane's number in the list.
+    const head=headingAlts(hero,hero.status),last=head[head.length-1];
+    ticker($['hero-line'],hero.browse?[...head.map(h=>`${h}: ${hero.flight}${op}${rt}`),`${last}: ${hero.flight}${rt}`,`${last}: ${hero.flight}`]:
+      [`${hero.status}: ${hero.flight}${op}${rt}`,`${hero.flight}${op}${rt}`,`${hero.flight}${rt}`]);
     const c=hero.cpa,parts=[hero.type||hero.aircraft_type,fmt.alt(hero.altitude_ft),fmt.speed(hero.speed_kt),
       c&&!c.receding?`closest in ${fmt.mmss(c.seconds)} at ${fmt.dist(c.miles)}`:'',`cargo ${m.log.cargoTonight}`,`military ${m.log.militaryToday||0}`].filter(Boolean);
     ticker($['sub-line'],parts.map((_,i)=>parts.slice(0,parts.length-i).join(' · ')));

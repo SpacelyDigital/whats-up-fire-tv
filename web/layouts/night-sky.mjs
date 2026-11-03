@@ -2,7 +2,7 @@
 // contrails that fade over several minutes, the coastline and rivers barely there,
 // and small serif labels.
 import {el,svg,setText,fmt,metric,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,
-  TrailBook,placeBox,number,ppmOf,alertRadius,range,zonePath,fit,placeAlts} from '../kit.mjs';
+  TrailBook,placeBox,number,ppmOf,alertRadius,range,zonePath,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,TRAIL_AGE=8*60000;
 const VIEW={cx:480,cy:300,ppm:24};
@@ -65,7 +65,7 @@ function render(m){
   const p=ctx?.place(),key=p?`${p.latitude},${p.longitude}`:'';
   if(key!==trailHome){trailHome=key;trails.clear();}
   const {now,hero}=m;
-  fit($.city);setText($.city,placeName(),placeAlts());
+  fit($.city,$.count);setText($.city,placeName(),placeAlts());
   setText($.clock,fmt.clock(now));
   setText($.date,`${fmt.date(now,{weekday:'long',day:'numeric',month:'long'})} · ${statusText(m,demo).toLowerCase()}`);
   trails.update(m.planes,now);
@@ -128,7 +128,9 @@ function render(m){
   if(!hero)setText($['quiet-note'].lastChild,(demo||m.fresh)&&!m.noCoverage?`Nothing within ${fmt.dist(range(),0)} right now.`:quietText(m,demo));
   // Everything drawn counts (the sky reaches a little past the map radius at the sides).
   const n=m.planes.filter(a=>{const p=toView(VIEW,a.x,a.y);return p.x>=0&&p.y>=0&&p.x<=W&&p.y<=H;}).length;
-  setText($.count,`${n?`${n} aircraft in this sky`:'no aircraft in this sky'} · ${fmt.int(m.log.today)} seen today`);
+  // Browsing (Left/Right): the chosen plane's number in the list, and where it is.
+  const seen=`${fmt.int(m.log.today)} seen today`,head=headingAlts(hero,'');
+  setText($.count,'',hero?.browse?[...head.map(h=>`${h} · ${seen}`),...head]:[`${n?`${n} aircraft in this sky`:'no aircraft in this sky'} · ${seen}`]);
 }
 
 export default {

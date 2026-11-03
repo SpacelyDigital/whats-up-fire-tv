@@ -40,6 +40,13 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   direction and elevation, closest approach, type, registration), cargo tonight by operator
   (callsign prefixes worldwide; Amazon Air by owner), today's logbook, recently above,
   and a red takeover on squawk 7500/7600/7700. Airports come from the map data.
+* **Plane browsing.** Left/Right on the dashboard step through the planes on the map, closest
+  first (Right from the hero outward, wrapping round); the chosen plane takes the main card
+  ("Plane 3 of 9 · 4.2 mi NE") and its map mark. Back, a minute without Left/Right, the plane
+  leaving the map or an emergency squawk give the card back to the hero. Its photo and route are
+  looked up only once it has stayed on the card about a second (`web/browse.mjs`).
+* **Store build.** Draws the whole screen at 90%, centred, so no text sits in the outer 5% of
+  any edge (TV overscan); the personal build fills the screen (`web/profile.mjs`).
 
 ## Code
 

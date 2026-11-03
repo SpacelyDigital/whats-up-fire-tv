@@ -33,7 +33,7 @@
 .L-night-sky .quiet-note .small{font:italic 400 17px 'EB Garamond';color:var(--dim);margin-top:4px}
 
 .L-night-sky .foot{position:absolute;left:40px;right:40px;bottom:16px;display:flex;justify-content:space-between;align-items:flex-end}
-.L-night-sky .count{font:italic 400 16px 'EB Garamond';color:var(--dim)}
+.L-night-sky .count{white-space:nowrap;min-width:0;font:italic 400 16px 'EB Garamond';color:var(--dim)}
 
 /* Emergency: one red star, a red hush at the edges. */
 .L-night-sky .layout.emergency{box-shadow:inset 0 0 140px rgba(255,60,40,.22)}

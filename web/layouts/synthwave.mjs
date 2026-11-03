@@ -3,7 +3,7 @@
 // flat overlay, placed with the same perspective maths and lifted by altitude, so
 // their labels stay upright and readable. Map: water, rivers, motorways, runways.
 import {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,byInterest,paintMap,airportsNear,
-  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts} from '../kit.mjs';
+  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 // Floor: a W x H canvas (1 px per CSS px: a soft neon floor needs no more), home at its
 // centre, rotated about its centre by TILT under a perspective of PERSP px seen from VP.
@@ -65,7 +65,7 @@ function ui(){
   for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m2','quiet','q2',
     's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city);
+  fit($.city,$['h-label']);
 }
 
 function drawMap(){
@@ -141,7 +141,7 @@ function render(m){
   showPhotoIn($.pic,hero);
   if(!hero)setText($.q2,quietText(m,demo));
   else{
-    setText($['h-label'],`${hero.status} · ${fmt.dist(hero.ground)}`);
+    setText($['h-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     setText($['h-fl'],hero.flight);$['h-fl'].classList.toggle('long',hero.flight.length>8);
     setText($['h-rt'],hero.route?`${hero.route.from?.city||hero.route.origin} → ${hero.route.to?.city||hero.route.destination}`:(hero.operator||'Route not reported'));
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));

@@ -3,7 +3,7 @@
 // compass rose on home, a lat/long graticule, and the data in chart-legend boxes.
 import {zoneOutline} from '../core.mjs';
 import {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
-  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts,militaryAlts,fitLine} from '../kit.mjs';
+  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts,militaryAlts,fitLine,headingAlts} from '../kit.mjs';
 
 const W=680,H=540,CX=345,CY=282,PPM0=25.5,ROSE=118; // the whole map radius fits below home (258 px)
 let PPM=PPM0; // at the current map radius (set before each draw)
@@ -74,7 +74,7 @@ function ui(){
   chart.append($.canvas,$.svg);
   for(const c of ['city','clock','date','status','hero-st','notam','tbody','fl','op','rt','alt','gs','dist','look','cpa','type','none','quiet','cargo','seen','cargo-by','mil','mil-by'])
     $[c]=root.querySelector('.'+c);
-  fit([...root.querySelectorAll('.grid dd')],$.city);
+  fit([...root.querySelectorAll('.grid dd')],$.city,$['hero-st']);
 }
 
 let boxes=[];
@@ -199,7 +199,7 @@ function render(m){
   $.notam.hidden=!hero?.emergency;
   if(!hero){setText($.quiet,quietText(m,demo));setText($['hero-st'],'');}
   else{
-    setText($['hero-st'],hero.status.toUpperCase());
+    setText($['hero-st'],'',headingAlts(hero,hero.status).map(s=>s.toUpperCase()));
     if(hero.emergency)setText($.notam,`NOTAM · ${hero.squawk} ${hero.emergency}`);
     setText($.fl,hero.flight);setText($.op,hero.operator||(hero.registration?'Private':''));
     const r=hero.route;

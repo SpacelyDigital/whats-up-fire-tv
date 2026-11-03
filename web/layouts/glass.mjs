@@ -2,7 +2,7 @@
 // buildings) under see-through glass cards: time and place, the hero flight with
 // route and four instrument tiles, the nearest aircraft in range, and today's tallies.
 import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
-  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts} from '../kit.mjs';
+  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,VIEW={cx:318,cy:284,ppm:25}; // the whole map radius fits below home (256 px)
 const DETAIL=[
@@ -62,7 +62,7 @@ function ui(){
   for(const c of ['clock','city','status','date','kicker','flight','sub','o','oc','d','dc','line','alt','spd','look','cpa','quiet-t','list','seen','seen-by','mil','mil-by','cargo','cargo-by'])
     $[c]=root.querySelector('.gl-'+c);
   $.lineFill=$.line.firstChild;
-  fit($.city,$.flight,$.alt,$.spd,$.look,$.cpa);
+  fit($.city,$.kicker,$.flight,$.alt,$.spd,$.look,$.cpa);
 }
 
 function drawMap(){
@@ -108,7 +108,7 @@ function render(m){
   if(hero?.emergency)$.alert.replaceChildren(el('b','',`Squawk ${hero.squawk}`),el('span','',hero.emergency));
   if(!hero)setText($['quiet-t'],quietText(m,demo));
   if(hero){
-    setText($.kicker,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`);
+    setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.flight,hero.flight);
     setText($.sub,[hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''),hero.type||hero.aircraft_type].filter(Boolean).join(' · ')||'Unknown aircraft');
     const r=hero.route;

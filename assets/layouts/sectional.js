@@ -3,7 +3,7 @@
 const __modules=window.__whatsupModules;
 const {zoneOutline}=__modules["core.mjs"];
 const {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
-  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts,militaryAlts,fitLine}=__modules["kit.mjs"];
+  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts,militaryAlts,fitLine,headingAlts}=__modules["kit.mjs"];
 // Layout 10, Sectional: a cream VFR sectional chart around home. Towns in chart
 // yellow, water in chart blue, airspace-style rings around nearby airports, a VOR-style
 // compass rose on home, a lat/long graticule, and the data in chart-legend boxes.
@@ -78,7 +78,7 @@ function ui(){
   chart.append($.canvas,$.svg);
   for(const c of ['city','clock','date','status','hero-st','notam','tbody','fl','op','rt','alt','gs','dist','look','cpa','type','none','quiet','cargo','seen','cargo-by','mil','mil-by'])
     $[c]=root.querySelector('.'+c);
-  fit([...root.querySelectorAll('.grid dd')],$.city);
+  fit([...root.querySelectorAll('.grid dd')],$.city,$['hero-st']);
 }
 
 let boxes=[];
@@ -203,7 +203,7 @@ function render(m){
   $.notam.hidden=!hero?.emergency;
   if(!hero){setText($.quiet,quietText(m,demo));setText($['hero-st'],'');}
   else{
-    setText($['hero-st'],hero.status.toUpperCase());
+    setText($['hero-st'],'',headingAlts(hero,hero.status).map(s=>s.toUpperCase()));
     if(hero.emergency)setText($.notam,`NOTAM · ${hero.squawk} ${hero.emergency}`);
     setText($.fl,hero.flight);setText($.op,hero.operator||(hero.registration?'Private':''));
     const r=hero.route;

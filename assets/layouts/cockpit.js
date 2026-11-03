@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,fmt,metric,KM,placeName,alertRadius,statusText,quietText,byInterest,
-  makeCanvas,paintMap,airportsNear,compass,number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,airlineAlts}=__modules["kit.mjs"];
+  makeCanvas,paintMap,airportsNear,compass,number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,airlineAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 11, Cockpit: a Boeing-style navigation display in centred map mode, north up.
 // Home is own-ship; traffic uses TCAS symbols with relative-altitude tags; a magenta
 // line runs to the selected (hero) aircraft. Speed and altitude tapes read out the
@@ -65,8 +65,8 @@ function ui(){
   nd.prepend($.canvas,$.svg);
   for(const c of ['gs','nd-alt','trk','wpt','wpt-d','wpt-t','warn','warn-b','tfc','status','range-v','city','clock','spd-tape','alt-tape',
     'fl','op','rt','vs','type','nodata','quiet','pfd-mid','f-gs','f-trk','f-alt','f-dist','f-brg','f-cpa','l-seen','l-cargo','l-mil','l-high','recent'])$[c]=root.querySelector('.'+c);
-  root.querySelector('.side').append($.pic=photoSlot());
-  fit($.city,$.fl,$.op,$.rt,$.type,$['f-gs'],$['f-trk'],$['f-alt'],$['f-dist'],$['f-brg'],$['f-cpa']);
+  root.querySelector('.side').append($.pic=photoSlot());$.sel=root.querySelector('.sel');
+  fit($.city,$.sel,$.fl,$.op,$.rt,$.type,$['f-gs'],$['f-trk'],$['f-alt'],$['f-dist'],$['f-brg'],$['f-cpa']);
 }
 
 function drawRose(){
@@ -192,6 +192,7 @@ function render(m){
     setText($['wpt-d'],fmt.dist(hero.ground));
     const c=hero.cpa;
     setText($['wpt-t'],!c?'':c.receding?'OUTBOUND':`CPA ${fmt.mmss(c.seconds)}`);
+    setText($.sel,'',headingAlts(hero,'SELECTED TRAFFIC').map(s=>s.toUpperCase()));
     setText($.fl,hero.flight);
     setText($.op,'',airlineAlts(hero.operator||(hero.registration?'PRIVATE':'')).map(s=>s.toUpperCase()));
     setText($.rt,hero.route?`${hero.route.origin} ▸ ${hero.route.destination}`:'NO ROUTE');

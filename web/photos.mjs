@@ -7,7 +7,8 @@
 // carrying the API's link URL unchanged (no clickable surface on a TV); show the thumbnail
 // whole; fetch the image straight from their URL on this device, keep it only while shown,
 // never store it; JSON cached at most 24 h; identify with a User-Agent (the app bridge
-// sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen, at most
+// sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen (one picked
+// with Left/Right once it has stayed on the card about a second, browse.mjs), at most
 // one every 1.5 s; "no photo" kept 24 h, failures 5 min; a 429 waits out Retry-After, a 403
 // stops lookups for 6 h (kept across restarts). Store profile: no lookups at all.
 import {getJson,store} from './live.mjs';
@@ -47,11 +48,20 @@ function lookup(url){
   return run;
 }
 
-// Resolves the photo for an aircraft, or null (none, paused, failure, or slower than 3 s).
+// While Left/Right browse the planes, the app's gate holds a lookup (and a cached photo's
+// image) until the plane has stayed on the card, and answers false for one passed over:
+// nothing is sent or cached for it.
+let gate=()=>Promise.resolve(true);
+export const setPhotoGate=fn=>{gate=fn;};
+
+// Resolves the photo for an aircraft, or null (none, paused, failure, passed over, or slower than 3 s).
 export function photoFor(a){
   if(!PROFILE.photos)return Promise.resolve(null);
   const hex=String(a?.hex||'').toLowerCase();
   if(!/^[0-9a-f]{6}$/.test(hex))return Promise.resolve(null);
+  return gate(hex).then(ok=>ok?lookupPhoto(a,hex):null);
+}
+function lookupPhoto(a,hex){
   const hit=cache.get(hex);
   if(hit&&Date.now()<hit.until)return hit.promise;
   const reg=String(a.registration||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
