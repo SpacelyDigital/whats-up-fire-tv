@@ -1,6 +1,6 @@
 ## Privacy Policy
 
-Version 1 · Effective November 2, 2026 · Last updated November 2026
+Version 2 · Effective November 3, 2026 · Last updated November 3, 2026
 
 This is a free Fire TV app that shows the aircraft over your home. This policy explains what the app does with information about you. It is the whole policy; there are no hidden parts.
 
@@ -76,11 +76,11 @@ adsb.fi (live aircraft positions)
 
 • Their policy: https://adsb.fi/privacy. It says adsb.fi collects the IP address, internet provider, browser type, operating system, device type and time of access, and may use outside providers for content delivery and traffic management. It doesn't say how long it keeps these.
 
-adsb.lol (flight routes)
+adsb.lol (flight routes, and backup aircraft positions)
 
-• Receives: the flight number of an aircraft near you. No location.
+• Receives: the flight number of an aircraft near you. Only while adsb.fi isn't answering, also your location rounded to a grid of about 5 km (3 miles) and the size of the area to search, the same as adsb.fi gets.
 
-• When: at most one lookup every 5 seconds, and each answer is kept for 24 hours.
+• When: route lookups at most once every 5 seconds, each answer kept for 24 hours. Backup position requests only while adsb.fi is down, on adsb.fi's schedule, until it answers again.
 
 • Who: adsb.lol, a community project with servers at Netcup in Germany. Route lookups are served by GitHub through Cloudflare.
 
