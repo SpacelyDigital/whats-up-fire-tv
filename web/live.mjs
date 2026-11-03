@@ -440,7 +440,10 @@ export function startLive(onUpdate,config){
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
   // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
   const backupGap=()=>Math.max(config.pollSeconds,BACKUP_STEPS_S[outage.backupStep]||BACKUP_STEPS_S.at(-1))*1000;
-  const backupAt=t=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap(),(ledger.get(BACKUP_COOLDOWN,t/1000)||0)*1000);
+  // The saved pause is remote-free local data, but storage can be damaged: a value that isn't a
+  // time, or one further off than the longest pause the app sets (an hour), counts as none.
+  const pausedUntil=t=>{const v=Number(ledger.get(BACKUP_COOLDOWN,t/1000))*1000;return Number.isFinite(v)&&v<=t+3600000?v:0;};
+  const backupAt=t=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap(),pausedUntil(t));
   // The one feed this poll asks, or null when neither may be asked yet.
   function pick(t){
     if(!outage.down&&outage.fails&&t-outage.since>=FAILOVER_MS)outage.down=true; // 15 s of failures

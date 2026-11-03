@@ -5,9 +5,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {startLive,fromBackup,feedStamp,outage,resetOutage,store,LEDGER_KEY,HISTORY_KEY,BACKUP_PAUSE_S} from '../web/live.mjs';
-import {start} from '../web/model.mjs';
+import {start,resetLog} from '../web/model.mjs';
 import {quietText} from '../web/kit.mjs';
-import {IDS} from '../web/core.mjs';
+import {IDS,chimeGate} from '../web/core.mjs';
 
 const T0=Date.parse('2026-11-03T05:00:00Z');
 const CVG={latitude:39.05,longitude:-84.65};
@@ -21,9 +21,9 @@ const FI_PLANE=plane('a1f1f1','FIX101'),LOL_PLANE=plane('a10101','LOL202');
 
 // The rig: `feeds.fi` / `feeds.lol` say how each host answers now ({mode, retryAfter, body,
 // nowShiftMs, seconds}); modes: ok, offline, timeout, s<code>, garbage, empty, portal, nolist.
-function rig(){
+function rig(t0=T0){
   const real={now:Date.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
-  let t=T0,inFlight=0;const timers=new Set(),calls=[],updates=[];
+  let t=t0,inFlight=0;const timers=new Set(),calls=[],updates=[];
   const feeds={fi:{mode:'ok'},lol:{mode:'ok'}};
   Date.now=()=>t;Math.random=()=>.5; // jitter ×1: back-offs are exact
   globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
@@ -65,12 +65,12 @@ function rig(){
   const live=(config=CFG)=>startLive((states,ok)=>updates.push({t,ok,source:states.source||'',
     hexes:(states[IDS.feed]?.attributes?.ac||[]).map(a=>a.hex),retryAt:states.retryAt,skew:states.skew,coverage:states.coverage,states}),config);
   const feedCalls=()=>calls.filter(c=>c.which==='fi'||c.which==='lol');
-  const at=(which,from=0,to=Infinity)=>calls.filter(c=>c.which===which&&c.t>=T0+from&&c.t<=T0+to).map(c=>c.t-T0);
+  const at=(which,from=0,to=Infinity)=>calls.filter(c=>c.which===which&&c.t>=t0+from&&c.t<=t0+to).map(c=>c.t-t0);
   const restore=()=>{Date.now=real.now;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;Math.random=real.random;};
-  return {feeds,calls,updates,advance,live,feedCalls,at,restore,get t(){return t-T0;}};
+  return {feeds,calls,updates,advance,live,feedCalls,at,restore,get t(){return t-t0;}};
 }
 // A clean start for each test: no outage known, no saved pause.
-function fresh(){resetOutage();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig();}
+function fresh(t0){resetOutage();resetLog();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig(t0);}
 const lastData=r=>r.updates.filter(u=>u.ok&&u.source).at(-1);
 
 test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point and radius, every 10 s',async()=>{
@@ -456,6 +456,63 @@ test('backup: a reply that isn\'t a feed counts as a failure, from either servic
       live.stop();
     }finally{r.restore();}
   }
+});
+
+test('backup: a damaged saved pause (not a number, or years ahead) never keeps adsb.lol off for more than 15 minutes',async()=>{
+  for(const row of [{expires:Date.parse('2040-01-01')/1000,value:'soon'},{expires:Date.parse('2040-01-01')/1000,value:Date.parse('2040-01-01')/1000},
+    {expires:Date.parse('2040-01-01')/1000,value:{x:1}},{expires:Date.parse('2040-01-01')/1000,value:null}]){
+    const r=fresh();
+    try{
+      store.set(LEDGER_KEY,{'cooldown:adsblol-positions':row});
+      r.feeds.fi={mode:'offline'};
+      const live=r.live();
+      await r.advance(BACKUP_PAUSE_S*1000+60000);
+      assert.ok(r.at('lol').length>=1,`adsb.lol asked despite ${JSON.stringify(row.value)}`);
+      assert.ok(r.at('lol')[0]<=BACKUP_PAUSE_S*1000+30000,`first adsb.lol request at ${r.at('lol')[0]} ms`);
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('backup: the same aircraft from either feed counts once (today, cargo, military, recent) and rings the chime once',async()=>{
+  const r=fresh();const models=[];
+  try{
+    // A military C-17 and an Amazon 767 (ATN, owner only from adsb.fi) inside the 3 mi zone.
+    const ac=fromLol=>[plane('ae1234','RCH401',{t:'C17',dbFlags:1,lat:39.06}),
+      plane('a8f0a3','ATN3417',{t:'B763',lat:39.055,...(fromLol?{}:{ownOp:'AMAZON.COM SERVICES LLC'})})];
+    const body=fromLol=>({now:Date.now(),msg:'No error',ac:ac(fromLol)});
+    r.feeds.fi={mode:'ok',body:body(false)};r.feeds.lol={mode:'ok',body:body(true)};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    const step=async(ms)=>{for(let t=0;t<ms;t+=5000){for(const f of [r.feeds.fi,r.feeds.lol])if(f.body)f.body.now=Date.now();await r.advance(5000);}};
+    await step(30000);                                  // adsb.fi
+    r.feeds.fi={mode:'offline'};await step(90000);      // adsb.lol stands in
+    r.feeds.fi={mode:'ok',body:body(false)};await step(120000); // adsb.fi back
+    const sources=new Set(models.filter(m=>m.fresh).map(m=>m.source));
+    assert.deepEqual([...sources].sort(),['adsb.fi','adsb.lol'],'both feeds were used');
+    const last=models.filter(m=>m.fresh).at(-1);
+    assert.equal(last.log.today,2,'two aircraft seen today, not four');
+    assert.equal(last.log.militaryToday,1,'one military aircraft');
+    assert.deepEqual(last.log.cargoBy,[['Amazon',1]],'one cargo flight, Amazon');
+    assert.equal(new Set(last.recent.map(a=>a.hex)).size,last.recent.length,'no duplicate recent sightings');
+    let state=null,rings=0;
+    for(const m of models){const g=chimeGate(state,m.planes.filter(a=>a.inside).length,m.now,m.live&&m.fresh);state=g.state;if(g.ring)rings++;}
+    assert.equal(rings,0,'no chime for planes already in the zone when the feed changed');
+    s.stop();
+  }finally{r.restore();}
+});
+
+test('backup: midnight on adsb.lol starts the new day once, by the feed\'s clock',async()=>{
+  const r=fresh(Date.parse('2026-11-03T04:57:00Z'));const models=[];
+  try{
+    // From 23:57 EST on 2 November (04:57 UTC on 3 November), adsb.fi down all along.
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'ok',body:{now:0,msg:'No error',ac:[plane('a10101','LOL202')]}};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    for(let t=0;t<6*60000;t+=5000){r.feeds.lol.body.now=Date.now();await r.advance(5000);}
+    const fresh=models.filter(m=>m.fresh&&m.source==='adsb.lol');
+    assert.ok(fresh.length>10,'adsb.lol data throughout');
+    assert.ok(fresh.every(m=>m.log&&m.log.today===1),`one plane seen on each side of midnight, never 0 or 2 on screen: ${fresh.map(m=>m.log?.today).join(',')}`);
+    s.stop();
+  }finally{r.restore();}
 });
 
 test('feed etiquette: back-off on errors, 429 at least 60 s, other 4xx 5 min, with adsb.lol standing in',async()=>{
