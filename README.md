@@ -48,11 +48,12 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
 * **Store build.** Draws the whole screen at 90%, centred, so no text sits in the outer 5% of
   any edge (TV overscan); the personal build fills the screen (`web/profile.mjs`).
 * **Backup feed.** While adsb.fi isn't answering (two failed polls in a row, or 15 s of
-  failures), positions come from adsb.lol (`api.adsb.lol/v2`): the same rounded point, radius
-  and interval, never on the same poll as adsb.fi. adsb.fi is checked about once a minute
-  (respecting its back-off) and takes over again with its first good reply; an adsb.lol 429
-  or other 4xx pauses it 15 minutes. The credit line names adsb.lol while it's in use. Both
-  builds (`web/live.mjs`).
+  failures), positions come from adsb.lol (`api.adsb.lol/v2`): the same rounded point and
+  radius, at most once every 10 s (it answers a 5 s pace with a 429), never on the same poll as
+  adsb.fi. adsb.fi is checked about once a minute (respecting its back-off) and takes over again
+  with its first good reply. An adsb.lol 429 waits out its Retry-After (at least 60 s) and slows
+  it to 15, then 20 s; a further 429 or any other 4xx pauses it 15 minutes. The credit line names
+  adsb.lol while it's in use. Both builds (`web/live.mjs`).
 
 ## Code
 

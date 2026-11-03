@@ -73,7 +73,7 @@ function rig(){
 function fresh(){resetOutage();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig();}
 const lastData=r=>r.updates.filter(u=>u.ok&&u.source).at(-1);
 
-test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point, radius and interval',async()=>{
+test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point and radius, every 10 s',async()=>{
   const r=fresh();
   try{
     r.feeds.fi={mode:'timeout'}; // adsb.fi not answering at all, as on 3 November
@@ -90,10 +90,11 @@ test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point
     const [fi1]=r.calls.filter(c=>c.which==='fi'),[lol1]=r.calls.filter(c=>c.which==='lol');
     assert.deepEqual(LOL.exec(lol1.url).slice(1),FI.exec(fi1.url).slice(1));
     assert.deepEqual(LOL.exec(lol1.url).slice(1),['39.05','-84.65','18']);
-    // Then every 5 s, like adsb.fi, and adsb.fi left alone until its once-a-minute check.
+    // Then every 10 s (adsb.lol answers adsb.fi's 5 s pace with a 429), and adsb.fi left alone
+    // until its once-a-minute check.
     await r.advance(40000);
     const gaps=r.at('lol').slice(1).map((v,i)=>v-r.at('lol')[i]);
-    assert.ok(gaps.length>=8&&gaps.every(g=>g===5000),`adsb.lol every 5 s: ${gaps}`);
+    assert.ok(gaps.length>=4&&gaps.every(g=>g===10000),`adsb.lol every 10 s: ${gaps}`);
     assert.deepEqual(r.at('fi'),[0,9480],'no adsb.fi request within a minute of the last');
     live.stop();
   }finally{r.restore();}
@@ -136,9 +137,9 @@ test('backup: both down shows "No live data, reconnecting in N s"',async()=>{
     assert.equal(m.fresh,false);assert.equal(m.connecting,false);
     assert.match(quietText(m,false),/^No live data right now\. Reconnecting in \d+ s\.$/);
     assert.ok(m.retryIn>0);
-    // Both still asked, each backing off: adsb.lol 5, 10, 20, 40 s apart.
+    // Both still asked, each backing off: adsb.lol 10 (its floor), 10, 20 s apart.
     const lol=r.at('lol'),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
-    assert.deepEqual(gaps.slice(0,3),[5000,10000,20000]);
+    assert.deepEqual(gaps.slice(0,3),[10000,10000,20000]);
     assert.ok(r.at('fi').length>=2);
     // When adsb.lol answers again its planes show, adsb.fi still down.
     r.feeds.lol={mode:'ok'};await r.advance(90000);
@@ -172,11 +173,11 @@ test('backup: never both feeds on one poll, never at the same time (90 min of ra
   }finally{r.restore();}
 });
 
-test('backup: an adsb.lol 429 or other 4xx pauses its positions for 15 minutes, across a restart',async()=>{
-  for(const mode of ['s429','s403']){
+test('backup: an adsb.lol 403 (or other 4xx but 429) pauses its positions for 15 minutes, across a restart',async()=>{
+  for(const mode of ['s403','s404']){
     const r=fresh();
     try{
-      r.feeds.fi={mode:'offline'};r.feeds.lol={mode,retryAfter:mode==='s429'?30:undefined};
+      r.feeds.fi={mode:'offline'};r.feeds.lol={mode};
       let live=r.live();
       await r.advance(20000);
       const [hit]=r.at('lol');assert.ok(hit!==undefined,'adsb.lol asked');
@@ -199,12 +200,73 @@ test('backup: an adsb.lol 429 or other 4xx pauses its positions for 15 minutes, 
   }
 });
 
+test('backup: adsb.lol at most once every 10 s; on wide maps at adsb.fi\'s slower interval',async()=>{
+  for(const [cfg,gap] of [[CFG,10000],[{...CFG,pollSeconds:15,searchNm:120},15000]]){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'offline'};
+      const live=r.live(cfg);
+      await r.advance(10*60000);
+      const lol=r.at('lol'),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
+      // adsb.fi's once-a-minute checks never pull adsb.lol closer than its floor.
+      assert.ok(gaps.length>20&&Math.min(...gaps)===gap,`adsb.lol gaps ${Math.min(...gaps)}..${Math.max(...gaps)}`);
+      assert.ok(r.at('fi').length>=6,'adsb.fi still checked');
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('backup: an adsb.lol 429 waits out its Retry-After (60 s at least), slows to 15 then 20 s, then pauses 15 minutes',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};
+    const live=r.live();
+    await r.advance(30000);
+    // A 429 with Retry-After 3 (what adsb.lol sent at a 5 s pace): 60 s, then one every 15 s.
+    r.feeds.lol={mode:'s429',retryAfter:3};
+    await r.advance(10000);
+    const [first]=r.at('lol',30001); // the request answered with the 429
+    r.feeds.lol={mode:'ok'};
+    await r.advance(3*60000);
+    let after=r.at('lol',first+1);
+    assert.equal(after[0]-first,60000,`first request after the 429: ${after[0]-first} ms`);
+    assert.ok(after.slice(1).map((v,i)=>v-after[i]).every(g=>g===15000),'then every 15 s');
+    // A 429 with a longer Retry-After (120 s): that wait, then one every 20 s.
+    r.feeds.lol={mode:'s429',retryAfter:120};
+    await r.advance(16000);
+    const second=r.at('lol').at(-1);
+    r.feeds.lol={mode:'ok'};
+    await r.advance(4*60000);
+    after=r.at('lol',second+1);
+    assert.equal(after[0]-second,120000,`after the second 429: ${after[0]-second} ms`);
+    assert.ok(after.slice(1).map((v,i)=>v-after[i]).every(g=>g===20000),'then every 20 s');
+    // A 429 at 20 s: the 15-minute pause.
+    r.feeds.lol={mode:'s429',retryAfter:3};
+    await r.advance(21000);
+    const third=r.at('lol').at(-1);
+    r.feeds.lol={mode:'ok'};
+    await r.advance(14*60000);
+    assert.equal(r.at('lol',third+1).length,0,'nothing during the 15 minutes');
+    await r.advance(90000);
+    after=r.at('lol',third+1);
+    assert.ok(after[0]-third>=BACKUP_PAUSE_S*1000&&after[0]-third<=BACKUP_PAUSE_S*1000+21000,`after the pause: ${after[0]-third} ms`);
+    assert.equal(after[1]-after[0],20000,'still one every 20 s');
+    // adsb.fi back, and later down again: adsb.lol starts again at 10 s.
+    r.feeds.fi={mode:'ok'};await r.advance(6*60000);
+    assert.equal(lastData(r).source,'adsb.fi');
+    r.feeds.fi={mode:'offline'};const t0=r.t;await r.advance(60000);
+    const again=r.at('lol',t0);
+    assert.ok(again.length>=3&&again.slice(1).map((v,i)=>v-again[i]).every(g=>g===10000),`10 s again: ${again}`);
+    live.stop();
+  }finally{r.restore();}
+});
+
 test('backup: the 15-minute pause is saved, so a relaunch within it doesn\'t ask adsb.lol either',async()=>{
   const saved=new Map();
   globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,setItem:(k,v)=>saved.set(k,String(v)),removeItem:k=>saved.delete(k)};
   const r=fresh();
   try{
-    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s429'};
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s403'};
     let live=r.live();
     await r.advance(20000);
     const [hit]=r.at('lol');
@@ -245,7 +307,7 @@ test('backup: adsb.fi checks respect its back-off and Retry-After; 15 s of failu
     assert.ok(gaps.every(g=>g>=60000),`checks ${gaps}`);
     assert.ok(gaps.at(-1)>=300000,`back-off reached 5 min: ${gaps}`);
     // adsb.lol kept the planes up throughout.
-    assert.ok(r.updates.filter(u=>u.ok&&u.source==='adsb.lol').length>200);
+    assert.ok(r.updates.filter(u=>u.ok&&u.source==='adsb.lol').length>100);
     assert.ok(!r.updates.some(u=>!u.ok&&u.t-T0>20000),'a failed check on adsb.fi changes nothing shown');
     live.stop();
   }finally{r.restore();}
@@ -281,7 +343,7 @@ test('backup: a restarted feed (new place or radius) stays on adsb.lol while ads
     assert.equal(lastData(r).source,'adsb.lol');
     live.stop();
     const n=r.calls.length;live=r.live({...CFG,searchNm:30});
-    await r.advance(2000);
+    await r.advance(11000);
     const next=r.calls.slice(n).filter(c=>c.which!=='route');
     assert.equal(next[0].which,'lol','the new feed asks adsb.lol first');
     assert.match(next[0].url,/\/lat\/39\.05\/lon\/-84\.65\/dist\/33$/);
@@ -386,11 +448,11 @@ test('backup: a reply that isn\'t a feed counts as a failure, from either servic
       assert.equal(lastData(r)?.source,'adsb.lol',`${mode}: then adsb.lol`);
       // The same from adsb.lol: no planes, and it backs off.
       r.feeds.lol={mode};const n=r.at('lol').length;
-      await r.advance(40000);
+      await r.advance(60000);
       assert.equal(lastData(r).t-T0<=20000,true,`${mode}: nothing new shown from a bad adsb.lol reply`);
-      // From the last good one: the next poll 5 s on, then back-offs of 5, 10, 20 s.
+      // From the last good one: the next request 10 s on, then back-offs of 10 (the floor), 10, 20 s.
       const lol=r.at('lol').slice(n-1),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
-      assert.deepEqual(gaps.slice(0,4),[5000,5000,10000,20000],`${mode}: adsb.lol backs off`);
+      assert.deepEqual(gaps.slice(0,4),[10000,10000,10000,20000],`${mode}: adsb.lol backs off ${gaps}`);
       live.stop();
     }finally{r.restore();}
   }

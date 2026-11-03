@@ -3393,19 +3393,22 @@ class Enricher {
 
 // --- The live source the display subscribes to.
 // Backup positions (PROFILE.backup, adsb.lol), asked only while adsb.fi isn't answering: the
-// same rounded point, distance and interval, and never on the same poll as adsb.fi.
+// same rounded point and distance, never on the same poll as adsb.fi, and at most once every
+// 10 s (adsb.fi's interval when that is longer): adsb.lol answers a 5 s pace with a 429.
 //  - Over to the backup after two failed adsb.fi polls in a row, or 15 s of failures (a long
 //    back-off ahead). A failure: an error, no reply in time, any status but 200, or a reply
 //    that isn't a feed (not JSON, or no aircraft list).
 //  - On the backup, adsb.fi is asked about once a minute, in place of that poll's adsb.lol
 //    request and never before its back-off and Retry-After allow. Its first good reply ends it.
-//  - adsb.lol's errors back off as adsb.fi's do; a 429 or any other 4xx pauses its positions
-//    for 15 minutes (saved with the route lookups' pause). No receiver-coverage check on it.
+//  - adsb.lol's errors back off as adsb.fi's do. A 429 waits out its Retry-After (at least
+//    60 s) and slows adsb.lol to one request every 15, then 20 s; a 429 at 20 s, or any other
+//    4xx, pauses its positions for 15 minutes (saved with the route lookups' pause). The pace
+//    goes back to 10 s when adsb.fi returns. No receiver-coverage check on it.
 // The outage outlives a feed restart (place, radius or zone changed): while adsb.fi is known to
 // be down, the new feed starts on the backup with both back-offs kept.
-const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900;
+const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
-const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:0,backupFails:0,backupRetryAt:0};
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:0};
 const outage={...CLEAR};
 const resetOutage=()=>Object.assign(outage,CLEAR); // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
@@ -3466,7 +3469,9 @@ function startLive(onUpdate,config){
   let paused=false,gen=0,good=false; // gen: a poll started before a pause/resume is dropped; good: the last data came in
   // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
-  const backupAt=t=>Math.max(outage.backupRetryAt,(ledger.get(BACKUP_COOLDOWN,t/1000)||0)*1000);
+  // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
+  const backupGap=()=>Math.max(config.pollSeconds,BACKUP_STEPS_S[outage.backupStep]||BACKUP_STEPS_S.at(-1))*1000;
+  const backupAt=t=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap(),(ledger.get(BACKUP_COOLDOWN,t/1000)||0)*1000);
   // The one feed this poll asks, or null when neither may be asked yet.
   function pick(t){
     if(!outage.down&&outage.fails&&t-outage.since>=FAILOVER_MS)outage.down=true; // 15 s of failures
@@ -3491,7 +3496,7 @@ function startLive(onUpdate,config){
     if(!feed){schedule(started);return;}
     const backup=feed!=='adsb.fi';
     const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
-    if(!backup)outage.lastAsked=started;
+    if(backup)outage.lastBackupAt=started;else outage.lastAsked=started;
     // Wide areas are big replies: more time to arrive (4 s up to 25 NM, 12 s at 250).
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
     if(stopped||paused||my!==gen)return;
@@ -3509,7 +3514,7 @@ function startLive(onUpdate,config){
       // tell "no receivers here" either.
       if(ac.length)coverage.none=false;else if(!backup)await checkCoverage(Date.now());
       if(stopped)return;
-      if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0});
+      if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0,backupStep:0});
       good=true;
       states={...build(ac,stamp,sel),coverage:{none:!backup&&coverage.none},skew,source:feed};
       onUpdate(states,true);
@@ -3517,10 +3522,15 @@ function startLive(onUpdate,config){
       schedule(started);
     }else if(backup){
       const now=Date.now();
-      // A 429 or any other 4xx: no adsb.lol positions for 15 minutes, as for its route lookups
-      // (kept here for a feed restart, and saved for the next launch).
-      if(typeof status==='number'&&status>=400&&status<500){
-        const until=now/1000+BACKUP_PAUSE_S;outage.backupRetryAt=until*1000;
+      // A 429: wait out its Retry-After (at least 60 s, at most an hour), then one request every
+      // 15, then 20 s. A 429 at 20 s, or any other 4xx: no adsb.lol positions for 15 minutes (or
+      // a longer Retry-After, up to an hour), as for its route lookups (kept here for a feed
+      // restart, and saved for the next launch).
+      const wait=Math.min(3600,Number(retryAfter)||0);
+      if(status===429&&outage.backupStep<BACKUP_STEPS_S.length-1){
+        outage.backupStep++;outage.backupRetryAt=now+Math.max(60,wait)*1000;
+      }else if(typeof status==='number'&&status>=400&&status<500){
+        const until=now/1000+Math.max(BACKUP_PAUSE_S,wait);outage.backupRetryAt=until*1000;
         ledger.put(BACKUP_COOLDOWN,until,until,now/1000);ledger.dirty=false;store.set(LEDGER_KEY,ledger);
       }else outage.backupRetryAt=now+backoff(status,retryAfter||0,++outage.backupFails);
       failed(schedule(started));
