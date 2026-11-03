@@ -53,10 +53,11 @@ for(const [layout,{marks,area}] of Object.entries(LAYOUTS)){
     const p=await page();
     const url=`${BASE}?q=Chicago&layout=${layout}&map=${map}${zone==='window'?'&window=90-180-25':''}`;
     await p.send('Page.navigate',{url});await new Promise(r=>setTimeout(r,9000));
-    const js=`(()=>{const st=document.getElementById('stage').getBoundingClientRect(),A=${JSON.stringify(area)};
-      const box=typeof A==='string'?(r=>({x:r.x-st.x,y:r.y-st.y,w:r.width,h:r.height}))(document.querySelector('#stage '+A).getBoundingClientRect()):A;
+    // Stage pixels (k: the stage's scale on screen; the store build draws it at 90%).
+    const js=`(()=>{const st=document.getElementById('stage').getBoundingClientRect(),k=st.width/960,A=${JSON.stringify(area)};
+      const box=typeof A==='string'?(r=>({x:(r.x-st.x)/k,y:(r.y-st.y)/k,w:r.width/k,h:r.height/k}))(document.querySelector('#stage '+A).getBoundingClientRect()):A;
       const inside=(x,y)=>box.r?Math.hypot(x-box.cx,y-box.cy)<=box.r:x>=box.x&&x<=box.x+box.w&&y>=box.y&&y<=box.y+box.h;
-      return [...document.querySelectorAll('#stage .layout ${marks}')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&inside(r.x+r.width/2-st.x,r.y+r.height/2-st.y);}).map(e=>e.dataset.hex);})()`;
+      return [...document.querySelectorAll('#stage .layout ${marks}')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&inside((r.x+r.width/2-st.x)/k,(r.y+r.height/2-st.y)/k);}).map(e=>e.dataset.hex);})()`;
     const drawn=(await p.send('Runtime.evaluate',{expression:js,returnByValue:true})).result?.value;
     if(process.env.CHECK_DEBUG)console.log('  drawn:',(drawn||[]).join(' '),'\n  urls:',(await p.send('Runtime.evaluate',{expression:'JSON.stringify(window.__urls)',returnByValue:true})).result?.value);
     p.close();
