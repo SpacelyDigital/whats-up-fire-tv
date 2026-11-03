@@ -462,7 +462,8 @@ function withStorage(saved,full=false){
 }
 
 test('storage full: the backup, its 15-minute pause and today\'s log carry on for this launch, and nothing throws',async()=>{
-  const r=fresh();const models=[],saved=new Map(),unset=withStorage(saved,true);
+  const r=fresh();const models=[],saved=new Map(),unset=withStorage(saved,true),said=[],err=console.error;
+  console.error=(...a)=>said.push(a.join(' '));
   try{
     r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'s403'};
     const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
@@ -477,8 +478,9 @@ test('storage full: the backup, its 15-minute pause and today\'s log carry on fo
     assert.equal(m.source,'adsb.lol');assert.ok(m.fresh&&m.planes.length===1,'its planes on screen');
     assert.equal(m.log.today,1,'today\'s log counts the plane');
     assert.equal(saved.size,0,'nothing could be stored');
+    assert.ok(said.length&&said.every(x=>/not saved: storage full/.test(x)),`only the storage-full note is logged: ${said.slice(0,2)}`);
     s.stop();
-  }finally{r.restore();unset();}
+  }finally{r.restore();unset();console.error=err;}
 });
 
 // tests/fixtures/storage-4e866d1.json: what the build on the TV (4e866d1) saved at CVG after
@@ -502,6 +504,55 @@ test('upgrade from the TV build (4e866d1): its saved adsb.lol pause, route answe
     assert.equal(r.calls.filter(c=>c.which==='route').length,0,'its saved route answer is used, not asked again');
     s.stop();
   }finally{r.restore();unset();}
+});
+
+test('backup: an adsb.lol reply with missing, null, wrong-type, extra or out-of-range fields: bad aircraft left out, the rest shown with sane values',async()=>{
+  const r=fresh();const models=[];
+  try{
+    const ok=plane('a10101','LOL202'),drop=[
+      plane('b00001','BAD1',{lat:200}),plane('b00002','BAD2',{lat:null}),plane('b00003','BAD3',{lon:undefined}),
+      plane('b00004','BAD4',{alt_baro:'ground'}),plane('b00005','BAD5',{alt_baro:99999}),plane('b00006','BAD6',{hex:'zzzzzz'}),
+      plane('b00007','BAD7',{hex:undefined}),plane('b00008','BAD8',{seen_pos:-3})];
+    const odd=[plane('a20202','ODD2',{gs:1e9,track:'x'}),
+      // Wrong types where text or numbers belong; extra keys, including ones named like Object's own.
+      plane('a30303','ODD3',{r:{x:1},t:42,flight:12345,squawk:7700,emergency:{},dbFlags:'x',baro_rate:'x',year:1e12,extra:[1,2],constructor:'x'}),
+      plane('a40404','ODD4',{r:12345,squawk:'constructor',emergency:'constructor',category:{}})];
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'ok',body:{ac:[ok,...drop,...odd,null,'x',7],msg:'No error',now:0,total:13}};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    for(let t=0;t<40000;t+=5000){r.feeds.lol.body.now=Date.now();await r.advance(5000);}
+    const m=models.filter(x=>x.fresh&&x.source==='adsb.lol').at(-1);
+    assert.ok(m,'adsb.lol data on screen');
+    assert.deepEqual(m.planes.map(a=>a.hex).sort(),['a10101','a20202','a30303','a40404'],'only the aircraft with a usable position');
+    for(const a of m.planes){
+      for(const k of ['flight','registration','type','operator','squawk','emergency','year'])
+        assert.ok(typeof a[k]==='string'&&!/\[object|NaN|undefined/.test(a[k]),`${a.hex} ${k}: ${JSON.stringify(a[k])}`);
+      for(const k of ['altitude_ft','speed_kt','heading','vertical','distance_mi'])
+        assert.ok(a[k]===null||Number.isFinite(a[k]),`${a.hex} ${k}: ${a[k]}`);
+    }
+    const p=Object.fromEntries(m.planes.map(a=>[a.hex,a]));
+    assert.equal(p.a20202.speed_kt,null,'an impossible speed is no reading');assert.equal(p.a20202.heading,null);
+    assert.equal(p.a30303.squawk,'');assert.equal(p.a30303.emergency,'');assert.equal(p.a30303.year,'');
+    assert.equal(p.a40404.emergency,'','"constructor" is no emergency');
+    s.stop();
+  }finally{r.restore();}
+});
+
+test('backup: a huge adsb.lol reply (5,000 aircraft, about 1 MB) is cut to the nearest 300, quickly',async()=>{
+  const r=fresh();const models=[];
+  try{
+    const ac=Array.from({length:5000},(_,i)=>plane((0xa00000+i).toString(16),`HUGE${i}`,{lat:39.05+(i%100)*0.004,lon:-84.65+Math.floor(i/100)*0.004}));
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'ok',body:{ac,msg:'No error',now:0,total:5000}};
+    assert.ok(JSON.stringify(r.feeds.lol.body).length>9e5,'a reply of about 1 MB');
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    let worst=0;
+    for(let t=0;t<40000;t+=5000){r.feeds.lol.body.now=Date.now();const t0=performance.now();await r.advance(5000);worst=Math.max(worst,performance.now()-t0);}
+    const m=models.filter(x=>x.fresh&&x.source==='adsb.lol').at(-1);
+    assert.ok(m,'adsb.lol data on screen');
+    assert.equal(m.planes.length,300,'the nearest 300');
+    assert.ok(m.planes.every((a,i,all)=>!i||all[i-1].distance_mi<=a.distance_mi),'nearest first');
+    assert.ok(worst<2000,`each 5 s of feed handled in under 2 s on this Mac (worst ${Math.round(worst)} ms)`);
+    s.stop();
+  }finally{r.restore();}
 });
 
 test('backup: field mapping from adsb.lol v2 to what the app reads from adsb.fi',()=>{

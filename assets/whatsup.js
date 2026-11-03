@@ -4780,7 +4780,8 @@ function enrich(a,raw,route,now){
   }
   const vertical=number(r.baro_rate)?r.baro_rate:number(r.geom_rate)?r.geom_rate:null;
   const military=isMilitary(r);
-  return {...a,flight,operator,military,registration:a.registration||r.r||'',type:typeName(a.aircraft_type),
+  // The cleaned registration only: the feed's raw one could be any type ("[object Object]").
+  return {...a,flight,operator,military,registration:a.registration||'',type:typeName(a.aircraft_type),
     year:/^\d{4}$/.test(String(r.year||''))?String(r.year):'',squawk,emergency,vertical,
     cargo,route,progress,...derive(a),trend:trend(a,now)};
 }
