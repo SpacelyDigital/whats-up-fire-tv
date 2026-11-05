@@ -404,12 +404,14 @@ export class Enricher {
 //    4xx, pauses its positions for 15 minutes (saved with the route lookups' pause). The pace
 //    goes back to 10 s when adsb.fi returns. No receiver-coverage check on it.
 // The outage outlives a feed restart (place, radius or zone changed): adsb.fi's back-off, Retry-After
-// and 15 s mark are kept (a failure that lands after the restart counts too), and while adsb.fi is
-// known to be down the new feed starts on the backup with both back-offs kept.
+// and 15 s mark are kept (a failure that lands after the restart counts too, unless a request made
+// since has succeeded), and while adsb.fi is known to be down the new feed starts on the backup with
+// both back-offs kept.
 export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
-const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
+// okAt: when the last adsb.fi request that answered with data went out.
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
 export const outage={...CLEAR};
 // Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
 const UNCHECKED={url:'',none:false,checked:-Infinity};
@@ -527,8 +529,9 @@ export function startLive(show,config){
     // number, 0 or below, past any date) is a failed poll, as a 5xx: none of its positions can be
     // judged (adsb.lol stands in).
     const body=typeof reply?.now==='number'&&stamp>0&&stamp<=8.64e12?reply:null;
-    // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts.
-    if(stopped||paused){if(!body&&!backup)fiFailed(status,retryAfter,started);return;}
+    // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts, unless
+    // a request made since has answered (a hung request timing out after the restarted feed's good reply).
+    if(stopped||paused){if(!body&&!backup&&started>outage.okAt)fiFailed(status,retryAfter,started);return;}
     if(body){
       const ac=oneEach(body.ac),skew=stamp-now,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
@@ -537,7 +540,7 @@ export function startLive(show,config){
       // tell "no receivers here" either.
       if(ac.length)coverage.none=false;else if(!backup){busy=true;await checkCoverage(performance.now());busy=false;}
       if(stopped)return;
-      if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0,backupStep:0});
+      if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,okAt:started,backupFails:0,backupStep:0});
       good=true;
       states={...build(ac,stamp,sel),coverage:{none:!backup&&coverage.none},skew,source:feed};
       onUpdate(states,true);

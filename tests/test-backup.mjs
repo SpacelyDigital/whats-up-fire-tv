@@ -615,6 +615,24 @@ test('restart: within 15 s of an adsb.fi failure a restart keeps its back-off an
   }finally{r.restore();}
 });
 
+// A stopped feed's hung adsb.fi request times out after the restarted feed's requests have succeeded:
+// that stale failure is no outage (adsb.fi is answering), so adsb.lol is never asked and adsb.fi keeps
+// its cadence (it moved to adsb.lol for about a minute).
+test('restart: a hung adsb.fi request that times out after a newer one succeeded is no failure (no adsb.lol, adsb.fi at its cadence)',async()=>{
+  const r=fresh(),W={...CFG,pollSeconds:10,searchNm:250}; // a wide map: 10 s polls, 12 s to answer
+  try{
+    let live=r.live(W);
+    await r.advance(9900);r.feeds.fi={mode:'timeout'}; // good at 0; the poll at 10 s hangs
+    await r.advance(700);live.stop();r.feeds.fi={mode:'ok'};live=r.live(W); // Up/Down 0.6 s later: the new feed asks at 11 s
+    await r.advance(60000); // the hung request times out at 22 s, after the new feed's good replies at 11 and 21 s
+    assert.deepEqual(r.at('fi'),[0,10000,11000,21000,31000,41000,51000,61000],`adsb.fi at its cadence: ${r.at('fi')}`);
+    assert.deepEqual(r.at('lol'),[],'adsb.lol never asked');
+    assert.equal(outage.down,false);assert.equal(outage.fails,0);
+    assert.equal(lastData(r).source,'adsb.fi');
+    live.stop();
+  }finally{r.restore();}
+});
+
 // adsb.fi asks for at most 1 request a second: a feed restart waits for it too (the new radius's
 // planes come up to a second later).
 test('restart: adsb.fi is never asked within a second of the last request (a step just after a poll, steps every 0.8 s, a restart shown again at once)',async()=>{
