@@ -127,7 +127,7 @@ h('Fonts');
 const fontDir=join(root,'web','fonts');
 let ofl='';
 for(const f of readdirSync(fontDir).filter(f=>/-OFL\.txt$/.test(f)).sort()){
-  const t=readFileSync(join(fontDir,f),'utf8');
+  const t=readFileSync(join(fontDir,f),'utf8').replace(/\r/g,''); // B612 Mono's has CRLF line ends
   const first=t.split('\n').find(l=>/Copyright/i.test(l)).trim();
   if(/with Reserved Font Name/i.test(t))throw new Error(`${f}: declares a Reserved Font Name; check the converted font`);
   const FONT={B612Mono:'B612 Mono',BarlowCondensed:'Barlow Condensed',EBGaramond:'EB Garamond',JetBrainsMono:'JetBrains Mono'};
