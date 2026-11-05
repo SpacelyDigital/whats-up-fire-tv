@@ -252,3 +252,15 @@ test('photoAlt: screen-reader text for the photo',()=>{
   assert.equal(photoAlt({aircraft_type:'E75L'}),'Photo of an E75L');
   assert.equal(photoAlt(null),'Photo of an aircraft');
 });
+test('Atlas emergency notice: the real code if there is one, else just the emergency (never "Squawk ·" or an invented 7700); the short wording drops only "Squawk "',async()=>{
+  const vm=await import('node:vm');
+  const src=readFileSync(new URL('../web/layouts/atlas.mjs',import.meta.url),'utf8');
+  const code=/^\s*\$\.alert\.hidden=!hero\.emergency;.*$/m.exec(src)?.[0];assert.ok(code,'the notice line in atlas.mjs');
+  const notice=hero=>{const $={alert:{}};let alts;vm.runInNewContext(code,{$,hero,setText:(e,v,a)=>{alts=a?.length?[...a]:[String(v??'')];}});return {hidden:$.alert.hidden,alts};};
+  assert.deepEqual(notice({squawk:'7600',emergency:'RADIO FAILURE'}),{hidden:false,alts:['Squawk 7600 · RADIO FAILURE','7600 · RADIO FAILURE']});
+  assert.deepEqual(notice({squawk:'7700',emergency:'EMERGENCY'}).alts,['Squawk 7700 · EMERGENCY','7700 · EMERGENCY']);
+  assert.deepEqual(notice({squawk:'1200',emergency:'EMERGENCY'}).alts,['Squawk 1200 · EMERGENCY','1200 · EMERGENCY'],'a declared one: its real code');
+  for(const squawk of ['',null,undefined])for(const emergency of ['EMERGENCY','RADIO FAILURE','HIJACK'])
+    assert.deepEqual(notice({squawk,emergency}),{hidden:false,alts:[emergency]},`declared ${emergency}, squawk ${squawk}`);
+  assert.deepEqual(notice({squawk:'2214',emergency:''}),{hidden:true,alts:['']},'no emergency');
+});
