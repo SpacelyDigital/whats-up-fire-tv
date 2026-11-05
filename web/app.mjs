@@ -883,8 +883,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&l
 // First launch: the IP guess, said plainly.
 function showWelcome(place){
   setText('welcome-city',placeLabel(place));
-  const acc=place.accuracyKm;
-  setText('welcome-note',`A first guess from your internet connection${acc?` (the lookup claims within ${settings.distance==='km'?`${acc} km`:`${Math.round(acc*.621)||1} mi`})`:''}. `+
+  // GeoJS gives MaxMind's radius, 1 to 1,000 km: none, zero, negative or absurd is no claim to show.
+  const a=Number(place.accuracyKm),acc=a>0&&a<=2000?a:0;
+  setText('welcome-note',`A first guess from your internet connection${acc?` (the lookup claims within ${settings.distance==='km'?`${Math.round(acc)||1} km`:`${Math.round(acc*.621)||1} mi`})`:''}. `+
     'Internet locations are often off by 10 miles or more, so enter your ZIP or street address for a sky that matches your window.');
   open('welcome','welcome-change');
 }

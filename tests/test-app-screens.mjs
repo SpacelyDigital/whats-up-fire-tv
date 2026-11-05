@@ -27,3 +27,14 @@ test('search entry: at most 40 characters, Space included; Space never leads or 
   assert.equal(type('del','space','space'),W40.slice(1)+' ','below the cap Space works, once');
   assert.equal(type('clear','space','A','space','space','B'),'A B');
 });
+
+test('welcome card: the lookup\'s accuracy reads as whole miles or km, at least 1; none, zero, negative or absurd says nothing',()=>{
+  const p=page([fn('showWelcome')],{settings:{distance:'mi'},placeLabel:pl=>pl.name,open(){}});
+  const claim=(accuracyKm,unit='mi')=>{p.settings.distance=unit;p.showWelcome({name:'Chicago',accuracyKm});
+    const note=p.texts['welcome-note'];assert.match(note,/^A first guess from your internet connection(?: \(the lookup claims within \d+ (?:mi|km)\))?\. Internet locations/,note);
+    return /within (\d+ (?:mi|km))/.exec(note)?.[1]??null;};
+  for(const [acc,mi,km] of [[.4,'1 mi','1 km'],[5,'3 mi','5 km'],[20.6,'13 mi','21 km'],[1000,'621 mi','1000 km'],[1e-9,'1 mi','1 km']]){
+    assert.equal(claim(acc),mi,`${acc} km in miles`);assert.equal(claim(acc,'km'),km,`${acc} km`);
+  }
+  for(const acc of [null,undefined,0,-1,-5,NaN,Infinity,-Infinity,1e21,5000])for(const unit of ['mi','km'])assert.equal(claim(acc,unit),null,`${acc} (${unit})`);
+});
