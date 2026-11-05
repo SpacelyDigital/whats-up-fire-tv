@@ -905,10 +905,12 @@ function renderDoc(box,text){
     p.startsWith('## ')?Object.assign(document.createElement('h4'),{textContent:p.slice(3)}):
     Object.assign(document.createElement('p'),{textContent:p.replace(/\s*\n\s*/g,' '),className:p.startsWith('• ')?'bullet':''})));
 }
+// Anything of the app's on this TV: also with a consent of an older version, damaged or missing.
+const anyStored=()=>{try{return Object.keys(localStorage).some(k=>k.startsWith('whatsup.'));}catch{return false;}};
 function openPrivacy(){
   const doc=$('privacy-doc');renderDoc(doc,window.__whatsupDocs?.privacy||'');doc.scrollTop=0;
   $('privacy-qr-box').hidden=!PRIVACY_URL;if(PRIVACY_URL)$('privacy-qr').src=themedQr(PRIVACY_URL);
-  $('privacy-erase').hidden=!hasConsent(); // before consent there is nothing to erase
+  $('privacy-erase').hidden=!hasConsent()&&!anyStored(); // nothing stored, nothing to erase
   open('privacy','privacy-back');
 }
 // About & credits (assets/licenses.txt), with the QR adsb.fi's terms ask for (a cite and a link).
