@@ -794,3 +794,28 @@ test('backup: a 200 whose `now` is missing, not a number, 0 or below, or more th
       assert.equal(lastData(r)?.source,'adsb.fi',`${off/DAY_MS} days ${seconds?'s':'ms'}`);live.stop();}finally{r.restore();}
   }
 });
+
+test('backup: after a 4xx from both feeds the last picture is called stale 60 s after the last good reply, not at the next poll minutes later',async()=>{
+  for(const [name,fi] of [['adsb.fi 404',{mode:'s404'}],['adsb.fi 429, Retry-After 150 s',{mode:'s429',retryAfter:150}]]){
+    const r=fresh(),models=[];
+    try{
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({...m,at:r.t}));
+      await r.advance(6000); // good replies at 0 and 5 s
+      assert.ok(models.at(-1).fresh&&models.at(-1).planes.length===1,`${name}: live`);
+      r.feeds.fi=fi;r.feeds.lol={mode:'s404'};
+      await r.advance(58000); // 64 s: within a minute of the last good reply, the picture stays
+      assert.ok(models.at(-1).fresh,`${name}: kept up to 60 s`);
+      const asked=r.feedCalls().length;
+      await r.advance(2000); // 66 s
+      const m=models.at(-1);
+      assert.ok(!m.fresh&&!m.planes.length,`${name}: not shown as live at ${m.at} ms`);
+      assert.match(quietText(m,false),/^No live data right now\. Reconnecting in \d+ (s|min)\.$/,name);
+      assert.equal(r.feedCalls().length,asked,`${name}: nothing asked for it`);
+      await r.advance(120000);
+      assert.ok(models.filter(m=>m.at>65000).every(m=>!m.fresh),`${name}: stale until a feed answers`);
+      s.stop();
+      const n=models.length;await r.advance(120000);
+      assert.equal(models.length,n,`${name}: nothing after stop`);
+    }finally{r.restore();}
+  }
+});
