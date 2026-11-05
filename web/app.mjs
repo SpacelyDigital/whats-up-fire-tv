@@ -238,8 +238,18 @@ function countDown(){
     if(lastModel.retryIn<5)clearInterval(waitTimer);
   },1000);
 }
+// During an outage a model comes only with a poll, minutes apart: the dashboard is drawn again at
+// each minute so its clock and date keep time (nothing else moves), and at once back on screen.
+let clockTimer=0;
+function keepTime(){
+  clearTimeout(clockTimer);
+  if(!onScreen||!lastModel?.live||lastModel.fresh)return;
+  const t=Date.now();
+  if(Math.floor(lastModel.now/60000)!==Math.floor(t/60000)){lastModel={...lastModel,now:t};draw(lastModel);}
+  clockTimer=setTimeout(keepTime,60050-t%60000);
+}
 function render(m){
-  lastModel=m;listen(m);draw(m);countDown();
+  lastModel=m;listen(m);draw(m);countDown();keepTime();
   if(m.source&&m.source!==credited&&performance.now()-sourceFlashAt>=SOURCE_FLASH_MS){sourceFlashAt=performance.now();flashCredits();}
 }
 
@@ -967,7 +977,7 @@ function eraseAll(){
 }
 
 // The app tells the page when it leaves or returns to the screen: polling pauses meanwhile.
-window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}};
+window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}keepTime();};
 addEventListener('pagehide',()=>flushLog());
 
 // --- Boot
