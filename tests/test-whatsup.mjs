@@ -403,6 +403,17 @@ test('styles: the Atlas emergency banner keeps its white text at 4.5:1 or better
     for(const [phase,c] of [['base',fill],['flash',flash]])assert.ok(contrast('#fff',c)>=4.5,`${id} ${phase}: #fff on ${c} is ${contrast('#fff',c).toFixed(2)}:1`);
   }
 });
+test('styles: the Adjust position privacy note is at least 13 px and its colour reaches 4.5:1 on the panel\'s background in every layout',async()=>{
+  const {readdirSync}=await import('node:fs');
+  const ui=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
+  const note=p=>prop(block(ui,'.adjust-panel .note.small'),p)||prop(block(ui,'.note.small'),p)||prop(block(ui,'.note'),p); // the more specific rule wins
+  assert.ok(parseFloat(note('font-size'))>=13,`font-size ${note('font-size')}`);
+  for(const f of readdirSync(new URL('../web/layouts/',import.meta.url)).filter(f=>f.endsWith('.css'))){
+    const id=f.slice(0,-4),map=Object.assign(vars(block(ui,':root')),...(SHEETS[id]||[id]).map(s=>vars(block(layoutCss(s),`.L-${s}`))));
+    const fg=resolve(note('color'),map),bg=resolve(prop(block(ui,'.stage.adjusting'),'background'),map),r=contrast(fg,bg);
+    assert.ok(r>=4.5,`${id}: ${fg} on ${bg} is ${r.toFixed(2)}:1`);
+  }
+});
 test('place time zone refresh: both paths (pick and launch) go through one helper that restarts a street map in progress',async()=>{
   const {readFileSync}=await import('node:fs');
   const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');

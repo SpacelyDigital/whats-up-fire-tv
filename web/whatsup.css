@@ -107,7 +107,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 .adjust-panel{position:absolute;left:570px;top:40px;right:34px;font-size:16px;line-height:1.55;color:var(--ui-ink);font-family:var(--ui-font)}
 .adjust-panel .title{font-size:24px;font-weight:800}
 .adjust-panel p{margin:12px 0;color:var(--ui-dim)}
-.adjust-panel .note.small{color:var(--ui-faint)}
+.adjust-panel .note.small{color:var(--ui-dim);font-size:13px}
 .adjust-where{font-size:20px;font-weight:700;margin-top:4px}
 .adjust-moved{font-size:22px;font-weight:700;margin-top:14px}
 .keys-help{font-size:17px}
