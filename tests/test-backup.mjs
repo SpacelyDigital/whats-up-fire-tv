@@ -1,7 +1,7 @@
 // node --test tests/test-backup.mjs — the adsb.lol backup positions (web/live.mjs): used only
 // while adsb.fi isn't answering, from the same rounded point, radius and interval.
-// The live source runs on a simulated clock: Date.now, setTimeout and fetch are replaced, and
-// each host answers from its own script. CVG is the test place (no one's home).
+// The live source runs on a simulated clock: Date.now, performance.now, setTimeout and fetch are
+// replaced, and each host answers from its own script. CVG is the test place (no one's home).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -23,10 +23,10 @@ const FI_PLANE=plane('a1f1f1','FIX101'),LOL_PLANE=plane('a10101','LOL202');
 // The rig: `feeds.fi` / `feeds.lol` say how each host answers now ({mode, retryAfter, body,
 // nowShiftMs, seconds}); modes: ok, offline, timeout, s<code>, garbage, empty, portal, nolist.
 function rig(t0=T0){
-  const real={now:Date.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
+  const real={now:Date.now,perf:performance.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
   let t=t0,inFlight=0;const timers=new Set(),calls=[],updates=[];
   const feeds={fi:{mode:'ok'},lol:{mode:'ok'}};
-  Date.now=()=>t;Math.random=()=>.5; // jitter ×1: back-offs are exact
+  Date.now=()=>t;performance.now=()=>t-t0;Math.random=()=>.5; // jitter ×1: back-offs are exact
   globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
   globalThis.clearTimeout=h=>{timers.delete(h);};
   const res=(status,text,headers={})=>({status,url:'',headers:{get:k=>headers[k.toLowerCase()]??null},text:async()=>text});
@@ -67,8 +67,8 @@ function rig(t0=T0){
     hexes:(states[IDS.feed]?.attributes?.ac||[]).map(a=>a.hex),retryAt:states.retryAt,skew:states.skew,coverage:states.coverage,states}),config);
   const feedCalls=()=>calls.filter(c=>c.which==='fi'||c.which==='lol');
   const at=(which,from=0,to=Infinity)=>calls.filter(c=>c.which===which&&c.t>=t0+from&&c.t<=t0+to).map(c=>c.t-t0);
-  const restore=()=>{Date.now=real.now;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;Math.random=real.random;};
-  return {feeds,calls,updates,advance,live,feedCalls,at,restore,get t(){return t-t0;}};
+  const restore=()=>{Date.now=real.now;performance.now=real.perf;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;Math.random=real.random;};
+  return {feeds,calls,updates,advance,live,feedCalls,at,restore,cpu:()=>real.perf.call(performance),get t(){return t-t0;}};
 }
 // A clean start for each test: no outage known, no saved pause.
 function fresh(t0){resetOutage();resetLog();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig(t0);}
@@ -545,7 +545,7 @@ test('backup: a huge adsb.lol reply (5,000 aircraft, about 1 MB) is cut to the n
     assert.ok(JSON.stringify(r.feeds.lol.body).length>9e5,'a reply of about 1 MB');
     const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
     let worst=0;
-    for(let t=0;t<40000;t+=5000){r.feeds.lol.body.now=Date.now();const t0=performance.now();await r.advance(5000);worst=Math.max(worst,performance.now()-t0);}
+    for(let t=0;t<40000;t+=5000){r.feeds.lol.body.now=Date.now();const t0=r.cpu();await r.advance(5000);worst=Math.max(worst,r.cpu()-t0);}
     const m=models.filter(x=>x.fresh&&x.source==='adsb.lol').at(-1);
     assert.ok(m,'adsb.lol data on screen');
     assert.equal(m.planes.length,300,'the nearest 300');

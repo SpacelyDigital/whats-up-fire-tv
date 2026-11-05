@@ -1,0 +1,109 @@
+// node --test tests/test-clock.mjs — the TV's clock stepping while the app runs (an NTP correction,
+// a wrong date put right). Here `t` is real time: timers, the feeds' own clocks and performance.now();
+// Date.now() is the TV's clock, T0 + t + its error, and the cases step that error.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {startLive,resetOutage,store,LEDGER_KEY,HISTORY_KEY,Ledger,Enricher,getBytes} from '../web/live.mjs';
+
+const T0=Date.parse('2026-11-05T15:00:00Z'),CVG={latitude:39.05,longitude:-84.65};
+const CFG={...CVG,radiusMiles:3,pollSeconds:5,searchNm:15};
+const FI=/^https:\/\/opendata\.adsb\.fi\//,LOL=/^https:\/\/api\.adsb\.lol\//;
+const PLANE={hex:'a1f1f1',flight:'FIX101  ',r:'N1F1',t:'B738',lat:39.065,lon:-84.65,alt_baro:4000,gs:220,track:90,seen_pos:0.4,seen:0.2};
+const gapsOf=ts=>ts.slice(1).map((v,i)=>v-ts[i]);
+
+function rig(){
+  const real={now:Date.now,perf:performance.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
+  let t=0,err=0;const timers=new Set(),calls=[],updates=[];
+  const feeds={fi:{mode:'ok',ms:200},lol:{mode:'ok',ms:200}};
+  Date.now=()=>T0+t+err;performance.now=()=>t;Math.random=()=>.5;
+  globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
+  globalThis.clearTimeout=h=>{timers.delete(h);};
+  globalThis.fetch=(url,opts={})=>new Promise((ok,no)=>{
+    url=String(url);const which=FI.test(url)?'fi':LOL.test(url)?'lol':'other',f=feeds[which]||{mode:'s404',ms:0},c={t,which};calls.push(c);
+    const h=globalThis.setTimeout(()=>{c.done=t;
+      if(f.mode==='offline')return no(new TypeError('offline'));
+      const status=f.mode==='ok'?200:Number(f.mode.slice(1));
+      ok({status,url,headers:{get:()=>null},text:async()=>status===200?JSON.stringify({ac:f.ac||[PLANE],msg:'No error',now:T0+t}):''});
+    },f.ms);
+    opts.signal?.addEventListener('abort',()=>{globalThis.clearTimeout(h);no(new Error('aborted'));});
+  });
+  const flush=async()=>{for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));};
+  // Run real time forward, firing timers in order; until() stops early.
+  async function advance(ms,until){
+    const end=t+ms;
+    for(;;){
+      await flush();if(until?.())return;
+      const due=[...timers].filter(h=>h.at<=end).sort((a,b)=>a.at-b.at)[0];
+      if(!due)break;
+      timers.delete(due);t=Math.max(t,due.at);due.fn();
+    }
+    t=end;await flush();
+  }
+  const live=(config=CFG)=>startLive((s,ok)=>updates.push({t,ok,source:s.source||''}),config);
+  const feed=()=>calls.filter(c=>c.which==='fi'||c.which==='lol');
+  const restore=()=>{Date.now=real.now;performance.now=real.perf;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;Math.random=real.random;};
+  return {feeds,calls,updates,advance,live,feed,restore,step(ms){err+=ms;},get t(){return t;}};
+}
+function fresh(){resetOutage();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);return rig();}
+
+for(const back of [10000,120000,3600000,86400000])
+  test(`feed: the TV clock stepped back ${back/1000} s during a poll: the next polls come on time`,async()=>{
+    const r=fresh();
+    try{
+      const live=r.live();await r.advance(16000);
+      r.feeds.fi.ms=1500;const n=r.feed().length;
+      await r.advance(10000,()=>r.feed().length>n); // the next poll is out
+      await r.advance(600);r.step(-back);r.feeds.fi.ms=200;const at=r.t;
+      await r.advance(40000);
+      const after=r.feed().filter(c=>c.t>at).map(c=>c.t),gaps=[after[0]-at,...gapsOf(after)];
+      assert.ok(after.length>=7&&Math.max(...gaps)<=5500,`polls after the step: +${after.map(x=>x-at)} ms`);
+      assert.ok(r.updates.filter(u=>u.t>at&&u.ok).length>=7,'and their planes shown');
+      live.stop();
+    }finally{r.restore();}
+  });
+
+test('feed: the TV clock stepped back 10 min or an hour during an outage: planes return within the 5-minute back-off',async()=>{
+  for(const back of [600000,3600000]){
+    const r=fresh();
+    try{
+      r.feeds.fi.mode='s500';r.feeds.lol.mode='s503';
+      const live=r.live();await r.advance(40000);
+      r.step(-back);r.feeds.fi.mode='ok';const at=r.t;
+      await r.advance(400000,()=>r.updates.some(u=>u.t>at&&u.ok));
+      const ok=r.updates.find(u=>u.t>at&&u.ok);
+      assert.ok(ok&&ok.t-at<=300000,`-${back/60000} min: planes ${ok?ok.t-at+' ms':'not'} after the feeds came back`);
+      assert.equal(ok.source,'adsb.fi');
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+test('route lookups: one every 5 s by performance.now(), whatever the TV clock says; a 429 pauses 15 min, also for the next feed',async()=>{
+  const real=performance.now;let p=1000;performance.now=()=>p;
+  try{
+    const now=Date.now()/1000,asked=[],L=new Ledger(),answer={status:404,payload:null};
+    const e=new Enricher(L,async url=>{asked.push(url);return answer;});
+    const a=n=>({hex:'a0000'+n,callsign:'UAL10'+n,registration:'',latitude:39.06,longitude:-84.65,observed:now,live:true,inside:true,miles:1});
+    await e.tick([a(1)],now);assert.equal(asked.length,1);
+    p+=3000;await e.tick([a(2)],now-3600);assert.equal(asked.length,1,'not within 5 s');
+    p+=3000;await e.tick([a(2)],now-3597);assert.equal(asked.length,2,'5 s on, though the TV clock stepped back an hour');
+    p+=6000;await e.tick([a(3)],now+86400);assert.equal(asked.length,3,'and forward a day');
+    answer.status=429;p+=6000;await e.tick([a(4)],now);assert.equal(asked.length,4);
+    p+=14*60000;await e.tick([a(5)],now-7200);assert.equal(asked.length,4,'paused after a 429, whatever the TV clock says');
+    // A restart (place, radius or zone changed) mid-pause: the saved pause holds.
+    const e2=new Enricher(new Ledger(JSON.parse(JSON.stringify(L))),async url=>{asked.push(url);return {status:404,payload:null};});
+    await e2.tick([a(5)],now);assert.equal(asked.length,4,'the next feed keeps the pause');
+    p+=15*60000+1000;await e2.tick([a(5)],now);assert.equal(asked.length,5,'asked once it is over');
+  }finally{performance.now=real;}
+});
+
+test('map tiles: a 429\'s pause runs on performance.now(): the TV clock stepped back an hour doesn\'t stretch it',async()=>{
+  const real={now:Date.now,perf:performance.now,fetch:globalThis.fetch};let d=T0,p=1000,status=429,calls=0;
+  Date.now=()=>d;performance.now=()=>p;globalThis.fetch=async()=>{calls++;return {status,arrayBuffer:async()=>new ArrayBuffer(8)};};
+  const TILE='https://tiles.openfreemap.org/planet/x/10/271/391.pbf';
+  try{
+    assert.equal(await getBytes(TILE),null);status=200;
+    p+=30000;d+=30000;assert.equal(await getBytes(TILE),null,'paused');assert.equal(calls,1);
+    p+=31000;d-=3600000;assert.equal((await getBytes(TILE))?.length,8,'asked again a minute after the 429');assert.equal(calls,2);
+  }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;}
+});

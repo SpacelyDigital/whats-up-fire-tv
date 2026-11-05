@@ -266,7 +266,7 @@ function liveSource(config,onModel){
   const update=(states,ok)=>{
     clearTimeout(stale);
     if(ok)lastOk=Date.now();
-    const now=Date.now(),retryIn=states.retryAt?Math.max(0,Math.round((states.retryAt-now)/1000)):0;
+    const now=Date.now(),retryIn=states.retryAt?Math.max(0,Math.round((states.retryAt-performance.now())/1000)):0; // retryAt: performance.now(), as live.mjs times it
     // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
     // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s", at 60 s
     // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds).

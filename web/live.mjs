@@ -74,6 +74,7 @@ function rawGetJson(url,timeoutMs){
 // bridge (desktop tests). At most TILE_PARALLEL in flight across the whole app, and after a
 // 429, 403 or 5xx every tile request waits out a shared cooldown (1 min, doubling to 10 min);
 // the maps then keep what's saved. Resolves bytes or null.
+// The cooldown runs on performance.now(): a TV clock step can't stretch it.
 const TILE_PARALLEL=4;
 let tileSlots=TILE_PARALLEL,tileCooldown=0,tileStrikes=0;const tileQueue=[];
 const tileSlot=()=>tileSlots>0?(tileSlots--,Promise.resolve()):new Promise(r=>tileQueue.push(r));
@@ -82,15 +83,15 @@ export const tileStats={inFlight:0,peak:0,requests:0,bytes:0};
 function tileStatus(status){
   if(status===200){tileStrikes=0;return;}
   if(status===429||status===403||(typeof status==='number'&&status>=500)){
-    tileCooldown=Date.now()+Math.min(600000,60000*2**tileStrikes++);
+    tileCooldown=performance.now()+Math.min(600000,60000*2**tileStrikes++);
   }
 }
 export async function getBytes(url,timeoutMs=10000){
-  if(Date.now()<tileCooldown)return null;
+  if(performance.now()<tileCooldown)return null;
   await tileSlot();
   tileStats.inFlight++;tileStats.peak=Math.max(tileStats.peak,tileStats.inFlight);tileStats.requests++;
   try{
-    if(Date.now()<tileCooldown)return null;
+    if(performance.now()<tileCooldown)return null;
     const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
     if(bridge)return await new Promise(resolve=>{
       const id=++nextRequest,timer=setTimeout(()=>{pending.delete(id);resolve(null);},timeoutMs+2000);
@@ -323,7 +324,13 @@ let routeFocus=()=>'';
 export const setRouteFocus=fn=>{routeFocus=fn;};
 
 export class Enricher {
-  constructor(ledger,request){this.ledger=ledger;this.request=request;this.status='idle';}
+  constructor(ledger,request){
+    this.ledger=ledger;this.request=request;this.status='idle';
+    // Lookups are paced on performance.now(), which a TV clock step doesn't move. A pause saved by
+    // the feed before (a restart, the last launch) carries over, never longer than it was set for.
+    const row=ledger.rows.get('cooldown:adsblol'),left=Math.min(900,Number(row?.value)||900,(row?.expires??0)-Date.now()/1000);
+    this.next=left>0?performance.now()+left*1000:0;
+  }
   publish(a,route,now){
     if(route){
       const entry={...route,hex:a.hex,callsign:ident(a.callsign),registration:ident(a.registration),expires:now+SIX_HOURS};
@@ -360,8 +367,9 @@ export class Enricher {
     // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
     // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
     // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
-    if(missing.length&&!L.get('cooldown:adsblol',now)){
-      L.put('cooldown:adsblol',true,now+5,now);
+    const wait=s=>{this.next=performance.now()+s*1000;L.put('cooldown:adsblol',s,now+s,now);};
+    if(missing.length&&performance.now()>=this.next){
+      wait(5);
       const f=routeFocus();
       const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
       const {status,payload}=await this.request(ROUTE_URL(call));
@@ -370,7 +378,7 @@ export class Enricher {
         const data=payload&&typeof payload==='object'&&payload.callsign===call?slim(payload):{};
         L.put('lol:'+call,data,now+DAY,now);
         this.publish(a,commercialRoute(data,a,this.previous(a,now)),now);
-      }else L.put('cooldown:adsblol',true,now+(status===429?900:60),now);
+      }else wait(status===429?900:60);
     }
     return L.routes(now);
   }
@@ -393,7 +401,8 @@ export class Enricher {
 // be down, the new feed starts on the backup with both back-offs kept.
 export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
-const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:0};
+// Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
 export const outage={...CLEAR};
 export const resetOutage=()=>Object.assign(outage,CLEAR); // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
@@ -433,7 +442,7 @@ export function startLive(show,config){
   }
   // Receiver coverage: when the feed has nothing around home, ask (at most every 2 h) for
   // the widest area adsb.fi serves; nothing there either means no feeders, not quiet skies.
-  let coverage={none:false,checked:0};
+  let coverage={none:false,checked:-Infinity};
   async function checkCoverage(nowMs){
     if(nowMs-coverage.checked<7200000)return;
     coverage.checked=nowMs;
@@ -458,22 +467,24 @@ export function startLive(show,config){
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
   // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
   const backupGap=()=>Math.max(config.pollSeconds,BACKUP_STEPS_S[outage.backupStep]||BACKUP_STEPS_S.at(-1))*1000;
-  // The saved pause is remote-free local data, but storage can be damaged: a value that isn't a
-  // time, or one further off than the longest pause the app sets (an hour), counts as none.
-  const pausedUntil=t=>{const v=Number(ledger.get(BACKUP_COOLDOWN,t/1000))*1000;return Number.isFinite(v)&&v<=t+3600000?v:0;};
-  const backupAt=t=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap(),pausedUntil(t));
+  // The saved pause (a TV clock time, for the next launch) carries over as what is left of it. It is
+  // remote-free local data, but storage can be damaged: a value that isn't a time, or one further
+  // off than the longest pause the app sets (an hour), counts as none.
+  {const t=Date.now(),v=Number(ledger.get(BACKUP_COOLDOWN,t/1000))*1000;
+    if(Number.isFinite(v)&&v<=t+3600000)outage.backupRetryAt=Math.max(outage.backupRetryAt,performance.now()+v-t);}
+  const backupAt=()=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap());
   // The one feed this poll asks, or null when neither may be asked yet.
   function pick(t){
     if(!outage.down&&outage.fails&&t-outage.since>=FAILOVER_MS)outage.down=true; // 15 s of failures
     if(t>=fiAt())return 'adsb.fi';
-    return outage.down&&t>=backupAt(t)?'adsb.lol':null;
+    return outage.down&&t>=backupAt()?'adsb.lol':null;
   }
   // The next poll: a poll interval after this one started (at least 1 s from now), and not
   // before a feed may be asked: while adsb.fi is failing, its retry (or the 15 s mark); on the
   // backup, the next check on adsb.fi or adsb.lol's next turn, whichever comes first.
   function schedule(started){
-    const now=Date.now();
-    const allowed=outage.down?Math.min(fiAt(),backupAt(now)):outage.fails?Math.min(outage.retryAt,outage.since+FAILOVER_MS):0;
+    const now=performance.now();
+    const allowed=outage.down?Math.min(fiAt(),backupAt()):outage.fails?Math.min(outage.retryAt,outage.since+FAILOVER_MS):0;
     const at=outage.fails&&!outage.down?allowed:Math.max(now+1000,started+config.pollSeconds*1000,allowed);
     clearTimeout(timer);timer=setTimeout(poll,Math.max(0,at-now));
     return at;
@@ -482,7 +493,7 @@ export function startLive(show,config){
   const failed=at=>{good=false;states={...states,retryAt:at};onUpdate(states,false);};
   async function poll(){
     if(stopped||paused)return;
-    const my=gen,started=Date.now(),feed=pick(started);
+    const my=gen,started=performance.now(),feed=pick(started);
     if(!feed){schedule(started);return;}
     const backup=feed!=='adsb.fi';
     const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
@@ -503,7 +514,7 @@ export function startLive(show,config){
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
       // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
       // tell "no receivers here" either.
-      if(ac.length)coverage.none=false;else if(!backup)await checkCoverage(Date.now());
+      if(ac.length)coverage.none=false;else if(!backup)await checkCoverage(performance.now());
       if(stopped)return;
       if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0,backupStep:0});
       good=true;
@@ -512,7 +523,7 @@ export function startLive(show,config){
       enrich(ac,stamp,now,feedNow);
       schedule(started);
     }else if(backup){
-      const now=Date.now();
+      const now=performance.now();
       // A 429: wait out its Retry-After (at least 60 s, at most an hour), then one request every
       // 15, then 20 s. A 429 at 20 s, or any other 4xx: no adsb.lol positions for 15 minutes (or
       // a longer Retry-After, up to an hour), as for its route lookups (kept here for a feed
@@ -521,13 +532,13 @@ export function startLive(show,config){
       if(status===429&&outage.backupStep<BACKUP_STEPS_S.length-1){
         outage.backupStep++;outage.backupRetryAt=now+Math.max(60,wait)*1000;
       }else if(typeof status==='number'&&status>=400&&status<500){
-        const until=now/1000+Math.max(BACKUP_PAUSE_S,wait);outage.backupRetryAt=until*1000;
-        ledger.put(BACKUP_COOLDOWN,until,until,now/1000);ledger.dirty=false;store.set(LEDGER_KEY,ledger);
+        const pause=Math.max(BACKUP_PAUSE_S,wait),tv=Date.now()/1000;outage.backupRetryAt=now+pause*1000;
+        ledger.put(BACKUP_COOLDOWN,tv+pause,tv+pause,tv);ledger.dirty=false;store.set(LEDGER_KEY,ledger);
       }else outage.backupRetryAt=now+backoff(status,retryAfter||0,++outage.backupFails);
       failed(schedule(started));
     }else{
       if(!outage.fails)outage.since=started;
-      outage.retryAt=Date.now()+backoff(status,retryAfter||0,++outage.fails);
+      outage.retryAt=performance.now()+backoff(status,retryAfter||0,++outage.fails);
       if(outage.fails>=2)outage.down=true; // two in a row
       const at=schedule(started);
       // A failed check on adsb.fi while adsb.lol's positions are coming in changes nothing shown.
@@ -539,5 +550,5 @@ export function startLive(show,config){
   return {stop(){stopped=true;clearTimeout(timer);},
     pause(){paused=true;gen++;clearTimeout(timer);},
     // Back on screen: poll now, unless the service asked to wait (back-off kept).
-    resume(){if(!paused)return;paused=false;gen++;clearTimeout(timer);timer=setTimeout(poll,Math.max(0,(states.retryAt||0)-Date.now()));}};
+    resume(){if(!paused)return;paused=false;gen++;clearTimeout(timer);timer=setTimeout(poll,Math.max(0,(states.retryAt||0)-performance.now()));}};
 }

@@ -67,9 +67,9 @@ test('maps: a saved map "built" in the future counts as old (rebuilt, not kept f
 const FORMS=['3','120','Wed, 21 Oct 2015 07:28:00 GMT','Tue, 03 Nov 2026 09:30:00 GMT','soon','','-30','1e9','Infinity','120, 60',' 45 '];
 async function nextRequestAfter429(feed,form){
   resetOutage();store.remove(LEDGER_KEY);store.remove(HISTORY_KEY);
-  const real={now:Date.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch};
-  let t=Date.parse('2026-11-03T05:00:00Z');const timers=new Set(),calls=[];
-  Date.now=()=>t;
+  const real={now:Date.now,perf:performance.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch};
+  const t0=Date.parse('2026-11-03T05:00:00Z');let t=t0;const timers=new Set(),calls=[];
+  Date.now=()=>t;performance.now=()=>t-t0;
   globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0),ms};timers.add(h);return h;};
   globalThis.clearTimeout=h=>timers.delete(h);
   let n=0;
@@ -88,7 +88,7 @@ async function nextRequestAfter429(feed,form){
     live.stop();
     const mine=calls.filter(c=>feed==='adsb.fi'?c.fi:!c.fi);
     return mine.length>=2?(mine[1].t-mine[0].t)/1000:null;
-  }finally{Date.now=real.now;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;}
+  }finally{Date.now=real.now;performance.now=real.perf;globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;globalThis.fetch=real.fetch;}
 }
 test('Retry-After on adsb.fi: a 429 waits 60 s to 5 min, whatever the header says',async()=>{
   for(const form of FORMS){
