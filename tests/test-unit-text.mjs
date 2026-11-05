@@ -161,6 +161,13 @@ test('shortType and typeName: every type code gives a non-empty name with no ell
   assert.equal(shortType('B21'),'B21');assert.equal(shortType('K35R'),'KC-135');assert.equal(shortType(''),'');assert.equal(typeName(''),'');
 });
 
+test('Military today: a KC-135E counts as a KC-135 (one row), and the A400M and C-2 read by name, not as raw codes',async()=>{
+  const {militaryTypes}=await import('../web/model.mjs');
+  assert.deepEqual(militaryTypes({a1:'K35R',a2:'K35R',a3:'K35E',a4:'C30J',a5:'H60'}),[['KC-135',3],['C-130J',1],['UH-60',1]]);
+  for(const [code,short,name] of [['K35E','KC-135','KC-135 Stratotanker'],['A400','A400M','A400M Atlas'],['C2','C-2','C-2 Greyhound']])
+    assert.deepEqual([shortType(code),typeName(code)],[short,name],code);
+});
+
 // Photo credits.
 const PS_NAMES=['John Robert Murdoch','Wolfgang Mendorf','Pierre-Alain Petit','José Carlos Fernández Gutiérrez','Kryštof Kříž',
   'Stefan "Spotter" Müller','Jun','Author unknown','Bartłomiej Wojciechowski-Grzybowski Jr Aviation Photos ','A'.repeat(60)].map(s=>s.trim());
