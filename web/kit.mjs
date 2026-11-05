@@ -201,6 +201,15 @@ export function silhouette(a,cls='sil'){
   const family=silhouetteFamily(a),e=svg('svg',{class:`${cls} ${family}`,viewBox:'0 0 120 40','aria-hidden':'true'});
   e.append(svg('path',{d:SILHOUETTES[family],'fill-rule':'nonzero'}));e.dataset.family=family;return e;
 }
+// One wording rewritten wherever it shows under `root`, as written or in capitals, a one-line slot
+// fitted again; nothing else is drawn. The outage line counts down this way between polls (app.mjs).
+export function swapText(root,was,now){
+  if(!root||was===now)return;
+  const W=was.toUpperCase(),has=s=>String(s).includes(was)||String(s).includes(W),swap=s=>String(s).split(was).join(now).split(W).join(now.toUpperCase());
+  for(const e of root.querySelectorAll('*'))if(e._alts?.some(has)){e._alts=e._alts.map(swap);if(e._key)e._key=e._alts.join('\u0001');fitLine(e);}
+  const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  for(let t=walk.nextNode();t;t=walk.nextNode())if(!t.parentNode?._alts&&has(t.data))t.data=swap(t.data);
+}
 // One line, never cut: try each wording (e._alts, longest first) shrinking the type down
 // to 11 px; if none fits, the shortest one goes down to 9 px.
 // Wider than its box: scrollWidth rounds, so the text's own measured width decides too

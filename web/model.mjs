@@ -261,16 +261,19 @@ function pickHero(planes,config){
 
 // --- Live
 const MAX_PLANES=300,LOG_MILES=17.3; // 15 NM
+// Seconds to the next poll; `at` is performance.now() ms, as live.mjs times it. app.mjs counts the
+// outage line down with it between polls.
+export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):0;
 function liveSource(config,onModel){
-  const routes=new RouteLookup(),started=Date.now();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=0,lastGood=null,stale=0;
+  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=0,lastGood=null,stale=0;
   const update=(states,ok)=>{
     clearTimeout(stale);
     if(ok)lastOk=Date.now();
-    const now=Date.now(),retryIn=states.retryAt?Math.max(0,Math.round((states.retryAt-performance.now())/1000)):0; // retryAt: performance.now(), as live.mjs times it
+    const now=Date.now(),retryAt=states.retryAt||0,wait=retryIn(retryAt);
     // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
     // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s", at 60 s
     // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds).
-    if(!ok&&lastGood&&now-lastOk<60000){stale=setTimeout(()=>update(states,false),lastOk+60000-now);return onModel({...lastGood,now,retryIn});}
+    if(!ok&&lastGood&&now-lastOk<60000){stale=setTimeout(()=>update(states,false),lastOk+60000-now);return onModel({...lastGood,now,retryIn:wait});}
     const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
     const {fresh,all}=airspace(states,feedNow,now-lastOk<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
@@ -291,7 +294,8 @@ function liveSource(config,onModel){
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase(),last_seen:a.last_seen-(states.skew||0)}));
     // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
     // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
-    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn,source:states.source||''};
+    // Connecting: neither a reply nor a failure yet (the first failure ends it).
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&!retryAt,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn:wait,retryAt,source:states.source||''};
     if(ok&&fresh)lastGood=model;
     onModel(model);
   };

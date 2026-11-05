@@ -7,10 +7,10 @@ import {CONFIG} from './config.js';
 import {PROFILE} from './profile.mjs';
 import {chimeGate} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
-import {start,demo,query,compass,resetLog,setLogRadius,flushLog} from './model.mjs';
+import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
-import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText} from './kit.mjs';
+import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
@@ -217,8 +217,20 @@ function announce(m){
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
+// The outage line counts down between polls: once a second only its text is rewritten (the layout
+// isn't drawn again), until it reads "Reconnecting." or the next model comes.
+let waitTimer=0;
+function countDown(){
+  clearInterval(waitTimer);
+  if(!lastModel.live||lastModel.fresh||!lastModel.retryAt||lastModel.retryIn<5)return;
+  waitTimer=setInterval(()=>{
+    const was=quietText(lastModel,false);lastModel={...lastModel,retryIn:retryIn(lastModel.retryAt)};
+    swapText(root,was,quietText(lastModel,false));
+    if(lastModel.retryIn<5)clearInterval(waitTimer);
+  },1000);
+}
 function render(m){
-  lastModel=m;listen(m);draw(m);
+  lastModel=m;listen(m);draw(m);countDown();
   if(m.source&&m.source!==credited&&performance.now()-sourceFlashAt>=SOURCE_FLASH_MS){sourceFlashAt=performance.now();flashCredits();}
 }
 

@@ -149,6 +149,25 @@ test('backup: both down shows "No live data, reconnecting in N s"',async()=>{
   }finally{r.restore();}
 });
 
+test('outage: the first failed poll ends "Connecting to the live feed"; the model says when the next poll is due, so the line counts down with no new model',async()=>{
+  const r=fresh(),models=[];
+  try{
+    r.feeds.fi={mode:'s500'};r.feeds.lol={mode:'s403'}; // adsb.lol paused 15 min: nothing more is asked for a minute
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    assert.equal(quietText(models[0],false),'Connecting to the live feed','before any reply');
+    await r.advance(100);
+    assert.equal(quietText(models.at(-1),false),'No live data right now. Reconnecting in 5 s.','at the first failure');
+    await r.advance(15000);
+    const m=models.at(-1),n=models.length;
+    assert.equal(m.connecting,false);
+    assert.equal(m.retryAt,r.at('fi').at(-1)+60000,'due: adsb.fi\'s check a minute after its last (performance.now() ms)');
+    await r.advance(20000);
+    assert.equal(models.length,n,'no new model between polls');
+    assert.equal(Math.round((m.retryAt-r.t)/1000),30,'30 s to go at 35 s');
+    s.stop();
+  }finally{r.restore();}
+});
+
 test('backup: never both feeds on one poll, never at the same time (90 min of random outages)',async()=>{
   const r=fresh();
   try{
