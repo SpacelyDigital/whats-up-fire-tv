@@ -254,7 +254,7 @@ function inAlert(a,config){
   return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
 }
 // Every plane carries it (a.approaching), so a board's remark says what the card would. `loose`: for the plane
-// already on the card, 0.5 mi past the cut-off, or the window 3° wider each side and 0.5 mi further out.
+// the card already calls Approaching, 0.5 mi past the cut-off, or the window 3° wider each side and 0.5 mi further out.
 const wider=(z,x,y)=>{const d=Math.hypot(x,y);return d<=ABOVE_MI+.5||d<=z.miles+.5&&(norm(z.to-z.from)>=354||inBearings(Math.atan2(x,y)*180/Math.PI,z.from-3,z.to+3));};
 function approaching(a,config,loose){
   const z=config.zone;
@@ -262,20 +262,21 @@ function approaching(a,config,loose){
     a.cpa.miles<config.radiusMiles+1+(loose?.5:0));
 }
 // The plane on the card (held.hex) keeps it unless another is clearly first: an emergency, one higher in that order,
-// or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner); it stays Approaching with the
-// slack above. Noisy positions near a cut-off or a tie no longer swap the card, and VoiceView's line, every poll.
+// or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner). Called Approaching (held.app),
+// it stays so with the slack above; one called Nearest gets none. Noisy positions near a cut-off or a tie no longer
+// swap the card, its heading, or VoiceView's line every poll.
 function pickHero(planes,config,held={}){
-  const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles;
+  const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles,was=planes.find(a=>a.hex===held.hex&&onMap(a));
+  if(was&&held.app)was.approaching=approaching(was,config,true);
   let hero=planes.find(a=>a.emergency&&onMap(a))||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
     planes.filter(a=>a.approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
     planes.find(onMap)||null; // 'Nearest' only from planes on the map
-  const was=hero&&!hero.emergency&&hero.hex!==held.hex&&planes.find(a=>a.hex===held.hex&&onMap(a));
-  if(was){
-    const near=!was.inside&&approaching(was,config,true),rank=(a,app)=>a.inside?2:app?1:0,r=rank(hero,hero.approaching),p=rank(was,near);
+  if(was&&hero!==was&&!hero.emergency){
+    const rank=a=>a.inside?2:a.approaching?1:0,r=rank(hero),p=rank(was);
     // As high: how much closer the new one is, in miles (of two approaching, how far ahead in its flight).
-    if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25){hero=was;if(near)hero.approaching=true;}
+    if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25)hero=was;
   }
-  held.hex=hero?.hex;
+  held.hex=hero?.hex;held.app=!!hero?.approaching;
   if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
     hero.approaching?'Approaching':'Nearest';
   return hero;

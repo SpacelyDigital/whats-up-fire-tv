@@ -1355,12 +1355,14 @@ const sway=t=>Math.round(t/5)%2?1:-1;
 const flying=(hex,call,deg,mi,track,gs,tc,wob=0)=>t=>{const R=Math.PI/180,s=(t-tc)*gs*1.15078/3600;
   return plane(hex,call,{...xy(mi*Math.sin(deg*R)+s*Math.sin(track*R),mi*Math.cos(deg*R)+s*Math.cos(track*R)),track:track+sway(t)*wob,gs,baro_rate:0});};
 const hover=(hex,call,deg,mi)=>t=>plane(hex,call,{...xy(mi(t)*Math.sin(deg*Math.PI/180),mi(t)*Math.cos(deg*Math.PI/180)),gs:20,track:0,baro_rate:0});
-// The card over `seconds` of 5 s polls: each change of plane or heading, in order (an update that throws fails it).
-async function cards(flights,zone={kind:'circle',radius:3},seconds=150){
+// The card over `seconds` of 5 s polls: each change of plane or heading, in order (an update that throws fails it);
+// `due` gathers every plane marked approaching (DUE on the Departures board). A flight answers null before it is there.
+async function cards(flights,zone={kind:'circle',radius:3},seconds=150,due){
   const r=fresh(),seen=[],errors=[],error=console.error;console.error=(...a)=>a[0]==='feed update'?errors.push(String(a[1])):error(...a);
   try{
-    r.feeds.fi={mode:'ok',get body(){const t=r.t/1000;return {ac:flights.map(f=>f(t)),now:Date.now()};}};
-    const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24,zone},m=>{const h=m.fresh&&m.hero?`${m.hero.flight}: ${m.hero.status}`:'';if(h&&h!==seen.at(-1))seen.push(h);});
+    r.feeds.fi={mode:'ok',get body(){const t=r.t/1000;return {ac:flights.map(f=>f(t)).filter(Boolean),now:Date.now()};}};
+    const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24,zone},m=>{const h=m.fresh&&m.hero?`${m.hero.flight}: ${m.hero.status}`:'';if(h&&h!==seen.at(-1))seen.push(h);
+      if(m.fresh)for(const a of m.planes)if(a.approaching)due?.add(a.flight);});
     await r.advance(seconds*1000);s.stop();
   }finally{r.restore();console.error=error;}
   assert.deepEqual(errors,[]);
@@ -1386,4 +1388,16 @@ test('hero: the plane on the card keeps it while it stays within 0.5 mi of the A
   // A plane inside the alert zone takes the card at once.
   const over=await cards([heli,inbound(3.98),hover('a0b003','N3C',0,t=>t<60?9:2.5)],undefined,60);
   assert.ok(over.at(-1)==='N3C: Above you now'&&over.length<=3,`inside, at the first poll: ${over.join(' > ')}`);
+});
+test('hero: the slack is only for a plane the card already calls Approaching: one it calls Nearest, closest 4.3 mi out, stays Nearest (not DUE) and gives way to one approaching or nearer; alone at the cut-off or on a window\'s side, a plane\'s heading changes once at most',async()=>{
+  const later=(s,f)=>t=>t<s?null:f(t),aaa=flying('a0c001','AAA1',110,4.3,200,200,90),due=new Set();
+  // AAA1 alone, closest 4.3 mi in 90 s (past the cut-off of 4, inside its 0.5 mi slack); from 30 s BBB2, closest 2 mi in 120 s.
+  assert.deepEqual(await cards([aaa,later(30,flying('a0c002','BBB2',340,2,70,420,150))],undefined,120,due),['AAA1: Nearest','BBB2: Approaching'],'one approaching takes the card');
+  assert.deepEqual([...due],['BBB2'],'AAA1 is never DUE on the board');
+  assert.deepEqual(await cards([aaa,later(30,hover('a0c003','N3HX',0,()=>3.6))],undefined,120),['AAA1: Nearest','N3HX: Nearest'],'a nearer one takes it');
+  // Alone, closest 3.98 mi (the cut-off 4) or 12 mi out on the west side of a 300° to 30° window, the track ±0.3° either side.
+  const lone=await cards([flying('a0c004','UAL1234',110,3.98,200,420,170,.3)]);
+  assert.ok(lone.length<=2&&lone.at(-1)==='UAL1234: Approaching',`alone at the cut-off: ${lone.join(' > ')}`);
+  const side=await cards([flying('a0c005','AAL77',300,12,30,450,170,.3)],{kind:'window',from:300,to:30,miles:25});
+  assert.ok(side.length<=2&&side.at(-1)==='AAL77: Approaching',`alone on the window's side: ${side.join(' > ')}`);
 });
