@@ -8,7 +8,7 @@
 //   rail, waterways, landuse, parks, aeroways and place names. Built only when a
 //   layout asks for it (Atlas, Glass, Blueprint, ...).
 import {getJson,getBytes,store} from './live.mjs';
-import {snapped,GRID_PAD_MI,number} from './core.mjs';
+import {snapped,GRID_PAD_MI,number,dLon as eastOf} from './core.mjs';
 
 export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
@@ -100,7 +100,7 @@ export const STALE='stale';
 const MAX_TILES=90;
 async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,requireData=false){
   const cos=Math.cos(home.latitude*DEG);
-  const toMiles=(lon,lat)=>[(lon-home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
+  const toMiles=(lon,lat)=>[eastOf(lon,home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
   const c=snapped(home),wide=lim+GRID_PAD_MI,ccos=Math.cos(c.latitude*DEG);
   const dLat=wide/69,dLon=wide/(69.172*ccos);
   // Far north or south a mile spans more tiles: step down up to two zooms to stay within
@@ -251,7 +251,7 @@ const LAYERS={water:line,shore:line,rivers:line,runways:line,roads:f=>line(f?.p)
 export function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
-    Math.abs(m.longitude-home.longitude)<.01&&(stale||freshMap(m));
+    Math.abs(eastOf(m.longitude,home.longitude))<.01&&(stale||freshMap(m));
   if(same&&!Object.entries(LAYERS).every(([k,ok])=>Array.isArray(m[k])&&m[k].every(ok))){store.remove(keyFor(range));return null;}
   return same?m:null;
 }
@@ -405,7 +405,7 @@ const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_
 export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
-    const same=m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
+    const same=m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(eastOf(m.longitude,home.longitude))<.01&&
       (stale||freshMap(m));
     // Every layer as buildDetail writes it (what decodeDetail reads): a damaged one is dropped and built again.
     if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'))&&Array.isArray(m.places)&&m.places.every(label('name')))){

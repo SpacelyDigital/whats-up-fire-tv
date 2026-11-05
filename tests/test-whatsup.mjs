@@ -341,6 +341,31 @@ test('map: far north or south (Alert, 82.5 N) the wide radii ask only tile rows 
     for(const u of asked){const [z,x,y]=u.split('/').slice(-3).map(v=>parseInt(v));assert.ok(x>=0&&x<2**z&&y>=0&&y<2**z,`${latitude} ${range} mi: ${u}`);}
   }
 });
+test('map: a home on the date line (180 or -179.9995) gets its base and street maps, and a saved one is found from either side',async()=>{
+  const tile=readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url));
+  const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+  const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+  const {buildMap,saveMap,savedMap,buildDetail,saveDetail,savedDetail,detailSpec}=await import('../web/mapgen.mjs');
+  const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),getBytes:async()=>new Uint8Array(tile)};
+  const east={latitude:39.10,longitude:180},west={latitude:39.10,longitude:-179.9995},spec=detailSpec(2),built={};
+  for(const home of [east,west]){
+    const m=built[home.longitude]=await buildMap(home,10,{net,MVT:{VectorTile,Pbf}});
+    assert.ok(m.roads.length&&m.water.length&&m.places.length,`${home.longitude}: base map drawn`);
+    const d=await buildDetail(home,{net,MVT:{VectorTile,Pbf},range:3,buildings:0,key:spec.key});
+    assert.ok(d.roads.length&&d.water.length,`${home.longitude}: street map drawn`);
+    if(home===east)built.detail={...d,range:spec.range,zoom:spec.zoom};
+  }
+  // The same tiles, measured from homes 0.0005° apart: the same map.
+  assert.equal(built[180].roads.length,built[-179.9995].roads.length);
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  try{
+    saveMap(built[180]);saveDetail(built.detail);
+    assert.equal(savedMap(west,10)?.longitude,180,'the base map saved at 180 serves -179.9995');
+    assert.equal(savedDetail(west,spec)?.longitude,180,'the street map too');
+    assert.equal(savedMap({...west,longitude:-179.95},10),null,'not one 0.05° away');
+  }finally{delete globalThis.localStorage;}
+});
 test('styles: a very long one-word place name wraps on the welcome and confirm cards instead of running off the screen',async()=>{
   const {readFileSync}=await import('node:fs');
   assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.big-city\{[^}]*overflow-wrap:anywhere/);
