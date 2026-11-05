@@ -201,10 +201,11 @@ async function ensureDetail(){
 
 // --- Place, map and feed
 // Chime when the alert zone goes from empty to occupied (Settings > Chime); the app plays it.
+// Its quiet minute is timed by performance.now(): a TV clock step can't stretch it.
 const CHIME_VOLUME={low:.25,med:.55,high:1};
 let chime=null;
 function listen(m){
-  const r=chimeGate(chime,m.planes.filter(a=>a.inside).length,m.now,m.live&&m.fresh);chime=r.state;
+  const r=chimeGate(chime,m.planes.filter(a=>a.inside).length,performance.now(),m.live&&m.fresh);chime=r.state;
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
 // Screen readers: one polite announcement when the plane on the card changes (or Left/Right
@@ -223,25 +224,26 @@ function render(m){
 
 // --- Left/Right on the dashboard step through the planes on the map, closest first; the chosen
 // one takes the card (browse.mjs has the rules). Back, the plane leaving the map, a minute
-// without Left or Right, or an emergency give the card back to the hero.
+// without Left or Right, or an emergency give the card back to the hero. Timed by performance.now(),
+// which a TV clock step doesn't move (browse.mjs's LookupGate too).
 let browse=null,browseTimer=0,browseFrame=0;
 const gate=new LookupGate(),redraw=()=>{if(lastModel)draw(lastModel);};
 // Its photo and route are looked up once it has stayed on the card about a second.
 setPhotoGate(hex=>gate.wait(hex));
-setRouteFocus(()=>held(browse,Date.now())?browse.hex:'');
+setRouteFocus(()=>held(browse,performance.now())?browse.hex:'');
 // The model as drawn: while browsing, the chosen plane is the hero. The lookup gate learns which
 // plane the card is about to show (a layout asks for its photo while drawing).
 function shown(m){
   if(browse){
-    const r=applyBrowse(browse,m,mapMiles(),Date.now());
+    const r=applyBrowse(browse,m,mapMiles(),performance.now());
     if(!r.state){browse=null;clearTimeout(browseTimer);queueMicrotask(syncApp);}
     m=r.m;
   }
-  gate.update(m.hero?.hex||'',browse,Date.now());
+  gate.update(m.hero?.hex||'',browse,performance.now());
   return m;
 }
 function stepPlanes(dir){
-  const next=stepBrowse(browse,lastModel,mapMiles(),dir,Date.now());
+  const next=stepBrowse(browse,lastModel,mapMiles(),dir,performance.now());
   if(!next)return; // nothing on the map, or an emergency has the card
   const was=browse;browse=next;
   clearTimeout(browseTimer);browseTimer=setTimeout(redraw,IDLE_MS+50);

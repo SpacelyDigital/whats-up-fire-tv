@@ -46,12 +46,13 @@ export const held=(state,now)=>!!state&&now-state.since>=HOLD_MS;
 // The photo lookup for the plane on the card waits on wait(hex): true at once outside
 // browsing, true once a browsed plane has been on the card HOLD_MS, false as soon as another
 // plane takes the card. app.mjs calls update() with the plane about to be drawn on the card,
-// before every draw (a layout asks for the photo while it draws).
+// before every draw (a layout asks for the photo while it draws). Times are performance.now(), as
+// app.mjs gives them (a TV clock step doesn't move it).
 export class LookupGate{
   constructor(){this.waiting=[];this.card='';this.state=null;this.timer=0;}
   wait(hex){
     if(!this.state)return Promise.resolve(true);
-    return new Promise(resolve=>{this.waiting.push({hex,resolve});this.update(this.card,this.state,Date.now());});
+    return new Promise(resolve=>{this.waiting.push({hex,resolve});this.update(this.card,this.state,performance.now());});
   }
   update(card,state,now){
     this.card=card;this.state=state;clearTimeout(this.timer);
@@ -61,6 +62,6 @@ export class LookupGate{
       if(ready){resolve(true);return false;}
       return true;
     });
-    if(this.waiting.length)this.timer=setTimeout(()=>this.update(this.card,this.state,Date.now()),Math.max(0,state.since+HOLD_MS-now)+10);
+    if(this.waiting.length)this.timer=setTimeout(()=>this.update(this.card,this.state,performance.now()),Math.max(0,state.since+HOLD_MS-now)+10);
   }
 }

@@ -31,16 +31,16 @@ export function parsePhoto(payload){
   return {src:t.src,width:Number(t.size?.width)||0,height:Number(t.size?.height)||0,link:p.link,photographer};
 }
 
-// One lookup at a time, GAP_MS apart; null while paused.
-let chain=Promise.resolve(),last=0;
+// One lookup at a time, GAP_MS apart (by performance.now(): a TV clock step can't hold one up); null while paused.
+let chain=Promise.resolve(),last=-Infinity;
 // A saved pause further off than the longest the app sets (a 403's 6 hours) is damage, or a TV
 // clock that jumped back: it counts as none rather than stopping photos for years.
 const pausedUntil=()=>{const until=Number(store.get(PAUSE_KEY)?.until)||0;return until>Date.now()+6*3600000?0:Math.max(until,0);};
 function lookup(url){
   const run=chain.then(async()=>{
     if(Date.now()<pausedUntil())return {status:'paused'};
-    const wait=last+GAP_MS-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
-    last=Date.now();
+    const wait=last+GAP_MS-performance.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
+    last=performance.now();
     const r=await getJson(url,3000);
     if(r.status===403)store.set(PAUSE_KEY,{until:Date.now()+6*3600000});
     if(r.status===429)store.set(PAUSE_KEY,{until:Date.now()+1000*Math.max(60,Math.min(3600,Number(r.retryAfter)||60))});

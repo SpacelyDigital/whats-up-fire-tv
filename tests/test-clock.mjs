@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import {startLive,resetOutage,store,LEDGER_KEY,HISTORY_KEY,Ledger,Enricher,getBytes} from '../web/live.mjs';
 import {start,resetLog} from '../web/model.mjs';
 import {fmt} from '../web/kit.mjs';
+import {step,LookupGate} from '../web/browse.mjs';
+import {photoFor} from '../web/photos.mjs';
 
 const T0=Date.parse('2026-11-05T15:00:00Z'),CVG={latitude:39.05,longitude:-84.65};
 const CFG={...CVG,radiusMiles:3,pollSeconds:5,searchNm:15};
@@ -135,4 +137,28 @@ test('recently above: sightings are timed on the feed\'s clock, so a TV clock be
       s.stop();
     }finally{r.restore();}
   }
+});
+
+test('browsing: the photo gate times its second by performance.now(), so the TV clock stepped back an hour doesn\'t hold the photo',async()=>{
+  const r=rig();
+  try{
+    const m={hero:{hex:'a00001',ground:1},planes:[{hex:'a00001',ground:1},{hex:'a00002',ground:2}]};
+    const st=step(null,m,25,1,performance.now()),g=new LookupGate();g.update(st.hex,st,performance.now());
+    r.step(-3600000);let got=null;g.wait(st.hex).then(v=>{got=v;});
+    await r.advance(500);assert.equal(got,null,'not before a second on the card');
+    await r.advance(600);assert.equal(got,true,'a second after the press');
+  }finally{r.restore();}
+});
+
+test('photos: the 1.5 s between lookups is timed by performance.now(), so the TV clock stepped back an hour doesn\'t hold the next one',async()=>{
+  const real={now:Date.now,perf:performance.now,fetch:globalThis.fetch,set:globalThis.setTimeout};let d=T0,p=5000;const asked=[],waits=[];
+  Date.now=()=>d;performance.now=()=>p;
+  globalThis.fetch=async url=>{asked.push(String(url));return {status:404,url,headers:{get:()=>null},text:async()=>''};};
+  globalThis.setTimeout=(fn,ms)=>{waits.push(ms);return real.set(fn,Math.min(ms,20));}; // every wait recorded, none really taken
+  try{
+    await photoFor({hex:'a0b0c1'});assert.equal(asked.length,1);
+    d-=3600000;p+=2000;waits.length=0;
+    await photoFor({hex:'a0b0c2'});assert.equal(asked.length,2);
+    assert.ok(waits.every(ms=>ms<=3000),`no wait beyond the lookup's own 3 s timeout: ${waits}`);
+  }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;globalThis.setTimeout=real.set;}
 });

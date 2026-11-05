@@ -80,13 +80,13 @@ test('a plane is held after a second on the card: held() and the photo gate',asy
   const g=new LookupGate();
   // Automatic (no browsing): at once.
   g.update('aa0001',null,0);assert.equal(await g.wait('aa0001'),true);
-  // Browsing: only once held; passed over: never.
-  const now=Date.now();
+  // Browsing: only once held; passed over: never. The gate's clock is performance.now().
+  const now=performance.now();
   g.update('bb0002',S('bb0002',now),now);
   const kept=g.wait('bb0002');let done=false;kept.then(()=>{done=true;});
   await new Promise(r=>setTimeout(r,300));assert.equal(done,false,'not before a second');
   assert.equal(await kept,true,'after a second on the card');
-  const t=Date.now();g.update('cc0003',S('cc0003',t),t);
+  const t=performance.now();g.update('cc0003',S('cc0003',t),t);
   const passed=g.wait('cc0003');g.update('dd0004',S('dd0004',t+200),t+200);
   assert.equal(await passed,false,'passed over within the second');
   const back=g.wait('dd0004');g.update('dd0004',null,t+300);
