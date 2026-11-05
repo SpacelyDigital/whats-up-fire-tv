@@ -34,9 +34,10 @@ function ui(){
       <div class="over"><div class="pre">the sky over</div><div class="city"></div></div>
       <div class="time"><div class="clock"></div><div class="date"></div></div>
     </header>
+    <div class="sr-only hero-sr"></div>
     <div class="quiet-note" hidden><div class="big">A quiet sky.</div><div class="small"></div></div>
     <footer class="foot"><div></div><div class="count"></div></footer>`;
-  for(const c of ['twinkles','city','clock','date','quiet-note','count'])$[c]=root.querySelector('.'+c);
+  for(const c of ['twinkles','city','clock','date','quiet-note','count','hero-sr'])$[c]=root.querySelector('.'+c);
   $.canvas=makeCanvas(W,H,'sky');root.prepend($.canvas);
   $.svg=svg('svg',{class:'stars',viewBox:`0 0 ${W} ${H}`,'aria-hidden':'true'});
   const defs=svg('defs');
@@ -70,6 +71,11 @@ function render(m){
   setText($.date,`${fmt.date(now,{weekday:'long',day:'numeric',month:'long'})} · ${statusText(m,demo).toLowerCase()}`);
   trails.update(m.planes,now);
   root.classList.toggle('emergency',!!hero?.emergency);
+  // The card for screen readers (the drawn label sits in the decorative SVG), as the other layouts' cards read:
+  // status, flight, the emergency with its squawk, type, route or operator, altitude, distance.
+  const hr=hero?.route;
+  setText($['hero-sr'],hero?[hero.status,hero.flight,hero.emergency&&`${hero.squawk?`squawk ${hero.squawk} `:''}${hero.emergency.toLowerCase()}`,hero.type||hero.aircraft_type,
+    hr?`${city(hr.from?.city)||hr.origin} to ${city(hr.to?.city)||hr.destination}`:hero.operator,number(hero.altitude_ft)?fmt.alt(hero.altitude_ft):'',fmt.dist(hero.ground)].filter(Boolean).join(', '):'');
 
   // Contrails: every remembered track, alive or not, fading with age.
   const live=new Map(m.planes.map(a=>[a.hex,a]));
