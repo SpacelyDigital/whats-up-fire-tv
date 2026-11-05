@@ -375,12 +375,13 @@ export class Enricher {
       if(cached===undefined)missing.push(a);
       else if(cached._airports)this.publish(a,commercialRoute(slim(cached),a,this.previous(a,now)),now); // older caches were checked less
     }
-    // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
-    // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
-    // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
+    // At most one ADSB.lol request every 5 seconds (paced in memory, by paceAt); answers, misses and 404s
+    // cached 24 h; 15 min pause after a 429, 1 min after other errors (saved: a restart and the next
+    // launch keep it). The one asked for: the plane picked with Left/Right (held), then inside the
+    // zone, then the nearest (the plane on the card).
     const wait=s=>{paceAt=performance.now()+s*1000;L.put('cooldown:adsblol',s,now+s,now);};
     if(missing.length&&performance.now()>=paceAt){
-      wait(5);
+      paceAt=performance.now()+5000;
       const f=routeFocus();
       const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
       const {status,payload}=await this.request(ROUTE_URL(call));

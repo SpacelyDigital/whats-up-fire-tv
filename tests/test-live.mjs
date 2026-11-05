@@ -130,6 +130,28 @@ test('enricher: the 5 s pace holds across a feed restart, with or without the sa
   p=6000;await new Enricher(new Ledger(),request).tick([a(2)],1005);assert.equal(asked.length,2,'asked once the 5 s are up');
   assert.match(asked[1],/UAL102\.json$/);
 });
+
+test('route lookups: the 5 s pace is kept in memory, so a lookup that succeeds saves no slow-down note; a 429 (15 min) or another error (1 min) does, and a saved one, in seconds or the build before\'s true, holds at the next start',async t=>{
+  resetOutage(); // the pace lives in the module (it holds across a feed restart)
+  const real=performance.now;let p=1000;performance.now=()=>p;t.after(()=>{performance.now=real;resetOutage();});
+  const now=Date.now()/1000,asked=[];let reply={status:200,payload:CHAIN};
+  const ledger=new Ledger(),enricher=new Enricher(ledger,async url=>{asked.push(url);return reply;});
+  const a={...AIRLINE,observed:now},b={...a,hex:'445566',callsign:'DAL9'};
+  await enricher.tick([a,b],now);
+  assert.equal(asked.length,1);assert.equal(ledger.rows.has('cooldown:adsblol'),false,'a lookup that succeeded: no note');
+  p+=3000;await enricher.tick([a,b],now);assert.equal(asked.length,1,'the 5 s pace holds all the same');
+  p+=2000;reply={status:500,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,2);
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+60,value:60},'a 5xx: a minute, saved');
+  p+=60000;reply={status:429,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,3);
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+900,value:900},'a 429: 15 min, saved');
+  p+=900000;reply={status:404,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,4,'asked again once it is over');
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+900,value:900},'a miss writes nothing new');
+  for(const value of [600,true]){
+    const again=[],e=new Enricher(new Ledger({'cooldown:adsblol':{expires:now+600,value}}),async url=>{again.push(url);return {status:404,payload:null};});
+    await e.tick([a],now);assert.equal(again.length,0,`a saved ${value}: still paused`);
+    p+=601000;await e.tick([a],now);assert.equal(again.length,1,`a saved ${value}: over`);
+  }
+});
 test('selection: in Window view only planes inside the wedge (or overhead) count as inside',()=>{
   const now=1700000000,home={latitude:39.05,longitude:-84.65};
   const at=(deg,mi)=>({hex:'abc'+String(deg).padStart(3,'0'),lat:home.latitude+mi*Math.cos(deg*Math.PI/180)/69,
