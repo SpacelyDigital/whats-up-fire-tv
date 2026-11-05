@@ -625,7 +625,7 @@ test('screen reader: each dialog\'s body is its description, read with its first
   assert.deepEqual(writes,Array(2).fill('Privacy Policy Version 3 This is a free app. The short version'),'opened twice in a row: the first view is read both times');
 });
 
-test('screen reader: the search screen reads its status once as it changes: "Searching for", how many places were found, "No places match", the error, the hint for an empty entry; a search that lands under the confirm card reads nothing; the entry is a named text box',async()=>{
+test('screen reader: the search screen reads its status once as it changes: "Searching for" (on Search only: as you type, just the count), how many places were found, "No places match", the error, the hint for an empty entry; a search that lands under the confirm card reads nothing; the entry is a named text box',async()=>{
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   assert.match(html,/<div class="entry" role="textbox" aria-label="[^"]+" aria-describedby="entry-help"><span id="entry-text"><\/span>/);
   const elem=tag=>({tag,className:'',textContent:'',dataset:{},children:[],append(...n){this.children.push(...n);},get firstElementChild(){return this.children[0]??null;}});
@@ -637,7 +637,7 @@ test('screen reader: the search screen reads its status once as it changes: "Sea
     searchPlaces:async q=>{if(q==='DOWN')throw new Error('503');return places[q];},searchAddress:async()=>[],placeLabel:pl=>pl.name,layer:{id:'locate'},layers:[],
     clearTimeout(){},setTimeout:()=>0,document:{createElement:elem}});
   const search=async(q,explicit=false)=>{writes.length=0;vm.runInContext(`entry=${JSON.stringify(q)}`,p);await p.runSearch(explicit);return writes.slice();};
-  assert.deepEqual(await search('CHI'),['Searching for “CHI”','3 places found'],'as you type');
+  assert.deepEqual(await search('CHI'),['3 places found'],'as you type: the count alone (two lines per pause were chatter for a slow typist)');
   assert.deepEqual(await search('DEN',true),['Searching for “DEN”','1 place found']);
   assert.deepEqual(await search('QZXWV',true),['Searching for “QZXWV”','No places match “QZXWV”. Check the spelling, or try a ZIP or postal code.']);
   assert.deepEqual(await search('DOWN',true),['Searching for “DOWN”','Search is unavailable. Check the connection.']);
