@@ -284,3 +284,15 @@ test('Radar: the card\'s heading gives the distance its browse heading, VoiceVie
   assert.equal(heading({...hero,status:'Plane 1 of 1',browse:{index:1,count:1}})[0],`Plane 1 of 1 · ${voice} N`);
   km();assert.deepEqual(heading(hero),[`Nearest · ${fmt.dist(hero.ground)}`]);mi();
 });
+test('Synthwave: a plane off the bottom of the floor is tagged with its own direction (↓ 28 mi ESE, ↓ 20 mi SW), not always S',async()=>{
+  const vm=await import('node:vm'),{compass}=await import('../web/kit.mjs');
+  const src=readFileSync(new URL('../web/layouts/synthwave.mjs',import.meta.url),'utf8');
+  const code=/^\s*const l2=off\?.*$/m.exec(src)?.[0];assert.ok(code,'the tag line in synthwave.mjs');
+  const tag=(a,off=true)=>vm.runInNewContext(`${code}\nl2`,{a:{flight:'TEST1',...a},off,alt:'120',fmt,compass});
+  mi();
+  // Off the floor's bottom edge: anything more than about half the map radius out to the south-east, south or south-west.
+  for(const [bearing,ground,want] of [[120,28,'↓ 28 mi ESE'],[135,20,'↓ 20 mi SE'],[180,20,'↓ 20 mi S'],[200,12.4,'↓ 12 mi SSW'],[225,20,'↓ 20 mi SW'],[240,28,'↓ 28 mi WSW']])
+    assert.equal(tag({bearing,ground}),want,`${bearing}°`);
+  assert.equal(tag({bearing:120,ground:28},false),'120','on the floor: its altitude');
+  km();assert.equal(tag({bearing:135,ground:20}),'↓ 32 km SE');mi();
+});

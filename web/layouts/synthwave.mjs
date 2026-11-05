@@ -3,7 +3,7 @@
 // flat overlay, placed with the same perspective maths and lifted by altitude, so
 // their labels stay upright and readable. Map: water, rivers, motorways, runways.
 import {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,byInterest,paintMap,airportsNear,
-  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
+  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts,compass} from '../kit.mjs';
 
 // Floor: a W x H canvas (1 px per CSS px: a soft neon floor needs no more), home at its
 // centre, rotated about its centre by TILT under a perspective of PERSP px seen from VP.
@@ -126,7 +126,7 @@ function render(m){
     jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`}));
     if(tagged.has(a)){
       const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):fmt.hundreds(a.altitude_ft);
-      const l2=off?`↓ ${fmt.dist(a.ground,0)} S`:alt,w=Math.max(a.flight.length*11,l2.length*9)+4,h=32;
+      const l2=off?`↓ ${fmt.dist(a.ground,0)} ${compass(a.bearing)}`:alt,w=Math.max(a.flight.length*11,l2.length*9)+4,h=32;
       const spot=[[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
         .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)));
       if(spot||isHero){
