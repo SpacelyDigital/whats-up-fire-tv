@@ -200,6 +200,15 @@ test('shortAuthor: a CC BY credit that is a username or an organisation is not t
   for(const a of nonPersons)assert.ok(inModels.has(a),`${a} is a real credit`);
   assert.deepEqual(nonPersons.filter(a=>shortAuthor(a)!==a).map(a=>`${a} -> ${shortAuthor(a)}`),[]);
 });
+test('shortAuthor: hyphenated given names and Mc/O\' surnames are people too, so the credit has its short wording',()=>{
+  for(const [n,want] of [['Julian Herzog','J. Herzog'],['Hans-Jürgen Weber','H. Weber'],['Jean-Luc Altherr','J. Altherr'],['Anne-Marie McDonald','A. McDonald'],
+    ["Ryan O'Neill","R. O'Neill"],['Ryan O’Neill','R. O’Neill'],['Karl-Heinz Morawietz','K. Morawietz'],['Mark McEwan','M. McEwan'],['Douglas MacArthur','D. MacArthur'],
+    ['Brian DeLeon','B. DeLeon'],["Luca D'Angelo","L. D'Angelo"],["Ryan O'neill","R. O'neill"],['Peter Smith-Jones','P. Smith-Jones']])
+    assert.equal(shortAuthor(n),want,n);
+  for(const n of ['BWard 1997','Curimedia Photography','PlaneSpotter Mike','JETPHOTOS TEAM','SkyTeam Images','J Herzog','Hans- Weber'])assert.equal(shortAuthor(n),n,n);
+  assert.equal(psCredit('Hans-Jürgen Weber').at(-1),'© H. Weber / Planespotters');
+  assert.equal(psCredit('Anne-Marie McDonald').at(-1),'© A. McDonald / Planespotters');
+});
 test('model photo credits: the shortest wording the layouts use still names the author and the license',()=>{
   // atlas.mjs / kit.mjs showPhotoIn: ..., `${shortAuthor(author)} · ${license}`.
   for(const [k,m] of Object.entries({...MODELS,...MILITARY_MODELS})){
