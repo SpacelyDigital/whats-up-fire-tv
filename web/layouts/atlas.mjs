@@ -267,11 +267,13 @@ function showPhoto(a){
 
 function render(m){
   const {now,hero}=m;
-  setText($.city,'',[cityName()||placeName()]);setText($.clock,fmt.clock(now));
+  setText($.clock,fmt.clock(now));
   setText($.date,fmt.date(now));
   // Status only when it matters (Connecting / No signal); Live and Preview go unsaid.
   const status=statusText(m,demo);setText($.status,status==='Live'||status==='Preview'?'':status);
   $.status.classList.toggle('off',!demo&&!m.fresh&&!m.connecting);
+  // The place name after the clock and status beside it: fitted to the room they leave.
+  setText($.city,'',[cityName()||placeName()]);
   root.classList.toggle('emergency',!!hero?.emergency);
   trails.update(m.planes,now);
 
