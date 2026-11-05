@@ -54,11 +54,13 @@ export function getJson(url,timeoutMs=8000){
   return tileSlot().then(()=>performance.now()<tileCooldown?{status:'cooldown',payload:null}:
     rawGetJson(url,timeoutMs).then(r=>{if(r.status===429)tileStatus(429,r.retryAfter);return r;})).finally(tileFree);
 }
+// Retry-After as seconds: a number, or an HTTP date (the seconds until it); anything else 0.
+const retrySeconds=t=>{const s=String(t??'').trim(),n=Number(s);if(Number.isFinite(n))return n;const d=Date.parse(s);return Number.isFinite(d)?Math.max(0,Math.ceil((d-Date.now())/1000)):0;};
 function rawGetJson(url,timeoutMs){
   const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
   // Non-200: `retryAfter` is the service's Retry-After in seconds, when it sent one.
   const parse=(status,text)=>{
-    if(status!==200)return {status,payload:null,retryAfter:Number(text)||0};
+    if(status!==200)return {status,payload:null,retryAfter:retrySeconds(text)};
     try{return {status,payload:JSON.parse(text)};}catch{return {status:'invalid',payload:null};}
   };
   if(bridge)return new Promise(resolve=>{

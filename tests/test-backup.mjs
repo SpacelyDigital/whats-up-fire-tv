@@ -281,6 +281,46 @@ test('backup: an adsb.lol 429 waits out its Retry-After (60 s at least), slows t
   }finally{r.restore();}
 });
 
+test('Retry-After sent as an HTTP date is waited out as its seconds (with the same limits as a number): adsb.fi and adsb.lol after a 429, and photo lookups',async()=>{
+  const date=ms=>new Date(Date.now()+ms).toUTCString();
+  // adsb.fi: a 429 asking for 2 minutes, as a date; then 10 minutes (adsb.fi waits at most 5); then a date gone by (the 60 s floor).
+  for(const [ahead,gap] of [[120000,120000],[600000,300000],[-60000,60000]]){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'s429',get retryAfter(){return date(ahead);}};
+      const live=r.live();
+      await r.advance(1000);r.feeds.fi={mode:'ok'};
+      await r.advance(400000);
+      assert.equal(r.at('fi')[1],gap,`adsb.fi, Retry-After ${ahead/1000} s as a date: asked again at ${r.at('fi')[1]} ms`);
+      live.stop();
+    }finally{r.restore();}
+  }
+  // adsb.lol: a 429 asking for 2 minutes, as a date.
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};
+    const live=r.live();
+    await r.advance(30000);
+    r.feeds.lol={mode:'s429',get retryAfter(){return date(120000);}};
+    await r.advance(10000);
+    const [first]=r.at('lol',30001);
+    r.feeds.lol={mode:'ok'};
+    await r.advance(3*60000);
+    assert.equal(r.at('lol',first+1)[0]-first,120000,'adsb.lol waits the 2 minutes');
+    live.stop();
+  }finally{r.restore();}
+  // Planespotters: a 429 with a date 20 minutes ahead pauses lookups for those 20 minutes.
+  const {photoFor}=await import('../web/photos.mjs');
+  const real=globalThis.fetch;
+  try{
+    store.remove('whatsup.photos.pause');
+    globalThis.fetch=async()=>({status:429,headers:{get:k=>k.toLowerCase()==='retry-after'?date(1200000):null},text:async()=>''});
+    await photoFor({hex:'a1b2c3',registration:'N12345'});
+    const until=store.get('whatsup.photos.pause')?.until-Date.now();
+    assert.ok(Math.abs(until-1200000)<5000,`photo lookups paused ${Math.round(until/1000)} s`);
+  }finally{globalThis.fetch=real;store.remove('whatsup.photos.pause');}
+});
+
 test('backup: the 15-minute pause is saved, so a relaunch within it doesn\'t ask adsb.lol either',async()=>{
   const saved=new Map();
   globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,setItem:(k,v)=>saved.set(k,String(v)),removeItem:k=>saved.delete(k)};
