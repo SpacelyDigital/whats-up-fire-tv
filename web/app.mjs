@@ -634,7 +634,7 @@ function buildKeys(){
   }));
 }
 function typeKey(key){
-  if(key==='space')entry+=entry&&!entry.endsWith(' ')?' ':'';
+  if(key==='space')entry+=entry&&!entry.endsWith(' ')&&entry.length<40?' ':'';
   else if(key==='del')entry=entry.slice(0,-1);
   else if(key==='clear')entry='';
   else if(key==='search')return runSearch(true);
