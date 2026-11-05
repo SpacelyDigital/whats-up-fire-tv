@@ -115,7 +115,7 @@ test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft'
 // --- Map radius
 import {MAP_RADII,alertFor} from '../web/place.mjs';
 import {niceStep,niceDistance,zoom,range} from '../web/kit.mjs';
-import {zoomFor,savedMap,saveMap} from '../web/mapgen.mjs';
+import {zoomFor,savedMap,saveMap,savedDetail,saveDetail,decodeDetail,detailSpec} from '../web/mapgen.mjs';
 test('map radius: saved value must be a step, default 10; alert ring never wider than the map',()=>{
   for(const [saved,want] of [[50,50],[7,10],['250',250],[undefined,10]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({mapMiles:saved}),setItem(){},removeItem(){}};
@@ -165,6 +165,26 @@ test('saved maps: a base map with a damaged layer (not a list, a null or malform
     assert.equal(savedMap(home,10),null,what);
     assert.equal(savedMap(home,10,{stale:true}),null,`${what}: not shown while a new one is built either`);
     assert.equal(data.get('whatsup.map.v2'),undefined,`${what}: discarded`);
+  }
+  delete globalThis.localStorage;
+});
+test('saved maps: a street map with a damaged layer (missing, not a list, a feature with no line) is dropped, so it is built again',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  for(const mi of [2,10,25]){
+    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
+    const detail={v:4,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
+      water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'}],landuse:[],parks:[],aero:[],buildings:[],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
+    saveDetail(detail);
+    assert.ok(decodeDetail(savedDetail(home,spec)).roads[0].p instanceof Int16Array,`${mi} mi: an intact one is used`);
+    for(const [what,patch] of [['no roads',{roads:undefined}],['a road with a number for its line',{roads:[{c:'minor',p:5}]}],['water as an object',{water:{}}],
+      ['a null building',{buildings:[null]}],['places as text',{places:'Loop'}],['a place with no name',{places:[{c:'city',x:0,y:0}]}]]){
+      saveDetail({...detail,...patch});
+      assert.equal(savedDetail(home,spec),null,`${mi} mi: ${what}`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`${mi} mi: ${what}: not shown while a new one is built either`);
+      assert.equal(data.get(key),undefined,`${mi} mi: ${what}: discarded`);
+    }
   }
   delete globalThis.localStorage;
 });

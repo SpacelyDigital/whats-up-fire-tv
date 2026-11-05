@@ -405,8 +405,13 @@ const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_
 export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
-    return m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
-      (stale||freshMap(m))?m:null;
+    const same=m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
+      (stale||freshMap(m));
+    // Every layer as buildDetail writes it (what decodeDetail reads): a damaged one is dropped and built again.
+    if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'))&&Array.isArray(m.places)&&m.places.every(label('name')))){
+      localStorage.removeItem(detailKey(spec));return null;
+    }
+    return same?m:null;
   }catch{return null;}
 }
 export function saveDetail(m){
