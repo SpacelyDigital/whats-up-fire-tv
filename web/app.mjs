@@ -240,15 +240,16 @@ function countDown(){
     if(lastModel.retryIn<5)clearInterval(waitTimer);
   },1000);
 }
-// During an outage a model comes only with a poll, minutes apart: the dashboard is drawn again at
-// each minute so its clock and date keep time (nothing else moves), and at once back on screen.
+// During an outage a model comes only with a poll, minutes apart: at each minute the feed runs its model
+// again (model.mjs tick: the clock, the date, the day's tallies and the countdown move on together, drawn
+// through render), not while hidden, and at once back on screen.
 let clockTimer=0;
 function keepTime(){
   clearTimeout(clockTimer);
   if(!onScreen||!lastModel?.live||lastModel.fresh)return;
   const t=Date.now();
-  if(Math.floor(lastModel.now/60000)!==Math.floor(t/60000)){lastModel={...lastModel,now:t};draw(lastModel);}
   clockTimer=setTimeout(keepTime,60050-t%60000);
+  if(Math.floor(lastModel.now/60000)!==Math.floor(t/60000))feed?.tick?.();
 }
 function render(m){
   lastModel=m;listen(m);draw(m);countDown();keepTime();

@@ -273,9 +273,9 @@ export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):
 // carries on from that one's last reply: the planes stay until the next reply, an outage's countdown too.
 function liveSource(config,onModel,was){
   const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
-  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused;
+  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused,last=null;
   const update=(states,ok)=>{
-    clearTimeout(stale);judge=null;
+    last={states,ok};clearTimeout(stale);judge=null;
     if(ok){lastOk=performance.now();okAt=Date.now();}
     if(ok||states.retryAt)known=0; // this feed's own reply or failure from now on
     const now=Date.now(),age=Math.max(performance.now()-lastOk,now-okAt),retryAt=due=states.retryAt||known,wait=retryIn(retryAt);
@@ -317,7 +317,10 @@ function liveSource(config,onModel,was){
   const live=startLive(update,config);
   // Hidden, the last picture is not re-judged; back on screen it is, at once (its 60 s re-armed).
   return {...live,stop(){clearTimeout(stale);live.stop();},pause(){hidden=true;clearTimeout(stale);live.pause();},
-    resume(){if(!hidden)return;hidden=false;live.resume();judge?.();},get carry(){return {where,lastOk,okAt,lastGood,retryAt:due};}};
+    resume(){if(!hidden)return;hidden=false;live.resume();judge?.();},
+    // Once a minute during an outage (app.mjs keepTime): the last failed update again, so the time, the
+    // logbook day, the recent sightings and the countdown move on together.
+    tick(){if(last&&!last.ok)update(last.states,false);},get carry(){return {where,lastOk,okAt,lastGood,retryAt:due};}};
 }
 
 // --- Demo: plausible flights around home, moving in real time. Local airports

@@ -252,17 +252,20 @@ test('launch: a saved place with a null, empty, blank or false coordinate can\'t
   }finally{delete globalThis.localStorage;}
 });
 
-test('an outage: with no model for minutes the dashboard is drawn again at each minute (its clock and date move on), not while hidden, and at once when shown again',()=>{
-  let t=Date.parse('2026-11-06T05:59:35Z');const timers=new Set(),drawn=[];
+test('an outage: with no model for minutes the dashboard is drawn again at each minute through the feed\'s tick (its clock, date and tallies move on), not while hidden, and at once when shown again',()=>{
+  let t=Date.parse('2026-11-06T05:59:35Z'),ticks=0;const timers=new Set(),drawn=[];
+  // The feed's tick() (model.mjs) runs the model again: the time, the day's tallies and the countdown move on together.
+  const feed={resume(){},pause(){},tick(){ticks++;p.render({...p.lastModel,now:t});}};
   const p=page([line('let clockTimer='),fn('keepTime'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,Date:{now:()=>t},
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);},
     draw:m=>drawn.push(m.now),listen(){},countDown(){},credited:'',sourceFlashAt:0,SOURCE_FLASH_MS:0,flashCredits(){},performance:{now:()=>0},
-    feed:{resume(){},pause(){}},flushLog(){}});
+    feed,flushLog(){}});
   const run=ms=>{const end=t+ms;for(let h;(h=[...timers].sort((a,b)=>a.at-b.at)[0])&&h.at<=end;){timers.delete(h);t=h.at;h.fn();}t=end;};
   const at=(ms)=>new Date(ms).toISOString().slice(11,19);
   p.render({live:true,fresh:false,now:t,source:''}); // 23:59:35 Chicago: "No live data", the next poll 5 min away
   assert.deepEqual(drawn.map(at),['05:59:35'],'drawn once as it came');
   run(25100);assert.deepEqual(drawn.map(at),['05:59:35','06:00:00'],'again just after the minute');
+  assert.equal(ticks,1,'the model asked of the feed again, not a copy with the new time');assert.equal(timers.size,1,'one timer');
   assert.equal(vm.runInContext('lastModel.now',p),drawn.at(-1),'the model kept is the one drawn (a layout switch draws that time)');
   run(60000);assert.equal(drawn.length,3,'and each minute after');assert.equal(at(drawn.at(-1)),'06:01:00');
   p.window.__whatsupActive(false);run(150000);assert.equal(drawn.length,3,'not while hidden');assert.equal(timers.size,0);
@@ -271,6 +274,7 @@ test('an outage: with no model for minutes the dashboard is drawn again at each 
   run(30000);assert.equal(at(drawn.at(-1)),'06:04:00');
   p.render({live:true,fresh:true,now:t,source:''});run(300000);assert.equal(drawn.length,6,'a fresh model: no minute draws (polls draw it)');assert.equal(timers.size,0);
   p.render({live:false,fresh:true,now:t,source:''});run(120000);assert.equal(drawn.length,7,'nor in the demo');
+  assert.equal(ticks,4,'every minute draw came through the feed');
 });
 
 test('screen reader: closing the last screen reads the plane now on the card at once (an emergency begun behind Settings too); closing onto another screen, or the next poll, reads nothing more',()=>{

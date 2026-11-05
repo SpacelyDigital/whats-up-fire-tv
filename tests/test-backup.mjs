@@ -1153,6 +1153,28 @@ test('backup: after a 4xx from both feeds the last picture is called stale 60 s 
   }
 });
 
+// During an outage app.mjs ticks the feed once a minute: the model is run again, so the clock, the logbook day
+// and the countdown move on together (the date read Friday with Thursday's Seen until the next poll).
+test('outage: the minute tick past midnight moves the date and the day\'s tallies together (Seen 0 with Friday)',async()=>{
+  const r=fresh(Date.parse('2026-11-06T05:58:00Z')),models=[],place={...CVG,timeZone:'America/Chicago'}; // 23:58 CST Thursday
+  try{
+    const s=start(place,CFG,m=>models.push({...m,at:r.t}));
+    await r.advance(6000); // good replies at 0 and 5 s: a plane logged on Thursday
+    r.feeds.fi={mode:'s403'};r.feeds.lol={mode:'s403'}; // both 4xx: the next poll 5 min away
+    await r.advance(120000-r.t); // 00:00:00 CST Friday
+    const before=models.at(-1);
+    assert.ok(!before.fresh&&before.log.today===1&&before.at<120000,'re-judged 60 s after the last good reply: Thursday\'s count');
+    s.tick();
+    const m=models.at(-1);
+    assert.ok(m!==before&&m.at===120000,'a model from the tick');
+    assert.equal(new Date(m.now).toLocaleDateString('en-US',{weekday:'long',timeZone:place.timeZone}),'Friday');
+    assert.equal(m.log.today,0,'Friday\'s tallies, not Thursday\'s');
+    assert.ok(!m.fresh&&m.retryIn>0&&m.retryIn<=300,`the countdown moves on too: ${m.retryIn}`);
+    assert.match(quietText(m,false),/^No live data right now\. Reconnecting in \d+ (s|min)\.$/);
+    s.stop();
+  }finally{r.restore();}
+});
+
 test('feed: an aircraft listed twice in one reply counts once, from its newest position (its 7700 kept, one history row)',async()=>{
   const reply=ac=>({mode:'ok',get body(){return {ac,msg:'No error',now:Date.now(),total:ac.length};}});
   const sos=plane('a50001','UAL101',{squawk:'7700',emergency:'general',seen_pos:0.1}),old=plane('a50001','UAL101',{squawk:'1200',emergency:'none',seen_pos:5,lat:39.066});
