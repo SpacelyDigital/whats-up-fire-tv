@@ -81,7 +81,11 @@ const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
 const localHour=t=>Number(new Date(t).toLocaleString('en-US',{hour:'numeric',hourCycle:'h23',timeZone:TZ}));
 // Before 06:00 the night belongs to the previous calendar date (counted on the date itself,
 // not 24 h back: after a 23-hour spring-forward day that would land two dates back).
-const prevDay=d=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd-1)).toISOString().slice(0,10);};
+const shiftDay=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10);},prevDay=d=>shiftDay(d,-1);
+// The log that counts for `day` (a reply's local day): that day's, or the next day's, which the other
+// feed's clock (seconds ahead) may have begun already. The day never rolls back; a log dated further
+// ahead is damage (a TV clock that was wrong) and does not count.
+const logOf=(log,day)=>log&&(log.day===day||log.day===shiftDay(day,1))?log:null;
 const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?prevDay(localDay(t)):null;};
 export const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
 // The logbook lives in memory and is saved every 5 min, at the local midnight change and
@@ -115,7 +119,7 @@ export function saneLog(log){
 }
 export function updateLog(log,planes,now){
   const day=localDay(now);
-  if(!log||log.day!==day)log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
+  if(!logOf(log,day))log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
   // Today's aircraft (any distance the feed covers): closest approach, type, callsign and
   // origin. Rarest and Farthest pick from those that came within the map radius, so they
   // follow zooming. Older logs (no planes yet): today's local types count as close (0 mi).
@@ -302,10 +306,11 @@ function liveSource(config,onModel,was){
     // the layouts age them against the TV's (m.now), so the stamps shown are moved onto it.
     const recent=recentSightings(states,planes.filter(a=>a.inside),feedNow).map(a=>({...a,type:typeName(a.aircraft_type),
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase(),last_seen:a.last_seen-(states.skew||0)}));
-    // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
+    // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show (a log the
+    // other feed's clock has moved past midnight already stays: logOf).
     // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
     // Connecting: neither a reply nor a failure yet (the first failure ends it).
-    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:lastOk<0&&!retryAt,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn:wait,retryAt,source:states.source||''};
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:lastOk<0&&!retryAt,planes,hero:pickHero(planes,config),recent,log:logSummary(logOf(log,localDay(feedNow))),retryIn:wait,retryAt,source:states.source||''};
     if(ok&&fresh)lastGood=model;
     onModel(model);
   };

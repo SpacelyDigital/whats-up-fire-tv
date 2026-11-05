@@ -150,6 +150,19 @@ test('midnight reset: no fresh data across midnight, then the next fresh poll st
   assert.equal(log.day,'2026-11-03');assert.equal(logSummary(log).today,1);
   assert.equal(log.typesAll.B738,3,'all-time tallies survive the reset');
 });
+test('midnight reset: the day never rolls back (a reply by a clock seconds or a day behind); a log dated two days ahead is damage and restarts',()=>{
+  home('America/New_York');
+  let log=updateLog(null,[P('a0aaaa')],H(2026,10,6,5,0,2)); // 00:00:02 EST 6 Nov
+  assert.equal(log.day,'2026-11-06');
+  log=updateLog(log,[P('a0bbbb')],H(2026,10,6,4,59,57)); // the other feed's clock: 23:59:57 on the 5th
+  assert.equal(log.day,'2026-11-06','kept');assert.equal(logSummary(log).today,2,'its plane counted on it');
+  log=updateLog(log,[P('a0aaaa')],H(2026,10,5,12)); // a reply a day behind (cached): no roll back either
+  assert.equal(log.day,'2026-11-06');assert.equal(logSummary(log).today,2);
+  log=updateLog({...log,day:'2026-11-08'},[P('a0cccc')],H(2026,10,6,12)); // a saved day two days ahead (a TV clock that was wrong): restarted
+  assert.equal(log.day,'2026-11-06');assert.equal(logSummary(log).today,1);
+  log=updateLog(log,[P('a0cccc')],H(2026,10,7,12)); // the next day as usual
+  assert.equal(log.day,'2026-11-07');assert.equal(logSummary(log).today,1);
+});
 test('midnight reset: a home moved to another time zone follows the new zone at once',()=>{
   home('America/New_York');
   let log=updateLog(null,[P('a0aaaa')],H(2026,10,2,4)); // 23:00 EST 1 Nov in New York

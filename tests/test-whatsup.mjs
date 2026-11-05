@@ -212,8 +212,9 @@ function require_fs(){return {readdirSync:(u)=>globalThis.__fs.readdirSync(u)};}
 // adsb.lol backup, adsb.fi's retries after the second failure are its once-a-minute checks.
 
 test('clock skew: a TV clock a minute, or days, off the feed still shows the planes',async()=>{
-  const {startLive}=await import('../web/live.mjs');
+  const {startLive,resetOutage}=await import('../web/live.mjs');
   for(const off of [-60000,60000,-3*86400000,3*86400000,-25*3600000]){
+    resetOutage(); // each a launch of its own: a clock a day behind the last good reply's would be a cached reply
     globalThis.fetch=async url=>({status:200,headers:{get:()=>null},url,
       text:async()=>JSON.stringify({now:Date.now()+off,ac:[{hex:'abc123',lat:39.05,lon:-84.67,alt_baro:3000,seen_pos:0.5,flight:'TST1'}]})});
     const got=await new Promise(resolve=>{

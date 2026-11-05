@@ -1055,7 +1055,7 @@ test('backup: a 200 whose `now` is missing, not a number, 0 or below (or no time
 test('feed: a TV clock days or years off (the feed\'s `now` more than a week from it) keeps adsb.fi, judged by its own clock, and its planes are drawn',async()=>{
   const DAY_MS=86400000;
   for(const [name,off,seconds] of [['8 days ahead',8*DAY_MS],['8 days behind',-8*DAY_MS],['8 days ahead, in s',8*DAY_MS,true],['6 days behind',-6*DAY_MS],
-    ['30 days behind',-30*DAY_MS],['TV clock 10 years behind',3653*DAY_MS],['TV clock 10 years ahead, in s',-3653*DAY_MS,true]]){
+    ['30 days behind',-30*DAY_MS],['TV clock 300 days behind',300*DAY_MS],['TV clock 2 years ahead, in s',-731*DAY_MS,true]]){
     const r=fresh(),models=[];
     try{
       r.feeds.fi={mode:'ok',nowShiftMs:off,seconds};
@@ -1072,6 +1072,60 @@ test('feed: a TV clock days or years off (the feed\'s `now` more than a week fro
       s.stop();
     }finally{r.restore();}
   }
+});
+
+// A 200 whose clock can't be right counts as a failure (adsb.lol stands in): before 2024, more than a year
+// ahead of the TV's, or more than a day before the last good reply's (a cached reply). A clock up to a year
+// off the TV's is a wrong TV clock and is used (the test above).
+test('feed: a 200 with an implausible clock (before 2024, over a year ahead of the TV, a day before the last good reply) counts as a failure',async()=>{
+  const DAY_MS=86400000,body=now=>({ac:[FI_PLANE],msg:'No error',total:1,now});
+  for(const [name,fi] of [['1972 (86400000 read as seconds)',{body:body(86400000)}],['31 December 2023',{body:body(Date.parse('2023-12-31T23:59:59Z'))}],
+    ['microseconds',{body:body(T0*1000)}],['400 days ahead of the TV',{nowShiftMs:400*DAY_MS}]]){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'ok',...fi};
+      const live=r.live();
+      await r.advance(20000);
+      assert.deepEqual(r.at('fi'),[0,5000],`${name}: adsb.fi backs off as for a 5xx`);
+      assert.ok(r.updates.every(u=>!u.ok||u.source==='adsb.lol'),`${name}: no update from adsb.fi`);
+      assert.equal(lastData(r)?.source,'adsb.lol',`${name}: adsb.lol stands in`);
+      live.stop();
+    }finally{r.restore();}
+  }
+  // After good replies, one whose clock is days behind theirs (a cached reply) is a failure; 20 h behind is used.
+  for(const [name,off,used] of [['3 days before the last good reply',-3*DAY_MS,false],['20 hours before',-20*3600000,true]]){
+    const r=fresh();
+    try{
+      const live=r.live();
+      await r.advance(6000);r.feeds.fi={mode:'ok',nowShiftMs:off}; // good at 0 and 5 s
+      await r.advance(20000);
+      if(used){assert.deepEqual(r.at('lol'),[],`${name}: nothing sent to adsb.lol`);assert.equal(r.at('fi').length,6,`${name}: adsb.fi every 5 s`);assert.equal(lastData(r).source,'adsb.fi',name);}
+      else{
+        assert.deepEqual(r.at('fi'),[0,5000,10000,15000],`${name}: two failures, then adsb.lol`);
+        assert.ok(!r.updates.some(u=>u.ok&&u.source==='adsb.fi'&&u.t-T0>6000),`${name}: nothing shown from it`);
+        assert.equal(lastData(r).source,'adsb.lol',name);
+      }
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+// The feeds' clocks differ by seconds: just past midnight by adsb.fi's clock, adsb.lol's reply can still read
+// Thursday. The logbook day never rolls back: Friday's log keeps counting (each feed's plane once) instead of
+// restarting on Thursday and again on Friday, and it stays on screen meanwhile.
+test('backup: the logbook day never rolls back when the standing-in feed\'s clock is behind across midnight',async()=>{
+  const r=fresh(Date.parse('2026-11-06T04:59:50Z'));const models=[]; // 23:59:50 EST Thursday
+  try{
+    r.feeds.fi={mode:'ok',nowShiftMs:12000};r.feeds.lol={mode:'ok',nowShiftMs:-12000}; // adsb.fi 12 s ahead, adsb.lol 12 s behind
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({...m,at:r.t}));
+    await r.advance(1000); // adsb.fi's reply reads 00:00:02 Friday: Friday's log, one plane
+    assert.equal(models.at(-1).log.today,1);
+    r.feeds.fi={mode:'offline'};
+    await r.advance(30000); // adsb.fi fails at 5 and 10 s; adsb.lol at 15 s reads 23:59:53 Thursday, at 25 s 00:00:03 Friday
+    const seen=models.filter(m=>m.fresh).map(m=>m.log.today);
+    assert.ok(seen.includes(2)&&seen.lastIndexOf(1)<seen.indexOf(2),`Friday's log keeps counting: ${seen}`);
+    s.stop();
+  }finally{r.restore();}
 });
 
 test('backup: after a 4xx from both feeds the last picture is called stale 60 s after the last good reply, not at the next poll minutes later',async()=>{

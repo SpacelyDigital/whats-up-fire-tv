@@ -413,8 +413,10 @@ export class Enricher {
 export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
-// okAt: when the last adsb.fi request that answered with data went out.
-const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
+// okAt: when the last adsb.fi request that answered with data went out. lastStamp: the last good reply's
+// own clock (s, either feed); no reply's clock may fall a day behind it, nor before OLDEST_STAMP (2024).
+const OLDEST_STAMP=1704067200;
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,lastStamp:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
 export const outage={...CLEAR};
 // Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
 const UNCHECKED={url:'',none:false,checked:-Infinity};
@@ -527,12 +529,12 @@ export function startLive(show,config){
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
     busy=false;
     const reply=status===200?(backup?fromBackup(payload):feedReply(payload)):null,stamp=feedStamp(reply),now=Date.now()/1000;
-    // The TV's clock can be off by seconds, days or years (a TV left with a wrong date): positions
+    // The TV's clock can be off by seconds, days or a year (a TV left with a wrong date): positions
     // are judged against the feed's own clock (it was just received), and the offset goes to the
-    // display, however large; adsb.fi stays the feed. A reply with no usable clock (none, not a
-    // number, 0 or below, past any date) is a failed poll, as a 5xx: none of its positions can be
-    // judged (adsb.lol stands in).
-    const body=typeof reply?.now==='number'&&stamp>0&&stamp<=8.64e12?reply:null;
+    // display; adsb.fi stays the feed. A reply whose clock can't be right (none, not a number, before
+    // 2024, more than a year ahead of the TV's, or more than a day before the last good reply's: a
+    // cached reply) is a failed poll, as a 5xx: none of its positions can be judged (adsb.lol stands in).
+    const body=typeof reply?.now==='number'&&stamp>=OLDEST_STAMP&&stamp<=now+365*DAY&&stamp>=outage.lastStamp-DAY?reply:null;
     // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts, unless
     // a request made since has answered (a hung request timing out after the restarted feed's good reply).
     if(stopped||paused){if(!body&&!backup&&started>outage.okAt)fiFailed(status,retryAfter,started);return;}
@@ -545,6 +547,7 @@ export function startLive(show,config){
       if(ac.length)coverage.none=false;else if(!backup){busy=true;await checkCoverage(performance.now());busy=false;}
       if(stopped)return;
       if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,okAt:started,backupFails:0,backupStep:0});
+      outage.lastStamp=stamp;
       good=true;
       states={...build(ac,stamp,sel),coverage:{none:!backup&&coverage.none},skew,source:feed};
       onUpdate(states,true);
