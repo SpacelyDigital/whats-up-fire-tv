@@ -1325,3 +1325,27 @@ test('Window view: the Departures remarks say what the card would (ABOVE right a
   assert.deepEqual(await run('circle',[OVER,AAL,SWA,UAL]),{hero:'OVER4: Above you now',board:{OVER4:'ABOVE',AAL20:'LEAVING',SWA30:'DUE 3 MIN',UAL40:'IN RANGE'}});
   assert.deepEqual(await run('circle',[AAL,SWA,UAL]),{hero:'SWA30: Approaching',board:{AAL20:'LEAVING',SWA30:'DUE 3 MIN',UAL40:'IN RANGE'}});
 });
+test('trend: the altitude arrow compares with the reading about 20 s back, so Radar\'s card reads level a poll or two after a plane levels off (at once when the feed sends its rate), not 80 s later',async()=>{
+  const vm=await import('node:vm'),{fmt,useSettings}=await import('../web/kit.mjs');
+  const src=readFileSync(new URL('../web/layouts/radar.mjs',import.meta.url),'utf8');
+  const code=/^\s*const arrow=.*\n\s*setText\(\$\.alt,.*$/m.exec(src)?.[0];assert.ok(code,'the altitude cell in radar.mjs');
+  const card=hero=>{let t;vm.runInNewContext(code,{$:{alt:{}},hero,fmt,number:v=>typeof v==='number'&&Number.isFinite(v),setText:(e,v)=>{t=v;}});return t;};
+  useSettings({distance:'mi',altitude:'ft'});
+  // UAL310 climbs to 31,000 ft (at `fpm`) and flies level from 60 s, sending its rate or none (MLAT positions have none).
+  const run=async(fpm,rated)=>{
+    const r=fresh(),seen={};
+    try{
+      r.feeds.fi={mode:'ok',get body(){const s=r.t/1000;
+        return {ac:[plane('a07001','UAL310',{alt_baro:Math.round(s<60?31000-(60-s)*fpm/60:31000),baro_rate:rated?(s<60?fpm:0):undefined,gs:30,track:0})],now:Date.now()};}};
+      const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:10},m=>{if(m.fresh&&m.hero)seen[Math.round(r.t/1000)]=card(m.hero);});
+      await r.advance(150000);s.stop();
+    }finally{r.restore();}
+    return seen;
+  };
+  const rated=await run(1500,true),unrated=await run(1500,false);
+  assert.equal(rated[55],'FL309 ↑1,500','its own rate while it climbs');
+  for(const t of [60,65,70,100,150])assert.equal(rated[t],'FL310',`${t} s: level from the first poll the feed says so`);
+  assert.equal(unrated[30],'FL303 ↑','no rate: the climb shows as an arrow');
+  for(const t of [75,80,100,150])assert.equal(unrated[t],'FL310',`${t} s: level within 15 s of levelling off`);
+  const slow=await run(500,false);for(const t of [30,45,55])assert.match(slow[t],/^FL3\d\d ↑$/,`${t} s: a 500 ft/min climb with no rate still shows`);
+});

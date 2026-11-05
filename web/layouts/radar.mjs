@@ -165,7 +165,7 @@ function render(m){
     $.progress.hidden=!hero.progress;
     if(hero.progress){$.barFill.style.width=`${Math.round(hero.progress.share*100)}%`;
       setText($.prog,`${fmt.far(hero.progress.flown)} flown · ${fmt.int(metric()?hero.progress.left*KM:hero.progress.left)} to go`);}
-    const arrow=hero.trend.alt>0?' ↑':hero.trend.alt<0?' ↓':'';
+    const arrow=number(hero.vertical)?'':hero.trend.alt>0?' ↑':hero.trend.alt<0?' ↓':''; // the trend only when the feed sends no rate
     setText($.alt,number(hero.vertical)&&Math.abs(hero.vertical)>=100?`${fmt.alt(hero.altitude_ft)} ${fmt.vs(hero.vertical)}`:`${fmt.alt(hero.altitude_ft)}${arrow}`);
     setText($.spd,fmt.speed(hero.speed_kt));
     setText($.look,`${compass(hero.bearing)} · ${Math.max(0,Math.round(hero.elevation))}° up`);

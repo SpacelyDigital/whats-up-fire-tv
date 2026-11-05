@@ -201,12 +201,13 @@ export function logSummary(log){
     cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy,militaryToday:Object.keys(log.mil||{}).length,militaryTypes:militaryTypes(log.mil)};
 }
 
-// Trend: compare with the reading ~30 s ago; the samples double as the trail.
+// Trend: compare with the newest reading at least 20 s old (not the oldest kept, up to 90 s old: a plane
+// levelled off read as climbing for over a minute); the samples double as the trail.
 const samples=new Map();
 function trend(a,now){
   const list=(samples.get(a.hex)||[]).filter(s=>now-s.t<=90000);
   list.push({t:now,alt:a.altitude_ft,gs:a.speed_kt,lat:a.latitude,lon:a.longitude});samples.set(a.hex,list);
-  const old=list.find(s=>now-s.t>=20000)||list[0];
+  let old=list[0];for(let i=list.length-1;i>=0;i--)if(now-list[i].t>=20000){old=list[i];break;}
   const sign=(d,dead)=>!number(d)||Math.abs(d)<dead?0:Math.sign(d);
   return {alt:sign(a.altitude_ft-old.alt,150),speed:sign(a.speed_kt-old.gs,8),trail:list};
 }
