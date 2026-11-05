@@ -25,6 +25,10 @@ const CA={Alberta:'AB','British Columbia':'BC',Manitoba:'MB','New Brunswick':'NB
   'Nova Scotia':'NS',Ontario:'ON','Prince Edward Island':'PE',Quebec:'QC',Saskatchewan:'SK',
   'Northwest Territories':'NT',Nunavut:'NU',Yukon:'YT'};
 const SHORT_COUNTRY={GB:'UK',US:'USA',AE:'UAE'};
+// Three-letter country codes people type after a city ("TORONTO CAN", "LONDON GBR"; RSA as in sport).
+const ISO3={CAN:'CA',GBR:'GB',FRA:'FR',DEU:'DE',AUS:'AU',NZL:'NZ',JPN:'JP',ZAF:'ZA',RSA:'ZA',IRL:'IE',MEX:'MX',ESP:'ES',ITA:'IT',
+  NLD:'NL',BEL:'BE',CHE:'CH',AUT:'AT',PRT:'PT',SWE:'SE',NOR:'NO',DNK:'DK',FIN:'FI',ISL:'IS',POL:'PL',GRC:'GR',TUR:'TR',ISR:'IL',
+  IND:'IN',CHN:'CN',KOR:'KR',SGP:'SG',PHL:'PH',ARE:'AE',BRA:'BR',ARG:'AR',CHL:'CL',COL:'CO',EGY:'EG'};
 const STATE_NAME=Object.fromEntries(Object.entries(US).map(([name,code])=>[code,name]));
 // Service text: control and invisible characters (bidi overrides, zero-width) dropped, capped.
 const clean=(v,n=60)=>text(v,n);
@@ -103,7 +107,7 @@ export async function searchPlaces(query){
   if(!near)return null;
   const code=p=>p.countryCode==='US'?US[p.admin]:p.countryCode==='CA'?CA[p.admin]:'';
   return near.filter(p=>[p.admin,p.country,code(p),p.countryCode,SHORT_COUNTRY[p.countryCode]].some(v=>v&&String(v).toLowerCase().replace(/[.]/g,'')===r)
-    ||String(p.admin).toLowerCase().startsWith(r)&&r.length>=3);
+    ||String(p.admin).toLowerCase().startsWith(r)&&r.length>=3||ISO3[r.toUpperCase()]===p.countryCode);
 }
 async function searchNames(q){
   const {status,payload}=await getJson(SEARCH_URL(q),6000);

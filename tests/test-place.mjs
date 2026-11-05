@@ -264,6 +264,18 @@ test('place search: "Rosemont, Illinois" and "Rosemont IL" search the name, then
     assert.deepEqual(found.map(p=>placeLabel(p)),['Rosemont, IL'],q);assert.equal(seen.length,2,q);
   }
 });
+test('place search: a city and a three-letter country code ("TORONTO CAN", "LONDON GBR") match like the two-letter code or the name',async()=>{
+  const at=(name,admin1,country,country_code)=>({name,admin1,country,country_code,latitude:10,longitude:10,timezone:'UTC'});
+  const LONDON=[at('London','England','United Kingdom','GB'),at('London','Ontario','Canada','CA'),at('London','Ohio','United States','US')];
+  for(const [q,results,want] of [['TORONTO CAN',[at('Toronto','Ontario','Canada','CA')],['Toronto, ON']],['PARIS FRA',[at('Paris','Île-de-France','France','FR'),at('Paris','Texas','United States','US')],['Paris, France']],
+    ['LONDON GBR',LONDON,['London, UK']],['London, CAN',LONDON,['London, ON']],['SYDNEY AUS',[at('Sydney','New South Wales','Australia','AU'),at('Sydney','Nova Scotia','Canada','CA')],['Sydney, Australia']],
+    ['TOKYO JPN',[at('Tokyo','Tokyo','Japan','JP')],['Tokyo, Japan']],['CAPE TOWN RSA',[at('Cape Town','Western Cape','South Africa','ZA')],['Cape Town, South Africa']],
+    ['CAPE TOWN ZAF',[at('Cape Town','Western Cape','South Africa','ZA')],['Cape Town, South Africa']],['BERLIN DEU',[at('Berlin','Land Berlin','Germany','DE')],['Berlin, Germany']]]){
+    const name=q.replace(/,?\s+\S+$/,'');
+    stub([[new RegExp(`name=${encodeURIComponent(name)}&`,'i'),[200,{results}]],[/search\?name=/,[200,{}]]]);
+    assert.deepEqual((await searchPlaces(q)).map(placeLabel),want,q);
+  }
+});
 
 test('window view: no saved window shows the example ENE 74° to S 175°, 25 mi; a saved one is kept',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({alertZone:'circle'}),setItem(){},removeItem(){}};
