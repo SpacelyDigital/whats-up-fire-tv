@@ -511,3 +511,19 @@ test('search screen, first run offline: Search with fewer than 2 characters type
   assert.equal(results.kids[0]._place?.name,'Denver');
   assert.deepEqual(await search(''),[FIRST],'later (no IP lookup to try again): the message alone');
 });
+
+test('screen reader: the plane on the card is read again, with its distance, as it enters the alert zone and as it leaves; Approaching and Nearest trading places on it, a zone change while browsing, or a poll with nothing new are not',()=>{
+  const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
+  const p=page([line('let spoken='),fn('announce')],{layer:null,adj:null,$:id=>id==='sr-live'?sr:null,fmt:{dist:d=>`${d.toFixed(1)} mi`},quietText:()=>'',demo:false});
+  const TST=(status,ground,inside=false)=>({hex:'ab2001',status,flight:'TST101',type:'Boeing 737-800',ground,inside});
+  const say=(...heroes)=>{for(const hero of heroes)p.announce({hero});return writes.slice();};
+  assert.deepEqual(say(TST('Approaching',6),TST('Approaching',5.2)),['Approaching, TST101, Boeing 737-800, 6.0 mi'],'read when it takes the card, not at every poll');
+  assert.deepEqual(say(TST('Above you now',1,true)).slice(1),['Above you now, TST101, Boeing 737-800, 1.0 mi'],'entering the alert zone');
+  say(TST('Above you now',.4,true),TST('In your window',.9,true));assert.equal(writes.length,2,'once per entry, not per poll');
+  assert.deepEqual(say(TST('Nearest',5)).slice(2),['Nearest, TST101, Boeing 737-800, 5.0 mi'],'leaving it');
+  say(TST('Approaching',4.8),TST('Nearest',4.9),TST('Approaching',4.7));assert.equal(writes.length,3,'Approaching and Nearest trading places are not read');
+  const browse={index:1,count:3};
+  assert.deepEqual(say({...TST('Plane 1 of 3',2.5),browse}).slice(3),['Plane 1 of 3, TST101, Boeing 737-800, 2.5 mi'],'Left/Right: the chosen plane');
+  say({...TST('Plane 1 of 3',1.2,true),browse},{...TST('Plane 1 of 3',3.1),browse});assert.equal(writes.length,4,'while browsing the zone edge is not read');
+  assert.deepEqual(say(TST('Nearest',3.3)).slice(4),['Nearest, TST101, Boeing 737-800, 3.3 mi'],'Back: the card is automatic again');
+});

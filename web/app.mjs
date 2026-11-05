@@ -220,11 +220,12 @@ function listen(m){
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
 // Screen readers: one polite announcement when the plane on the card changes (or Left/Right
-// browsing, or an emergency, starts or ends on it).
+// browsing, an emergency, or its stay in the alert zone starts or ends on it: the line carries
+// the status and the distance), not for Approaching and Nearest trading places on it.
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex+(h.emergency?'!':'')+(h.browse?'+':''):'';
+  const h=m.hero,key=h?h.hex+(h.emergency?'!':'')+(h.browse?'+':h.inside?'^':''):'';
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
