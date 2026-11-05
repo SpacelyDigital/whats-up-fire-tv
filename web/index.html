@@ -151,7 +151,7 @@
   <!-- Layout picker: the layout behind it is live; arrows switch, OK keeps, Back reverts. -->
   <div class="picker" id="picker" hidden role="dialog" aria-label="Choose a layout">
     <button class="pick-arrow" id="pick-prev" data-focus aria-label="Previous layout">‹</button>
-    <div class="pick-body"><div class="pick-count" id="pick-count"></div><div class="pick-name" id="pick-name" aria-live="polite"></div>
+    <div class="pick-body" id="pick-body" tabindex="-1" role="group" aria-labelledby="pick-count"><div class="pick-count" id="pick-count"></div><div class="pick-name" id="pick-name" aria-live="polite"></div>
       <div class="pick-help"><kbd>‹ ›</kbd> preview &nbsp; <kbd>OK</kbd> keep &nbsp; <kbd>Back</kbd> cancel</div></div>
     <button class="pick-arrow" id="pick-next" data-focus aria-label="Next layout">›</button>
   </div>

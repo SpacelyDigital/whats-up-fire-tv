@@ -548,3 +548,27 @@ test('screen reader: with no plane on the card the sky\'s state is read once as 
   // 'Finding your location', 'Map unavailable', 'Drawing the street map': the note is a live region (written only on a change).
   assert.match(readFileSync(new URL('../web/index.html',import.meta.url),'utf8'),/<div class="layout-note" id="layout-note" aria-live="polite"><\/div>/);
 });
+
+test('screen reader: OK on a Settings value row says "Editing <row>, <value>", OK again "Saved <value>", Back "Cancelled" (the value it puts back is not read over it); the layout picker focuses the layout\'s count and name, not the Previous arrow, and reads the name again at each opening',()=>{
+  let value='3 mi';
+  const row={id:'set-radius',dataset:{edit:'',focus:''},classList:{add(){},remove(){},contains:()=>false},getAttribute:k=>k==='aria-label'?`Alert radius, ${value}`:null,querySelector:()=>({textContent:value})};
+  const opened=[];
+  const p=page([line('let editing='),line('let editSnap='),line('let pick='),fn('select'),fn('stopEdit'),fn('cancelEdit'),fn('startPick'),fn('endPick')],{settings:{radiusMiles:3,layout:'radar',place:{}},editHint(){},store:{remove(){}},HISTORY_KEY:'h',
+    clearTimeout(){},setTimeout(){},zoneTimer:0,mapTimer:0,restartFeed(){},saveSettings(){},useSettings(){},showSettings(){},tellAwake(){},busy(){},mapsChanged(){},refreshLayout(){},applyPlace(){},
+    LAYOUTS:[['radar','Radar'],['glass','Glass']],stage:{classList:{add(){},remove(){}}},open:(id,first)=>opened.push([id,first]),setFocus(){},stepPick(){},showPick(){},useLayout(){}});
+  const said=()=>p.texts['sr-live'];
+  p.select(row);assert.equal(said(),'Editing Alert radius, 3 mi');
+  value='4 mi';p.settings.radiusMiles=4;p.stopEdit(true);assert.equal(said(),'Saved 4 mi');
+  p.select(row);p.cancelEdit();assert.equal(said(),'Cancelled','nothing changed');
+  p.select(row);p.settings.radiusMiles=5;value='5 mi';p.cancelEdit();assert.equal(said(),'Cancelled');assert.equal(p.settings.radiusMiles,4,'the value is back');
+  p.startPick(0);assert.deepEqual(opened,[['picker','pick-body']],'DOM focus on the count and name');
+  p.endPick(false);assert.equal(p.texts['pick-name'],'','cleared on closing: the next opening reads the name again');
+  assert.match(readFileSync(new URL('../web/index.html',import.meta.url),'utf8'),/<div class="pick-body" id="pick-body" tabindex="-1" role="group" aria-labelledby="pick-count">/);
+  // Stepping a value in edit mode reads the new value; the restore on Back is not read ('Cancelled' is).
+  const els={},$=id=>els[id]??={};let label='Alert radius, 3 mi',next=label;
+  const srow={getAttribute:()=>label,querySelector:()=>({textContent:label.split(', ')[1]})};
+  const s=page([fn('showSettings')],{LAYOUTS:[['radar','Radar']],layoutName:()=>'Radar',settings:{layout:'radar',place:null,radiusMiles:3,viewFrom:0,viewTo:90,viewMiles:25,placeNames:'off',chime:'off'},
+    placeLabel:()=>'',alertFor:r=>r,mapMiles:()=>10,fmt:{dist:v=>`${v} mi`},compass:()=>'N',VIEW_MILES:[25],$,document:{querySelectorAll:sel=>sel==='#settings .row'?[srow]:[]},fitValue(){},labelRow(){label=next;},focused:srow,editing:null});
+  next='Alert radius, 4 mi';s.editing=srow;s.showSettings();assert.equal(els['sr-live'].textContent,'4 mi','Right in edit mode');
+  els['sr-live'].textContent='Cancelled';next='Alert radius, 3 mi';s.editing=null;s.showSettings();assert.equal(els['sr-live'].textContent,'Cancelled','the restore after Back');
+});

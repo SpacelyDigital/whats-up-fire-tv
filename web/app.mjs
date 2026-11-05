@@ -501,10 +501,11 @@ function showSettings(){
   setText('set-view-v',view<settings.viewMiles?`${fmt.dist(view,0)} (the map radius)`:fmt.dist(settings.viewMiles,0));
   for(const r of document.querySelectorAll('#settings .win'))r.hidden=!win;
   $('set-radius').hidden=win;
-  // Spoken labels follow the values; a changed value on the focused row is read out.
+  // Spoken labels follow the values; a value stepped on the row being edited is read out (the value
+  // Back puts back is not: 'Cancelled' is).
   for(const r of document.querySelectorAll('#settings .row')){
     fitValue(r);const before=r.getAttribute('aria-label');labelRow(r);
-    if(r===focused&&before&&before!==r.getAttribute('aria-label'))$('sr-live').textContent=r.querySelector(':scope > b')?.textContent||'';
+    if(editing&&r===focused&&before&&before!==r.getAttribute('aria-label'))$('sr-live').textContent=r.querySelector(':scope > b')?.textContent||'';
   }
 }
 function adjustSetting(el,dir){
@@ -582,9 +583,11 @@ function editKey(e){
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4)return cancelEdit();
 }
 // commit: the edit is kept. A kept change of Alert zone starts 'Recently above' afresh (the
-// old list was for the other zone shape); a cancelled or no-net-change edit keeps it.
+// old list was for the other zone shape); a cancelled or no-net-change edit keeps it. Either end is
+// read out ('Saved 4 mi', 'Cancelled'), as entering the edit was (select).
 function stopEdit(commit=false){
-  const before=editSnap;editing?.classList.remove('editing');editHint(null,editing);editing=null;editSnap=null;
+  const before=editSnap,row=editing;editing?.classList.remove('editing');editHint(null,editing);editing=null;editSnap=null;
+  if(row)setText('sr-live',commit?`Saved ${row.querySelector(':scope > b')?.textContent||''}`.trim():'Cancelled');
   if(commit&&before&&before.alertZone!==settings.alertZone){store.remove(HISTORY_KEY);clearTimeout(zoneTimer);restartFeed();}
 }
 // While a row is being edited its keys hint shows on the Settings title line, so the value
@@ -632,7 +635,7 @@ let pick=null;
 function startPick(dir){
   pick={index:Math.max(0,LAYOUTS.findIndex(([k])=>k===settings.layout))};
   stage.classList.add('picking');
-  open('picker');setFocus(null);
+  open('picker','pick-body');setFocus(null); // VoiceView reads the count and name (not the Previous arrow); no highlight: the arrows flash when pressed
   if(dir)stepPick(dir);else showPick();
 }
 function showPick(){
@@ -647,7 +650,7 @@ function stepPick(dir){
 // keep: save the previewed layout; else go back to the saved one.
 function endPick(keep){
   if(!pick)return;
-  const id=LAYOUTS[pick.index][0];pick=null;stage.classList.remove('picking');
+  const id=LAYOUTS[pick.index][0];pick=null;stage.classList.remove('picking');setText('pick-name',''); // emptied, so the next opening's name is a change VoiceView reads
   if(keep){settings.layout=id;saveSettings(settings);useLayout(id);}
   else useLayout(settings.layout);
 }
@@ -736,7 +739,7 @@ function openLocate(help){
 
 function select(el){
   if(!el)return;
-  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');editHint(el);const {place,...rest}=settings;editSnap=rest;return;}
+  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');editHint(el);const {place,...rest}=settings;editSnap=rest;setText('sr-live',`Editing ${el.getAttribute('aria-label')}`);return;}
   if(el._place)return confirmPlace(el._place);
   if(el.dataset.key)return typeKey(el.dataset.key);
   switch(el.id){
