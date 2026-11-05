@@ -44,15 +44,15 @@ test('photos: a damaged saved pause (years ahead, not a number, negative) does n
 
 test('maps: a saved map "built" in the future counts as old (rebuilt, not kept for ever)',()=>{
   const layers={water:[],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]};
-  saveMap({v:4,...CVG,range:10,built:Date.now()+YEARS*1000,...layers});
+  saveMap({v:5,...CVG,range:10,built:Date.now()+YEARS*1000,...layers});
   assert.equal(savedMap(CVG,10),null,'not fresh');
   assert.equal(savedMap(CVG,10,{stale:true})?.range,10,'still shown while a new one is built');
-  saveMap({v:4,...CVG,range:10,built:Date.now()-1000,...layers});
+  saveMap({v:5,...CVG,range:10,built:Date.now()-1000,...layers});
   assert.equal(savedMap(CVG,10)?.range,10,'a real one is fresh');
   // The detail map the same way (saved straight to localStorage).
   const saved=new Map();globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,setItem:(k,v)=>saved.set(k,String(v)),removeItem:k=>saved.delete(k)};
   try{
-    const spec=detailSpec(10),m={v:4,...CVG,key:spec.key,range:spec.range,zoom:spec.zoom,water:[],shore:[],waterways:[],roads:[],landuse:[],parks:[],aero:[],buildings:[],places:[]};
+    const spec=detailSpec(10),m={v:5,...CVG,key:spec.key,range:spec.range,zoom:spec.zoom,water:[],shore:[],waterways:[],roads:[],landuse:[],parks:[],aero:[],buildings:[],places:[]};
     const k=spec.key==='street'?'whatsup.detail.v1':`whatsup.detail.v1.${spec.key==='r10'?'r10':'wide'}`; // mapgen's detailKey
     saved.set(k,JSON.stringify({...m,built:Date.now()+YEARS*1000}));
     assert.equal(savedDetail(CVG,spec),null,'detail map from the future: not fresh');

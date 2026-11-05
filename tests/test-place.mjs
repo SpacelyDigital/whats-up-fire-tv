@@ -181,7 +181,7 @@ test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft'
 // --- Map radius
 import {MAP_RADII,alertFor} from '../web/place.mjs';
 import {niceStep,niceDistance,zoom,range} from '../web/kit.mjs';
-import {zoomFor,savedMap,saveMap,savedDetail,saveDetail,decodeDetail,detailSpec} from '../web/mapgen.mjs';
+import {zoomFor,savedMap,saveMap,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
 test('map radius: saved value must be a step, default 10; alert ring never wider than the map',()=>{
   for(const [saved,want] of [[50,50],[7,10],['250',250],[undefined,10]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({mapMiles:saved}),setItem(){},removeItem(){}};
@@ -205,11 +205,11 @@ test('map radius: one saved map per radius, the current and the one before kept'
   const data=new Map();
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
   const home={latitude:39.05,longitude:-84.65},layers={water:[],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]};
-  for(const range of [10,50,250,2])saveMap({v:4,latitude:39.05,longitude:-84.65,range,built:Date.now(),...layers});
+  for(const range of [10,50,250,2])saveMap({v:5,latitude:39.05,longitude:-84.65,range,built:Date.now(),...layers});
   for(const r of [10,50])assert.equal(savedMap(home,r),null,'older radii dropped');
   for(const r of [250,2])assert.equal(savedMap(home,r)?.range,r);
   // Past 30 days: not used as is, but available as a stand-in while a new one is built.
-  saveMap({v:4,latitude:39.05,longitude:-84.65,range:2,built:Date.now()-31*86400000,...layers});
+  saveMap({v:5,latitude:39.05,longitude:-84.65,range:2,built:Date.now()-31*86400000,...layers});
   assert.equal(savedMap(home,2),null);
   assert.equal(savedMap(home,2,{stale:true})?.range,2);
   assert.equal(savedMap({latitude:40,longitude:-84.65},2),null,'another place');
@@ -219,7 +219,7 @@ test('saved maps: a base map with a damaged layer (not a list, a null or malform
   const data=new Map();
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
   const home={latitude:41.85,longitude:-87.65};
-  const base={v:4,...home,range:10,zoom:10,built:Date.now()-60000,water:[[[-3,-3],[3,-3],[3,3],[-3,-3]]],shore:[[[0,0],[1,1]]],rivers:[],
+  const base={v:5,...home,range:10,zoom:10,built:Date.now()-60000,water:[[[-3,-3],[3,-3],[3,3],[-3,-3]]],shore:[[[0,0],[1,1]]],rivers:[],
     roads:[{c:'motorway',major:true,p:[[-9,0],[9,0]]}],runways:[],airports:[{code:'ORD',iata:'ORD',icao:'KORD',name:'O\'Hare',kind:'international',x:-13,y:9}],
     airfields:[{name:'Lansing',code:'',iata:'',kind:'',x:5,y:-20}],shields:[{ref:'90',x:0,y:1}],places:[{name:'Chicago',c:'city',rank:1,x:0,y:0}]};
   saveMap(base);
@@ -240,7 +240,7 @@ test('saved maps: a street map with a damaged layer (missing, not a list, a feat
   const home={latitude:41.85,longitude:-87.65};
   for(const mi of [2,10,25]){
     const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
-    const detail={v:4,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
+    const detail={v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
       water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'}],landuse:[],parks:[],aero:[],buildings:[],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
     saveDetail(detail);
     assert.ok(decodeDetail(savedDetail(home,spec)).roads[0].p instanceof Int16Array,`${mi} mi: an intact one is used`);
@@ -261,9 +261,9 @@ test('street maps: never more than three are saved (the policy says up to three)
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,removeItem:k=>data.delete(k),
     setItem(k,v){v=String(v);if(used()-(data.has(k)?k.length+data.get(k).length:0)+k.length+v.length>quota)throw new Error('QuotaExceededError');data.set(k,v);}};
   // A street map for a radius, and a base map, each about `size` characters saved.
-  const detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:4,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
+  const detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
     built:Date.now()-60000,water:[],shore:[],waterways:[],roads:[{c:'minor',p:'0,0'+',1,0'.repeat(size/4)}],landuse:[],parks:[],aero:[],buildings:[],places:[]};};
-  const base=(range,size=0)=>({v:4,...home,range,built:Date.now(),water:[Array.from({length:size/8},(_,i)=>[0,i])],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
+  const base=(range,size=0)=>({v:5,...home,range,built:Date.now(),water:[Array.from({length:size/8},(_,i)=>[0,i])],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
   const has=mi=>!!savedDetail(home,detailSpec(mi));
   const SLOTS=['whatsup.detail.v1','whatsup.detail.v1.r10','whatsup.detail.v1.wide'],slots=()=>[...data.keys()].filter(k=>k.startsWith('whatsup.detail')).sort();
   try{
@@ -312,6 +312,32 @@ test('street maps: never more than three are saved (the policy says up to three)
     delete globalThis.localStorage;
     for(const k of ['whatsup.qa.big','whatsup.map.recent','whatsup.map.v2','whatsup.map.v2.r25'])store.remove(k);
   }
+});
+
+test('saved maps: base and street maps saved as format 4 (older builds kept a map whose tiles failed or came back empty: blank, or with holes) are built again; maps built now are used',async()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  try{
+    const {readFileSync}=await import('node:fs');
+    const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+    const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+    const tile=new Uint8Array(readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url)));
+    const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),getBytes:async()=>tile};
+    const home={latitude:39.10,longitude:-84.41},spec=detailSpec(10),MVT={VectorTile,Pbf};
+    const base=await buildMap(home,10,{net,MVT}),detail=await buildDetail(home,{...spec,net,MVT});
+    const blank=m=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Array.isArray(v)?[]:v])),holes=m=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Array.isArray(v)?v.slice(0,v.length>>1):v]));
+    for(const [what,old] of [['blank',blank],['with holes',holes]]){
+      saveMap({...old(base),v:4});
+      assert.equal(savedMap(home,10),null,`a ${what} base map`);
+      assert.equal(savedMap(home,10,{stale:true}),null,`a ${what} base map: not shown while a new one is built either`);
+      saveDetail({...old(detail),v:4});
+      assert.equal(savedDetail(home,spec),null,`a ${what} street map`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`a ${what} street map: not shown while a new one is built either`);
+    }
+    saveMap(base);saveDetail(detail);
+    assert.equal(savedMap(home,10)?.built,base.built,'the base map built now');
+    assert.equal(savedDetail(home,spec)?.built,detail.built,'the street map built now');
+  }finally{delete globalThis.localStorage;}
 });
 test('keep screen awake: off unless turned on (a saved ON is kept)',()=>{
   for(const [saved,want] of [[undefined,false],[true,true],[false,false],['no',false]]){

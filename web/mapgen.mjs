@@ -13,11 +13,11 @@ import {snapped,GRID_PAD_MI,number,dLon as eastOf} from './core.mjs';
 export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
-const KEY='whatsup.map.v2',VERSION=4,MAX_AGE=30*86400000; // v3: airfields, v4: shore
+const KEY='whatsup.map.v2',VERSION=5,MAX_AGE=30*86400000; // v3: airfields, v4: shore, v5: no tile failed or empty (a v4 map can be blank or have holes)
 // Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
 // ahead) counts as old, so it is rebuilt rather than kept for ever.
 const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
-const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=4; // v2: shore, v3: whole-radius reach, v4: inner side streets
+const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=5; // v2: shore, v3: whole-radius reach, v4: inner side streets, v5: as VERSION
 // z10: one tile is ~19 mi wide at 40° latitude, so a 10-mile scope needs 4-9 tiles,
 // and z10 already carries runways and IATA-coded airport labels. Wider map radii use
 // lower zooms (fewer, coarser tiles: 2-9 at any radius); OpenMapTiles drops minor
