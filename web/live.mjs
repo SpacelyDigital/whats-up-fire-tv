@@ -561,13 +561,16 @@ export function startLive(show,config){
     }
   }
   onUpdate(states,false);
-  if(!paused)poll();
+  // The first poll at once, but never within a second of the last adsb.fi request (its 1 request/s),
+  // also when that was the feed before a restart.
+  if(!paused){const wait=outage.lastAsked+1000-performance.now();if(wait>0)timer=setTimeout(poll,wait);else poll();}
   return {stop(){stopped=true;clearTimeout(timer);},
     pause(){paused=true;clearTimeout(timer);hid=Date.now();},
     // Back on screen: the next poll when it is due (at once after a hide longer than the interval;
-    // a back-off kept), never within a second of the last request, nor while one is out (it carries on).
+    // a back-off kept), never within a second of the last request (adsb.fi's before a restart too), nor
+    // while one is out (it carries on).
     // The TV clock times the hide too: a standby may not move performance.now() (one early poll at most
     // if the clock was put forward meanwhile).
     resume(){if(!paused)return;paused=false;clearTimeout(timer);const t=performance.now(),away=Date.now()-hid;
-      if(!busy)timer=setTimeout(poll,Math.max(0,away>config.pollSeconds*1000?0:next-t,asked+1000-t));}};
+      if(!busy)timer=setTimeout(poll,Math.max(0,away>config.pollSeconds*1000?0:next-t,Math.max(asked,outage.lastAsked)+1000-t));}};
 }

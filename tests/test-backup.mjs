@@ -615,6 +615,28 @@ test('restart: within 15 s of an adsb.fi failure a restart keeps its back-off an
   }finally{r.restore();}
 });
 
+// adsb.fi asks for at most 1 request a second: a feed restart waits for it too (the new radius's
+// planes come up to a second later).
+test('restart: adsb.fi is never asked within a second of the last request (a step just after a poll, steps every 0.8 s, a restart shown again at once)',async()=>{
+  const r=fresh();
+  try{
+    let live=r.live();
+    await r.advance(5300);live.stop();live=r.live(); // 0.3 s after the poll at 5 s
+    await r.advance(2000);
+    assert.deepEqual(r.at('fi'),[0,5000,6000]);
+    for(let i=0;i<6;i++){await r.advance(800);live.stop();live=r.live();}
+    await r.advance(3000);
+    assert.ok(gapsOf(r.at('fi')).every(g=>g>=1000),`adsb.fi gaps: ${gapsOf(r.at('fi'))}`);
+    assert.ok(r.at('fi').length>=8,'each step still asks for its radius');
+    // Restarted just before Home, shown again 0.2 s later.
+    const t=r.t;await r.advance(5000-t%5000);live.stop();live=r.live({...CFG,paused:true}); // the poll just went
+    await r.advance(200);live.resume();await r.advance(2000);
+    const fi=r.at('fi',t);
+    assert.ok(gapsOf(fi).every(g=>g>=1000),`shown again: ${gapsOf(fi)}`);
+    live.stop();
+  }finally{r.restore();}
+});
+
 // Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
 function withStorage(saved,full=false){
   const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
