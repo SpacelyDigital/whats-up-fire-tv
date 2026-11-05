@@ -681,7 +681,9 @@ async function runSearch(explicit=false){
   const msg=(text,cls='msg')=>Object.assign(document.createElement('div'),{className:cls,textContent:text});
   const retry=()=>{const b=document.createElement('button');b.dataset.focus='';b.id='search-retry';b.className='retry';b.textContent='Try again';return b;};
   if(q.length<2){
+    const ip=$('ip-retry'); // the IP lookup's Try again (first run offline) stays under the message: the help line names it
     if(explicit)show(msg('Type a ZIP or postal code, a city, or a street address first.'));else show();
+    if(ip)box.append(ip);
     return;
   }
   const address=looksLikeAddress(q);

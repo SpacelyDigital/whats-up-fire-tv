@@ -486,3 +486,20 @@ test('first run with no network (nothing answered the IP lookup): the search scr
   t=fresh();await t.answer(t.p.findHome(),{place:null,offline:false});
   assert.deepEqual(t.seen,[['search',NO_PLACE]]);assert.deepEqual(t.shown(),[]);
 });
+
+test('search screen, first run offline: Search with fewer than 2 characters typed keeps the IP lookup\'s Try again under its message (the help line still names it); a search that answers replaces it',async()=>{
+  const el=(props={})=>({...props,dataset:{},kids:[],append(...xs){this.kids.push(...xs);},replaceChildren(...xs){this.kids=xs;},querySelectorAll:()=>[]});
+  const results=el({id:'results'}),ip=el({id:'ip-retry',textContent:'Try again'});results.kids=[ip];
+  const shown=()=>results.kids.map(k=>k.id||k.textContent||k.tag);
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),fn('runSearch')],{layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
+    $:id=>id==='results'?results:id==='ip-retry'?(results.kids.includes(ip)?ip:null):id==='keys'?{querySelector:()=>({})}:el({id}),
+    document:{createElement:tag=>el({tag})},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
+    searchPlaces:async()=>[{name:'Denver',admin:'Colorado',country:'United States',source:'search'}],searchAddress:async()=>[],placeLabel:pl=>pl.name});
+  const search=async typed=>{vm.runInContext(`entry=${JSON.stringify(typed)}`,p);await p.runSearch(true);return shown();};
+  const FIRST='Type a ZIP or postal code, a city, or a street address first.';
+  assert.deepEqual(await search(''),[FIRST,'ip-retry'],'nothing typed');
+  assert.deepEqual(await search('D'),[FIRST,'ip-retry'],'one character');
+  assert.deepEqual(await search('DENVER'),['button'],'a search that answers: its results alone');
+  assert.equal(results.kids[0]._place?.name,'Denver');
+  assert.deepEqual(await search(''),[FIRST],'later (no IP lookup to try again): the message alone');
+});
