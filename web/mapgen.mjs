@@ -8,7 +8,7 @@
 //   rail, waterways, landuse, parks, aeroways and place names. Built only when a
 //   layout asks for it (Atlas, Glass, Blueprint, ...).
 import {getJson,getBytes,store} from './live.mjs';
-import {snapped,GRID_PAD_MI} from './core.mjs';
+import {snapped,GRID_PAD_MI,number} from './core.mjs';
 
 export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
@@ -243,10 +243,16 @@ export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis
 const keyFor=range=>range===10?KEY:`${KEY}.r${range}`;
 const RECENT_KEY='whatsup.map.recent',KEEP_MAPS=2;
 const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[];}; // a damaged value counts as none
+// Every layer as buildMap writes it: lines and rings of [x,y], roads {c,p}, labels with text and x/y.
+// A damaged one (storage) is dropped and the map built again: the layouts' drawing threw on it for 30 days.
+const line=l=>Array.isArray(l)&&l.every(p=>Array.isArray(p)&&number(p[0])&&number(p[1]));
+const label=k=>f=>typeof f?.[k]==='string'&&number(f.x)&&number(f.y);
+const LAYERS={water:line,shore:line,rivers:line,runways:line,roads:f=>line(f?.p),airports:label('code'),airfields:label('name'),shields:label('ref'),places:label('name')};
 export function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
     Math.abs(m.longitude-home.longitude)<.01&&(stale||freshMap(m));
+  if(same&&!Object.entries(LAYERS).every(([k,ok])=>Array.isArray(m[k])&&m[k].every(ok))){store.remove(keyFor(range));return null;}
   return same?m:null;
 }
 export function saveMap(m){

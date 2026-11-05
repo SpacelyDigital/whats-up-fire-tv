@@ -138,15 +138,34 @@ test('map radius: view zoom, round ring/scale steps, tile zoom per radius',()=>{
 test('map radius: one saved map per radius, the current and the one before kept',()=>{
   const data=new Map();
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
-  const home={latitude:39.05,longitude:-84.65};
-  for(const range of [10,50,250,2])saveMap({v:4,latitude:39.05,longitude:-84.65,range,built:Date.now()});
+  const home={latitude:39.05,longitude:-84.65},layers={water:[],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]};
+  for(const range of [10,50,250,2])saveMap({v:4,latitude:39.05,longitude:-84.65,range,built:Date.now(),...layers});
   for(const r of [10,50])assert.equal(savedMap(home,r),null,'older radii dropped');
   for(const r of [250,2])assert.equal(savedMap(home,r)?.range,r);
   // Past 30 days: not used as is, but available as a stand-in while a new one is built.
-  saveMap({v:4,latitude:39.05,longitude:-84.65,range:2,built:Date.now()-31*86400000});
+  saveMap({v:4,latitude:39.05,longitude:-84.65,range:2,built:Date.now()-31*86400000,...layers});
   assert.equal(savedMap(home,2),null);
   assert.equal(savedMap(home,2,{stale:true})?.range,2);
   assert.equal(savedMap({latitude:40,longitude:-84.65},2),null,'another place');
+  delete globalThis.localStorage;
+});
+test('saved maps: a base map with a damaged layer (not a list, a null or malformed feature) is dropped, so it is built again',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  const base={v:4,...home,range:10,zoom:10,built:Date.now()-60000,water:[[[-3,-3],[3,-3],[3,3],[-3,-3]]],shore:[[[0,0],[1,1]]],rivers:[],
+    roads:[{c:'motorway',major:true,p:[[-9,0],[9,0]]}],runways:[],airports:[{code:'ORD',iata:'ORD',icao:'KORD',name:'O\'Hare',kind:'international',x:-13,y:9}],
+    airfields:[{name:'Lansing',code:'',iata:'',kind:'',x:5,y:-20}],shields:[{ref:'90',x:0,y:1}],places:[{name:'Chicago',c:'city',rank:1,x:0,y:0}]};
+  saveMap(base);
+  assert.equal(savedMap(home,10)?.range,10,'an intact map is used');
+  for(const [what,patch] of [['airports as an object',{airports:{ORD:1}}],['places as text',{places:'Chicago'}],['a null road',{roads:[null,...base.roads]}],
+    ['shields as an object',{shields:{}}],['no water layer',{water:undefined}],['a road with no line',{roads:[{c:'motorway',p:5}]}],['a null point',{rivers:[[[0,0],null]]}],
+    ['a place with no name',{places:[{c:'city',x:0,y:0}]}],['an airport off the map',{airports:[{code:'ORD',x:'west',y:9}]}]]){
+    saveMap({...base,...patch});
+    assert.equal(savedMap(home,10),null,what);
+    assert.equal(savedMap(home,10,{stale:true}),null,`${what}: not shown while a new one is built either`);
+    assert.equal(data.get('whatsup.map.v2'),undefined,`${what}: discarded`);
+  }
   delete globalThis.localStorage;
 });
 test('keep screen awake: off unless turned on (a saved ON is kept)',()=>{
