@@ -244,3 +244,23 @@ test('an outage: with no model for minutes the dashboard is drawn again at each 
   p.render({live:true,fresh:true,now:t,source:''});run(300000);assert.equal(drawn.length,6,'a fresh model: no minute draws (polls draw it)');assert.equal(timers.size,0);
   p.render({live:false,fresh:true,now:t,source:''});run(120000);assert.equal(drawn.length,7,'nor in the demo');
 });
+
+test('screen reader: closing the last screen reads the plane now on the card at once (an emergency begun behind Settings too); closing onto another screen, or the next poll, reads nothing more',()=>{
+  const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
+  const screen=id=>({id,hidden:false,style:{}});
+  const p=page([line('let spoken='),fn('announce'),fn('draw'),fn('close')],{layer:null,layers:[],adj:null,lastModel:null,settings:{place:{}},active:{mod:{render(){}}},
+    shown:m=>m,paintEdge(){},root:{querySelectorAll:()=>[]},fitLine(){},$:id=>id==='sr-live'?sr:null,fmt:{dist:d=>`${d} mi`},
+    endPick(){},showSettings(){},refitSettings(){},setFocus(){},focusables:()=>[],syncApp(){}});
+  const model=hero=>{p.lastModel={hero};p.draw(p.lastModel);};
+  const JIA={hex:'a1b2c3',status:'Approaching',flight:'JIA5646',type:'Bombardier CRJ900',ground:32.2},
+    DAL={hex:'c0ffee',status:'Emergency',emergency:'EMERGENCY',flight:'DAL911',type:'Airbus A321',ground:4.1};
+  model(JIA);assert.equal(sr.textContent,'Approaching, JIA5646, Bombardier CRJ900, 32.2 mi');
+  p.layer=screen('settings');model(DAL);
+  assert.equal(writes.length,1,'nothing read over a screen');
+  p.layers.push(p.layer);p.layer=screen('about');p.close();
+  assert.equal(p.layer.id,'settings');assert.equal(writes.length,1,'closing onto Settings reads nothing');
+  p.close();
+  assert.equal(p.layer,null);assert.equal(sr.textContent,'Emergency, DAL911, Airbus A321, 4.1 mi','read on closing, not at the next poll');
+  model(DAL);assert.equal(writes.length,2,'the next poll reads nothing more');
+  p.layer=screen('settings');p.lastModel=null;p.close();assert.equal(writes.length,2,'no model yet: nothing to read');
+});

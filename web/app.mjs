@@ -410,7 +410,7 @@ function close(){
   if(layer){
     if(layer.id==='settings'){showSettings();refitSettings();} // the layout (and its font) may have changed
     {const last=layer._last;setFocus(last&&layer.contains(last)&&last.offsetParent?last:focusables()[0]);}
-  }else setFocus(null);
+  }else{setFocus(null);if(lastModel)draw(lastModel);} // back on the dashboard: the card's plane is read now, not at the next poll
   syncApp();
 }
 // Settings values and the tip lines fit their rows in the active layout's font; again when
