@@ -59,12 +59,16 @@ test('choosing a place: a move of a few hundred metres across the date line keep
   assert.ok(Math.abs(cx+.515)<.001,`away from the date line as before: ${cx}`);
 });
 
-test('Adjust position: its street map is built once per place (within ~1 km, as the saved maps) and kept for 30 days, so opening it again sends OpenFreeMap nothing',async()=>{
+// Adjust position from `let adj=null;` to the end of startAdjust, and nudge; drawing is a stub.
+async function adjustPage(globals){
   const {dLon}=await import('../web/core.mjs');
   const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)?.[0];assert.ok(region,'startAdjust in app.mjs');
+  return page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('nudge')],{dLon,performance:{now:()=>0},layers:[],closeAll(){},makeCanvas:()=>({}),
+    $:()=>({replaceChildren(){}}),stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},...globals});
+}
+test('Adjust position: its street map is built once per place (within ~1 km, as the saved maps) and kept for 30 days, so opening it again sends OpenFreeMap nothing',async()=>{
   const builds=[];let fail=false,now=0;
-  const p=page([line('const ADJ_RANGE='),region],{dLon,performance:{now:()=>now},layers:[],closeAll(){},makeCanvas:()=>({}),$:()=>({replaceChildren(){}}),
-    stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},
+  const p=await adjustPage({performance:{now:()=>now},
     buildMap:async(place,range,o)=>{builds.push({range,...o});await new Promise(r=>setTimeout(r,5));if(fail)throw new Error('map tile unavailable');return {latitude:place.latitude,longitude:place.longitude,n:builds.length};}});
   const back=()=>vm.runInContext('adj=null',p);
   const open=async place=>{back();await p.startAdjust(place);return {map:vm.runInContext('adj',p)?.map,note:p.texts['adjust-note']};};
@@ -90,4 +94,21 @@ test('Adjust position: its street map is built once per place (within ~1 km, as 
   const den=await open(DEN);assert.equal(builds.length,7);assert.ok(den.map&&den.note==='');
   now+=29*864e5;assert.equal((await open(DEN)).map,den.map);now+=2*864e5;await open(DEN);
   assert.equal(builds.length,8,'after 30 days: built again');
+});
+
+test('Adjust position: at the 800 m limit the note says so, also while the street map loads or after it failed; back inside, the map\'s own note returns',async()=>{
+  let build;
+  const p=await adjustPage({buildMap:()=>new Promise((res,rej)=>{build={res,rej};})});
+  const LIMIT='As far as fine-tuning goes. To move farther, change Location.',note=()=>p.texts['adjust-note'];
+  const toLimit=()=>{for(let i=0;i<30;i++)p.nudge('right',i>0);};
+  for(const [tag,lat,end,after] of [['failed',30,b=>b.rej(new Error('map tile unavailable')),'Street map unavailable'],['loaded',35,b=>b.res({latitude:35,longitude:-90}),'']]){
+    vm.runInContext('adj=null',p);const opened=p.startAdjust({latitude:lat,longitude:-90});
+    assert.equal(note(),'Loading street map',tag);
+    toLimit();assert.equal(note(),LIMIT,`${tag}: at the limit while it loads`);
+    p.nudge('left');assert.equal(note(),'Loading street map',`${tag}: back inside while it loads`);
+    end(build);await opened;assert.equal(note(),after,tag);
+    p.nudge('up');assert.equal(note(),after,`${tag}: inside`);
+    toLimit();assert.equal(note(),LIMIT,`${tag}: at the limit`);
+    p.nudge('left');assert.equal(note(),after,`${tag}: back inside`);
+  }
 });

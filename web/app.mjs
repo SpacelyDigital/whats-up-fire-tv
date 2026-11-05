@@ -775,15 +775,16 @@ async function startAdjust(place,{from=''}={}){
   if(!place)return;
   const under=from==='confirm'?layers.map(l=>[l,l._last]):[];
   closeAll();
-  adj={place,from,under,latitude:place.latitude,longitude:place.longitude,map:null,held:0,canvas:makeCanvas(540,540)};
+  // note: the street map's own (loading, unavailable), shown again when the dot comes back inside the limit.
+  adj={place,from,under,latitude:place.latitude,longitude:place.longitude,map:null,note:'Loading street map',held:0,canvas:makeCanvas(540,540)};
   $('adjust-map').replaceChildren(adj.canvas);
   stage.classList.add('adjusting');
   drawAdjust();syncApp();
-  setText('adjust-note','Loading street map');
+  setText('adjust-note',adj.note);
   try{
     const m=await adjStreets(place);
-    if(adj?.place===place){adj.map=m;setText('adjust-note','');drawAdjust();}
-  }catch(e){console.error('adjust map',e?.message||e);if(adj)setText('adjust-note','Street map unavailable');}
+    if(adj?.place===place){adj.map=m;setText('adjust-note',adj.note='');drawAdjust();}
+  }catch(e){console.error('adjust map',e?.message||e);if(adj?.place===place)setText('adjust-note',adj.note='Street map unavailable');}
 }
 function drawAdjust(){
   const c={latitude:adj.latitude,longitude:adj.longitude},ppm=AR/ADJ_RANGE;
@@ -813,7 +814,7 @@ function nudge(dir,held){
   const d=Math.hypot(dx,dy),limit=d>ADJ_MAX_M;
   if(limit){dx*=ADJ_MAX_M/d;dy*=ADJ_MAX_M/d;}
   adj.latitude=adj.place.latitude+dy/111320;adj.longitude=adj.place.longitude+dx/(111320*cos);
-  if(adj.map)setText('adjust-note',limit?'As far as fine-tuning goes. To move farther, change Location.':'');
+  setText('adjust-note',limit?'As far as fine-tuning goes. To move farther, change Location.':adj.note);
   drawAdjust();
 }
 function endAdjust(save=false){
