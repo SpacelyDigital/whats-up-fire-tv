@@ -229,16 +229,18 @@ function announce(m){
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
 // The outage line counts down between polls: once a second only its text is rewritten (the layout
-// isn't drawn again), until it reads "Reconnecting." or the next model comes.
+// isn't drawn again), until it reads "Reconnecting." or the next model comes. Not while hidden (the
+// per-second work stops with the polls); back on screen it reads the time left at once.
 let waitTimer=0;
 function countDown(){
   clearInterval(waitTimer);
-  if(!lastModel.live||lastModel.fresh||!lastModel.retryAt||lastModel.retryIn<5)return;
-  waitTimer=setInterval(()=>{
+  if(!onScreen||!lastModel?.live||lastModel.fresh||!lastModel.retryAt||lastModel.retryIn<5)return;
+  const tick=()=>{
     const was=quietText(lastModel,false);lastModel={...lastModel,retryIn:retryIn(lastModel.retryAt)};
     swapText(root,was,quietText(lastModel,false));
     if(lastModel.retryIn<5)clearInterval(waitTimer);
-  },1000);
+  };
+  waitTimer=setInterval(tick,1000);tick();
 }
 // During an outage a model comes only with a poll, minutes apart: at each minute the feed runs its model
 // again (model.mjs tick: the clock, the date, the day's tallies and the countdown move on together, drawn
@@ -996,7 +998,7 @@ function eraseAll(){
 
 // The app tells the page when it leaves or returns to the screen: polling pauses meanwhile, and a search
 // still waiting for the typing to pause is not sent.
-window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();clearTimeout(searchTimer);}keepTime();};
+window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();clearTimeout(searchTimer);}countDown();keepTime();};
 addEventListener('pagehide',()=>flushLog());
 
 // --- Boot

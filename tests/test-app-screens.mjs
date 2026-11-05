@@ -283,26 +283,34 @@ test('launch: a saved place with a null, empty, blank or false coordinate can\'t
   }finally{delete globalThis.localStorage;}
 });
 
-test('an outage: with no model for minutes the dashboard is drawn again at each minute through the feed\'s tick (its clock, date and tallies move on), not while hidden, and at once when shown again',()=>{
-  let t=Date.parse('2026-11-06T05:59:35Z'),ticks=0;const timers=new Set(),drawn=[];
+test('an outage: with no model for minutes the dashboard is drawn again at each minute through the feed\'s tick (its clock, date and tallies move on) and the outage line counts down each second; neither while hidden, both at once when shown again',async()=>{
+  const {quietText}=await import('../web/kit.mjs');
+  let t=Date.parse('2026-11-06T05:59:35Z'),ticks=0;const timers=new Set(),drawn=[],swaps=[];
   // The feed's tick() (model.mjs) runs the model again: the time, the day's tallies and the countdown move on together.
   const feed={resume(){},pause(){},tick(){ticks++;p.render({...p.lastModel,now:t});}};
-  const p=page([line('let clockTimer='),fn('keepTime'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,searchTimer:null,Date:{now:()=>t},
+  const p=page([line('let clockTimer='),fn('keepTime'),line('let waitTimer='),fn('countDown'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,searchTimer:null,Date:{now:()=>t},
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);},
-    draw:m=>drawn.push(m.now),listen(){},countDown(){},credited:'',sourceFlashAt:0,SOURCE_FLASH_MS:0,flashCredits(){},performance:{now:()=>0},
+    setInterval:(fn,ms)=>{const h={fn,at:t+ms,every:ms};timers.add(h);return h;},clearInterval:h=>{timers.delete(h);},
+    draw:m=>drawn.push(m.now),listen(){},credited:'',sourceFlashAt:0,SOURCE_FLASH_MS:0,flashCredits(){},performance:{now:()=>0},
+    quietText,retryIn:at=>at?Math.max(0,Math.round((at-t)/1000)):0,swapText:(root,was,now)=>{if(was!==now)swaps.push(now);},root:{},
     feed,flushLog(){}});
-  const run=ms=>{const end=t+ms;for(let h;(h=[...timers].sort((a,b)=>a.at-b.at)[0])&&h.at<=end;){timers.delete(h);t=h.at;h.fn();}t=end;};
-  const at=(ms)=>new Date(ms).toISOString().slice(11,19);
-  p.render({live:true,fresh:false,now:t,source:''}); // 23:59:35 Chicago: "No live data", the next poll 5 min away
-  assert.deepEqual(drawn.map(at),['05:59:35'],'drawn once as it came');
+  const run=ms=>{const end=t+ms;for(let h;(h=[...timers].sort((a,b)=>a.at-b.at)[0])&&h.at<=end;){t=h.at;if(h.every)h.at+=h.every;else timers.delete(h);h.fn();}t=end;};
+  const at=(ms)=>new Date(ms).toISOString().slice(11,19),counting=()=>[...timers].filter(h=>h.every).length,said=()=>swaps.at(-1);
+  const retryAt=t+300000; // the next poll 5 min away
+  p.render({live:true,fresh:false,now:t,retryAt,retryIn:300,source:''}); // 23:59:35 Chicago: "No live data right now. Reconnecting in 5 min."
+  assert.deepEqual(drawn.map(at),['05:59:35'],'drawn once as it came');assert.equal(counting(),1,'the line counts down');
   run(25100);assert.deepEqual(drawn.map(at),['05:59:35','06:00:00'],'again just after the minute');
-  assert.equal(ticks,1,'the model asked of the feed again, not a copy with the new time');assert.equal(timers.size,1,'one timer');
+  assert.equal(ticks,1,'the model asked of the feed again, not a copy with the new time');assert.equal(timers.size,2,'the minute timer and the countdown');
   assert.equal(vm.runInContext('lastModel.now',p),drawn.at(-1),'the model kept is the one drawn (a layout switch draws that time)');
   run(60000);assert.equal(drawn.length,3,'and each minute after');assert.equal(at(drawn.at(-1)),'06:01:00');
-  p.window.__whatsupActive(false);run(150000);assert.equal(drawn.length,3,'not while hidden');assert.equal(timers.size,0);
+  assert.equal(said(),'No live data right now. Reconnecting in 4 min.','the line counted on (its text swapped, no draw)');
+  p.window.__whatsupActive(false);assert.equal(counting(),0,'hidden: the countdown stops with the minute timer');assert.equal(timers.size,0);
+  const hid=swaps.length;run(150000);assert.equal(drawn.length,3,'not while hidden');assert.equal(swaps.length,hid,'nor is the line rewritten');
   p.window.__whatsupActive(true);assert.equal(drawn.length,4,'at once back on screen');assert.equal(at(drawn.at(-1)),'06:03:30');
-  p.window.__whatsupActive(true);assert.equal(drawn.length,4,'not twice in a minute');
-  run(30000);assert.equal(at(drawn.at(-1)),'06:04:00');
+  assert.equal(said(),'No live data right now. Reconnecting in 65 s.','the line reads the time left at once');assert.equal(counting(),1,'and counts on');
+  p.window.__whatsupActive(true);assert.equal(drawn.length,4,'not twice in a minute');assert.equal(counting(),1,'one countdown');
+  run(30000);assert.equal(at(drawn.at(-1)),'06:04:00');assert.equal(said(),'No live data right now. Reconnecting in 35 s.');
+  run(31000);assert.equal(said(),'No live data right now. Reconnecting.','under 5 s the line settles');assert.equal(counting(),0,'and the countdown ends');
   p.render({live:true,fresh:true,now:t,source:''});run(300000);assert.equal(drawn.length,6,'a fresh model: no minute draws (polls draw it)');assert.equal(timers.size,0);
   p.render({live:false,fresh:true,now:t,source:''});run(120000);assert.equal(drawn.length,7,'nor in the demo');
   assert.equal(ticks,4,'every minute draw came through the feed');
@@ -377,7 +385,7 @@ test('a search typed and then left within 0.8 s (Back, a result picked, Home) is
     {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:el,document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
       focusables:()=>[],syncApp(){},showSettings(){},refitSettings(){},endPick(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,
       PROFILE:{},placeLabel:()=>'',searchPlaces:async q=>{asked.push(q);return [];},searchAddress:async()=>[],lastQuery:'',settings:{place:{}},layer:null,layers:[],
-      window:{},feed:null,flushLog(){},keepTime(){},onScreen:true});
+      window:{},feed:null,flushLog(){},countDown(){},keepTime(){},onScreen:true});
   const screen=id=>({id,hidden:false,style:{},contains:()=>false});
   const typed=async(leave,stack=['settings','locate'])=>{
     timers.clear();asked.length=0;vm.runInContext('entry=""',p);p.layers=stack.slice(0,-1).map(screen);p.layer=screen(stack.at(-1));
