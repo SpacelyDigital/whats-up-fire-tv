@@ -345,7 +345,7 @@ test('Settings: a Map radius step kept with OK, then another row\'s edit cancell
     applyPlace:()=>calls.push('apply'),restartFeed:()=>calls.push('feed'),
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);}});
   const run=ms=>{const end=t+ms;for(let h;(h=[...timers].sort((a,b)=>a.at-b.at)[0])&&h.at<=end;){timers.delete(h);t=h.at;h.fn();}t=end;};
-  const row=id=>({id,dataset:{edit:'',adjust:''},classList:{add(){},remove(){}}}),MAP=row('set-map'),PLACES=row('set-places');
+  const row=id=>({id,dataset:{edit:'',adjust:''},classList:{add(){},remove(){}},getAttribute:()=>id,querySelector:()=>null}),MAP=row('set-map'),PLACES=row('set-places');
   const key=k=>p.editKey({key:k,preventDefault(){}}),done=()=>{run(3000);const c=calls.join();calls.length=0;return c;};
   // Map radius OK, Right (10 -> 15), OK, Down, OK (Place names), Right, Back: five presses in 0.5 s.
   p.select(MAP);key('ArrowRight');run(100);key('Enter');run(100);p.select(PLACES);run(100);key('ArrowRight');run(100);key('Escape');
@@ -496,7 +496,7 @@ test('first run with no network (nothing answered the IP lookup): the search scr
 });
 
 test('search screen, first run offline: Search with fewer than 2 characters typed keeps the IP lookup\'s Try again under its message (the help line still names it); a search that answers replaces it',async()=>{
-  const el=(props={})=>({...props,dataset:{},kids:[],append(...xs){this.kids.push(...xs);},replaceChildren(...xs){this.kids=xs;},querySelectorAll:()=>[]});
+  const el=(props={})=>({className:'',...props,dataset:{},kids:[],append(...xs){this.kids.push(...xs);},replaceChildren(...xs){this.kids=xs;},querySelectorAll:()=>[]});
   const results=el({id:'results'}),ip=el({id:'ip-retry',textContent:'Try again'});results.kids=[ip];
   const shown=()=>results.kids.map(k=>k.id||k.textContent||k.tag);
   const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),fn('runSearch')],{layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
@@ -642,9 +642,10 @@ test('screen reader: the search screen reads its status once as it changes: "Sea
   assert.deepEqual(await search('QZXWV',true),['Searching for “QZXWV”','No places match “QZXWV”. Check the spelling, or try a ZIP or postal code.']);
   assert.deepEqual(await search('DOWN',true),['Searching for “DOWN”','Search is unavailable. Check the connection.']);
   assert.deepEqual(await search('X',true),['Type a ZIP or postal code, a city, or a street address first.']);
-  p.layers=[p.layer];p.layer={id:'confirm'};
-  assert.deepEqual(await search('CHI'),[],'landed under the confirm card: drawn, not read');
+  const landing=search('CHI');p.layers=[p.layer];p.layer={id:'confirm'}; // the card comes over it before the reply lands
+  assert.deepEqual(await landing,[],'landed under the confirm card: drawn, not read');
   assert.equal(box.children.length,3);
+  assert.deepEqual(await search('DEN'),[],'typed under the card: not sent, nothing drawn or read');assert.equal(box.children.length,3);
 });
 
 test('screen reader: Adjust position puts focus on its panel (named, its instructions the description), reads a move once the presses stop, one line for a held arrow, nothing after Back; its notes are a live region',async()=>{
@@ -656,7 +657,7 @@ test('screen reader: Adjust position puts focus on its panel (named, its instruc
   const {dLon}=await import('../web/core.mjs');
   const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)[0];
   const texts={},writes=[],timers=[],focused=[];
-  const p=page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('drawAdjust'),line('let adjSay='),fn('nudge'),fn('endAdjust')],{dLon,performance:{now:()=>0},layers:[],closeAll(){},makeCanvas:()=>({}),
+  const p=page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('drawAdjust'),line('let adjSay='),fn('nudge'),fn('endAdjust')],{dLon,performance:{now:()=>0},layers:[],layer:null,focused:null,closeAll(){},makeCanvas:()=>({}),
     $:id=>({replaceChildren(){},focus(){focused.push(id);},get textContent(){return texts[id]??'';}}),stage:{classList:{add(){},remove(){}}},syncApp(){},buildMap:async()=>({}),
     adjMap:()=>[],paintMap(){},maps:{},svg:()=>({}),compass:()=>'E',placeLabel:()=>'',lastModel:null,settings:{},choosePlace(){},
     setText:(id,v)=>{texts[id]=String(v??'');if(id==='sr-live')writes.push(texts[id]);},setTimeout:(f,ms)=>{const h={f,ms};timers.push(h);return h;},clearTimeout:h=>{const i=timers.indexOf(h);if(i>=0)timers.splice(i,1);}});
