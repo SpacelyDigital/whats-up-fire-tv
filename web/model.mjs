@@ -3,7 +3,7 @@
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
 // a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
 // &still=1: the planes hold where they start, for checks that step through them in order).
-import {IDS,airspace,recentSightings,number,inZone,ABOVE_MI} from './core.mjs';
+import {IDS,airspace,recentSightings,number,inZone,ABOVE_MI,designator} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
 import {startLive,haversine,store} from './live.mjs';
 import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
@@ -164,7 +164,7 @@ export function updateLog(log,planes,now){
 export function pickRarest(log,radius){
   let best=null;
   for(const p of Object.values(log?.planes||{})){
-    if(!p.t||p.d>radius)continue;
+    if(!p.t||p.d>radius||designator(p.t)!==p.t)continue; // a saved "b738" or ZZZZ is never tallied: it won with 0
     const n=log.typesAll[p.t]||0;
     if(!best||n<best.count)best={code:p.t,name:typeName(p.t),count:n};
   }

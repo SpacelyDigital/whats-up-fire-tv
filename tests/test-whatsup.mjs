@@ -334,3 +334,24 @@ test('ledger: a saved route, lookup or sighting row whose value is missing or no
   assert.deepEqual(r.get({hex:'a10101',callsign:'UAL202',registration:'N1101',position_timestamp:now},now*1000),good);
   assert.equal(r.get({hex:'a10101',callsign:'UAL202',registration:'N1101',last_seen:now},now*1000),good,'a recent sighting too');
 });
+test('type codes: a designator is read in capitals; ZZZZ ("none assigned") or anything not shaped like one is no type, never shown or Rarest',async()=>{
+  const {airspace,recentSightings,IDS}=await import('../web/core.mjs');
+  const {pickRarest,updateLog}=await import('../web/model.mjs');
+  const now=1700000000,ts=['b738','ZZZZ','zzzz','</section>','B738 ','B7378','A','A20N'];
+  const states={[IDS.feed]:{state:String(now),attributes:{ac:ts.map((t,i)=>({hex:'abc12'+i,t,lat:39.06,lon:-84.65,alt_baro:5000,seen_pos:0}))}},
+    [IDS.home]:{attributes:{latitude:39.05,longitude:-84.65}},[IDS.radius]:{state:'3'},
+    [IDS.candidate]:{attributes:{history:ts.map((t,i)=>({hex:'def12'+i,aircraft_type:t,last_seen:now-60*(i+1)}))}}};
+  const all=airspace(states,now*1000,true).all.sort((a,b)=>a.hex.localeCompare(b.hex));
+  assert.deepEqual(all.map(a=>a.aircraft_type),['B738','','','','B738','','','A20N']);
+  assert.deepEqual(recentSightings(states,[],now*1000).map(a=>a.aircraft_type),['B738','','','','B738'],'recently above (the newest 5)');
+  const day=new Date(now*1000).toLocaleDateString('en-CA',{timeZone:'UTC'});
+  const log=updateLog({day,seen:[],highest:null,fastest:null,typesToday:[],typesAll:{B738:4,A20N:9},cargo:{night:null,seen:{}}},all,now*1000);
+  assert.deepEqual(Object.values(log.planes).map(p=>p.t).filter(Boolean),['B738','B738','A20N']);
+  assert.deepEqual(log.typesAll,{B738:6,A20N:10});
+  assert.equal(pickRarest(log,15).code,'B738');
+  // A saved log with an untallied code (an older build, or a type first seen later) doesn't win with 0.
+  log.planes.xabc999={d:1,t:'b738'};log.planes.xabc998={d:1,t:'ZZZZ'};log.planes.xabc997={d:1,t:'constructor'};
+  assert.equal(pickRarest(log,15).code,'B738');
+  log.planes.xabc996={d:1,t:'A124'};
+  assert.deepEqual(pickRarest(log,15),{code:'A124',name:'Antonov An-124 Ruslan',count:0},'a designator no longer tallied (past the 600 kept) is still the rarest');
+});

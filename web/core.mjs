@@ -48,6 +48,8 @@ export function mapGeometry(home,radius,width,height) {
 
 const clean = v => typeof v==='string' ? v.replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF]/g,'').trim().slice(0,24) : '';
 export const flightLabel = a => clean(a.callsign)||clean(a.registration)||clean(a.hex).toUpperCase();
+// A type designator (2-4 of A-Z, 0-9), in capitals; ZZZZ ("none assigned") or anything else is no type.
+export const designator = v => {const t=clean(v).toUpperCase();return /^[A-Z0-9]{2,4}$/.test(t)&&t!=='ZZZZ'?t:'';};
 // Airline callsigns read as published flight numbers ("UAL0696" -> "UA 696");
 // registrations, charter and military callsigns stay as broadcast.
 export function flightNumber(callsign,designators) {
@@ -100,7 +102,7 @@ export function airspace(states,now,connected) {
       !coordinates(a.lat,a.lon)||!number(a.alt_baro)||a.alt_baro>60000||a.alt_baro<-1500||!number(a.seen_pos)||a.seen_pos<0||
       age+a.seen_pos<0||age+a.seen_pos>20)continue;
     const record={hex:a.hex.toLowerCase(),callsign:clean(a.flight).slice(0,10),registration:clean(a.r).slice(0,12), // real ones are 8 and ~10
-      aircraft_type:clean(a.t),category:clean(a.category),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,
+      aircraft_type:designator(a.t),category:clean(a.category),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,
       // Impossible readings are no reading.
       speed_kt:number(a.gs)&&a.gs>=0&&a.gs<=1500?a.gs:null,heading:number(a.track)?((a.track%360)+360)%360:null,
       position_timestamp:stamp-a.seen_pos};
@@ -121,7 +123,7 @@ export function recentSightings(states,inside,now) {
       !number(a.last_seen)||a.last_seen<=0||a.last_seen>now/1000+5)continue;
     const h=a.hex.toLowerCase();
     if(!unique.has(h)||unique.get(h).last_seen<a.last_seen)unique.set(h,{...a,hex:h,
-      callsign:clean(a.callsign),registration:clean(a.registration)});
+      callsign:clean(a.callsign),registration:clean(a.registration),aircraft_type:designator(a.aircraft_type)});
   }
   return [...unique.values()].sort((a,b)=>b.last_seen-a.last_seen||a.hex.localeCompare(b.hex)).slice(0,5);
 }
