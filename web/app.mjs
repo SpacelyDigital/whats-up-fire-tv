@@ -265,13 +265,14 @@ function stepPlanes(dir){
 function endBrowse(){if(!browse)return;browse=null;clearTimeout(browseTimer);syncApp();redraw();}
 // Restart only the aircraft feed (alert zone or alert radius changed): the maps stay as
 // they are. Re-reading and re-decoding the saved maps blocked the stick for seconds.
+// A restarted feed (here or in applyPlace) goes on from the old one's last picture (model.mjs).
 function restartFeed(){
   if(!settings.place)return;
-  feed?.stop();feed=null;chime=null;
-  feed=start(settings.place,feedConfig(),render,maps.base?.airports);
+  const was=feed;feed?.stop();feed=null;chime=null;
+  feed=start(settings.place,feedConfig(),render,maps.base?.airports,was);
 }
 async function applyPlace(place,{fresh=false}={}){
-  const token=++placeToken;chime=null;baseNote=''; // a new feed starts quiet; the map's note is this build's
+  const token=++placeToken,was=feed;chime=null;baseNote=''; // a new feed starts quiet; the map's note is this build's
   feed?.stop();feed=null;
   if(fresh){store.remove(HISTORY_KEY);resetLog();}
   const range=mapMiles();
@@ -284,7 +285,7 @@ async function applyPlace(place,{fresh=false}={}){
   if(!keepDetail){maps.detail=null;detailToken++;detailBusy=false;clearTimeout(detailRetry);detailTries=0;}
   if(!keepBase||!keepDetail)mapsChanged();
   if(active?.mod.map==='detail'&&!keepDetail)ensureDetail();
-  const startFeed=()=>{if(token===placeToken&&!feed)feed=start(place,feedConfig(),render,maps.base?.airports);};
+  const startFeed=()=>{if(token===placeToken&&!feed)feed=start(place,feedConfig(),render,maps.base?.airports,was);};
   if(!demo)startFeed();
   if(maps.base&&!maps.base.stale){startFeed();return;}
   if(maps.base)startFeed(); // an older saved map shows while a new one is built
@@ -553,7 +554,7 @@ function editKey(e){
 // old list was for the other zone shape); a cancelled or no-net-change edit keeps it.
 function stopEdit(commit=false){
   const before=editSnap;editing?.classList.remove('editing');editHint(null,editing);editing=null;editSnap=null;
-  if(commit&&before&&before.alertZone!==settings.alertZone){feed?.stop();feed=null;store.remove(HISTORY_KEY);clearTimeout(zoneTimer);restartFeed();}
+  if(commit&&before&&before.alertZone!==settings.alertZone){store.remove(HISTORY_KEY);clearTimeout(zoneTimer);restartFeed();}
 }
 // While a row is being edited its keys hint shows on the Settings title line, so the value
 // keeps the row's full width (in the narrow monospace layouts the hint left it no room).

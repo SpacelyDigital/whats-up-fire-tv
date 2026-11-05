@@ -264,12 +264,16 @@ const MAX_PLANES=300,LOG_MILES=17.3; // 15 NM
 // Seconds to the next poll; `at` is performance.now() ms, as live.mjs times it. app.mjs counts the
 // outage line down with it between polls.
 export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):0;
-function liveSource(config,onModel){
-  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=0,lastGood=null,stale=0;
+// `was`: the feed this one replaces. For the same place (a new map radius, alert radius or zone) it
+// carries on from that one's last reply: the planes stay until the next reply, an outage's countdown too.
+function liveSource(config,onModel,was){
+  const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
+  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk||0,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0;
   const update=(states,ok)=>{
     clearTimeout(stale);
     if(ok)lastOk=Date.now();
-    const now=Date.now(),retryAt=states.retryAt||0,wait=retryIn(retryAt);
+    if(ok||states.retryAt)known=0; // this feed's own reply or failure from now on
+    const now=Date.now(),retryAt=due=states.retryAt||known,wait=retryIn(retryAt);
     // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
     // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s", at 60 s
     // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds).
@@ -300,7 +304,7 @@ function liveSource(config,onModel){
     onModel(model);
   };
   const live=startLive(update,config);
-  return {...live,stop(){clearTimeout(stale);live.stop();}};
+  return {...live,stop(){clearTimeout(stale);live.stop();},get carry(){return {where,lastOk,lastGood,retryAt:due};}};
 }
 
 // --- Demo: plausible flights around home, moving in real time. Local airports
@@ -377,10 +381,10 @@ function demoSource(config,onModel,airports){
   return {stop(){clearInterval(timer);}};
 }
 
-// Start the feed for a place; returns {stop}.
-export function start(place,config,onModel,airports){
+// Start the feed for a place; returns {stop}. `was`: the feed it replaces (liveSource).
+export function start(place,config,onModel,airports,was){
   HOME={latitude:place.latitude,longitude:place.longitude,elevationFt:(place.elevationM||0)*3.2808};TZ=place.timeZone;
   samples.clear();
   const cfg={...config,latitude:place.latitude,longitude:place.longitude};
-  return demo?demoSource(cfg,onModel,airports):liveSource(cfg,onModel);
+  return demo?demoSource(cfg,onModel,airports):liveSource(cfg,onModel,was);
 }

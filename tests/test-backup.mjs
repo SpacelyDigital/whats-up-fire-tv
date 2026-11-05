@@ -395,6 +395,35 @@ test('backup: a restarted feed (new place or radius) stays on adsb.lol while ads
   }finally{r.restore();}
 });
 
+test('restart: a new map radius, alert radius or zone for the same place keeps the last picture until the next reply, and an outage\'s countdown with it',async()=>{
+  const r=fresh(),models=[],place={...CVG,timeZone:'America/New_York'},push=m=>models.push(m);let s=null;
+  try{
+    s=start(place,CFG,push);
+    await r.advance(6000);
+    assert.ok(models.at(-1).fresh&&models.at(-1).planes.length===1,'live');
+    for(const cfg of [{...CFG,searchNm:30},{...CFG,radiusMiles:5},{...CFG,zone:{kind:'window',from:90,to:180,miles:10}}]){
+      s.stop();const n=models.length;s=start(place,cfg,push,null,s);
+      const first=models[n];
+      assert.ok(first?.fresh&&!first.connecting,`no "Connecting" on the restart (${JSON.stringify(cfg)}): ${first&&quietText(first,false)}`);
+      assert.deepEqual(first.planes.map(a=>a.hex),['a1f1f1'],'the planes stay');
+      await r.advance(1000);
+      assert.ok(models.length>n+1&&models.at(-1).fresh,'then the next reply');
+    }
+    // Both feeds down: the restarted feed carries on with the outage line and its countdown.
+    r.feeds.fi={mode:'s503'};r.feeds.lol={mode:'s403'};
+    await r.advance(90000);
+    const out=models.at(-1);
+    assert.match(quietText(out,false),/^No live data right now\. Reconnecting in \d+ s\.$/);
+    s.stop();const n=models.length;s=start(place,{...CFG,searchNm:30},push,null,s);
+    assert.equal(models[n].connecting,false);assert.equal(models[n].fresh,false);
+    assert.equal(models[n].retryAt,out.retryAt,'the same next poll');
+    assert.match(quietText(models[n],false),/^No live data right now\. Reconnecting in \d+ s\.$/,'the outage line, not "Connecting"');
+    // Another place starts afresh.
+    s.stop();const k=models.length;s=start({...place,latitude:39.3,longitude:-84.3},CFG,push,null,s);
+    assert.equal(models[k].connecting,true);assert.equal(models[k].planes.length,0);
+  }finally{s?.stop();r.restore();}
+});
+
 test('backup: pause and resume keep the schedule; nothing is asked while hidden',async()=>{
   const r=fresh();
   try{
