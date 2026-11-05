@@ -59,6 +59,23 @@ test('choosing a place: a move of a few hundred metres across the date line keep
   assert.ok(Math.abs(cx+.515)<.001,`away from the date line as before: ${cx}`);
 });
 
+test('applying a place: maps built at the date line are kept for a home 50 m across it (no tiles fetched again); a new home gets its own',async()=>{
+  const {dLon}=await import('../web/core.mjs');
+  const built=[],ctx={dLon,placeToken:0,chime:null,feed:null,maps:{},store:{remove(){}},HISTORY_KEY:'h',resetLog(){},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),
+    savedMap:()=>null,mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},
+    demo:false,buildMap:async place=>{built.push(place);return {latitude:place.latitude,longitude:place.longitude,range:10};},saveMap(){},flashCredits(){},STALE:'stale'};
+  const p=page([fn('applyPlace')],ctx);
+  const apply=async([lat,lon],[latitude,longitude])=>{
+    const base={latitude:lat,longitude:lon,range:10},detail={latitude:lat,longitude:lon};p.maps={base,detail};p.feed=null;built.length=0;
+    await p.applyPlace({latitude,longitude});
+    return p.maps.base===base&&p.maps.detail===detail&&!built.length?'kept':'rebuilt';
+  };
+  for(const [from,to] of [[[0,180],[0,-179.99955]],[[0,-180],[0,179.99955]],[[-16.8,179.999],[-16.8,-179.996]],[[41.85,-87.65],[41.85,-87.645]]])
+    assert.equal(await apply(from,to),'kept',`map at ${from}, home at ${to}`);
+  for(const [from,to] of [[[0,179.99],[0,-179.98]],[[41.85,-87.65],[41.877,-87.65]],[[0,180],[0,0]]])
+    assert.equal(await apply(from,to),'rebuilt',`map at ${from}, home at ${to}`);
+});
+
 test('Adjust position from a search result, then Back: the confirm card over the screens that were under it; with no saved place, over a search screen at least',()=>{
   const seen=[];
   const p=page([fn('endAdjust')],{adj:null,settings:{},lastModel:null,stage:{classList:{remove(){}}},$:()=>({replaceChildren(){}}),syncApp(){},showSettings(){},
