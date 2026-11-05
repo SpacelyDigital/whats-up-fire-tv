@@ -830,7 +830,7 @@ document.addEventListener('keydown',e=>{
   // Play/Pause toggles Settings: Vega never passes the remote's Menu (≡) key to the page.
   if(k==='MediaPlayPause'||e.keyCode===179){
     e.preventDefault();
-    if(!layer&&!adj){showSettings();open('settings');}
+    if(!layer&&!adj)openSettings();
     else if(layer?.id==='settings'&&!editing)back();
     return;
   }
@@ -844,7 +844,7 @@ document.addEventListener('keydown',e=>{
     if(dir==='up'||dir==='down'){e.preventDefault();return stepMap(dir==='up'?-1:1);}
     // Left/Right: the next or previous plane on the card (a held key repeats).
     if(dir==='left'||dir==='right'){e.preventDefault();return stepPlanes(dir==='right'?1:-1);}
-    if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();showSettings();open('settings');}
+    if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();openSettings();}
     return;
   }
   if(editing)return editKey(e);
@@ -869,6 +869,9 @@ document.addEventListener('keydown',e=>{
     if(/^[a-z0-9,\-'.]$/i.test(k)){e.preventDefault();return typeKey(k.toUpperCase());}
   }
 });
+// First run: Settings waits while the IP lookup runs, so the welcome card (or the search screen) then opens alone.
+let locating=false;
+function openSettings(){if(locating)return toast('Still finding your location');showSettings();open('settings');}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&layer?.contains(b)){setFocus(b);select(b);}});
 
 // First launch: the IP guess, said plainly.
@@ -979,7 +982,7 @@ async function boot(){
   }
   const damaged=placeDamaged();
   setText('layout-note','Finding your location');
-  const place=await locateByIp();
+  locating=true;const place=await locateByIp().finally(()=>{locating=false;});
   setText('layout-note','');
   if(!place)return openLocate('We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.');
   // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
