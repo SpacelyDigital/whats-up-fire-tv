@@ -249,13 +249,14 @@ function enrich(a,raw,route,now){
 // The hero: an emergency first, then the nearest inside the alert zone, then the one
 // arriving soonest, then the nearest. In Window view, "inside" means in the window's
 // wedge (or right above) and "approaching" means its closest point falls in the wedge.
-function inAlert(a,config){
+// `loose`: for the plane the card already calls inside, 0.25 mi past the radius (the window 3° wider each side, 0.25 mi further out).
+function inAlert(a,config,loose){
   const z=config.zone;
-  return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
+  return z?.kind==='window'?(loose?wider:inZone)(z,a.x,a.y,.25):a.distance_mi<=config.radiusMiles+(loose?.25:0);
 }
 // Every plane carries it (a.approaching), so a board's remark says what the card would. `loose`: for the plane
 // the card already calls Approaching, 0.5 mi past the cut-off, or the window 3° wider each side and 0.5 mi further out.
-const wider=(z,x,y)=>{const d=Math.hypot(x,y);return d<=ABOVE_MI+.5||d<=z.miles+.5&&(norm(z.to-z.from)>=354||inBearings(Math.atan2(x,y)*180/Math.PI,z.from-3,z.to+3));};
+const wider=(z,x,y,mi=.5)=>{const d=Math.hypot(x,y);return d<=ABOVE_MI+mi||d<=z.miles+mi&&(norm(z.to-z.from)>=354||inBearings(Math.atan2(x,y)*180/Math.PI,z.from-3,z.to+3));};
 function approaching(a,config,loose){
   const z=config.zone;
   return !!a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(z?.kind==='window'?(loose?wider:inZone)(z,a.cpa.x,a.cpa.y):
@@ -263,21 +264,25 @@ function approaching(a,config,loose){
 }
 // The plane on the card (held.hex) keeps it unless another is clearly first: an emergency, one higher in that order,
 // or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner). Called Approaching (held.app),
-// it stays so with the slack above; one called Nearest gets none. Noisy positions near a cut-off or a tie no longer
-// swap the card, its heading, or VoiceView's line every poll.
+// it stays so with the slack above; called inside (held.inside), it stays so to 0.25 mi outside the zone (3° past a
+// window's side), below a plane really inside and never on its way in; one called Nearest gets none. The zone itself
+// (a.inside: the chime's count, the boards, the drawing) follows the true position. Noisy positions near a cut-off or
+// a tie no longer swap the card, its heading, or VoiceView's line every poll.
 function pickHero(planes,config,held={}){
   const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles,was=planes.find(a=>a.hex===held.hex&&onMap(a));
   if(was&&held.app)was.approaching=approaching(was,config,true);
+  const near=!!was&&held.inside&&!was.inside&&inAlert(was,config,true); // just outside: inside still, to the card
   let hero=planes.find(a=>a.emergency&&onMap(a))||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
     planes.filter(a=>a.approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
     planes.find(onMap)||null; // 'Nearest' only from planes on the map
   if(was&&hero!==was&&!hero.emergency){
-    const rank=a=>a.inside?2:a.approaching?1:0,r=rank(hero),p=rank(was);
+    const rank=a=>a.inside?3:a.approaching?1:0,r=rank(hero),p=near?2:rank(was);
     // As high: how much closer the new one is, in miles (of two approaching, how far ahead in its flight).
     if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25)hero=was;
   }
-  held.hex=hero?.hex;held.app=!!hero?.approaching;
-  if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
+  const inside=!!hero&&(hero.inside||hero===was&&near);
+  held.hex=hero?.hex;held.app=!!hero?.approaching;held.inside=inside;
+  if(hero)hero.status=hero.emergency?'Emergency':inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
     hero.approaching?'Approaching':'Nearest';
   return hero;
 }

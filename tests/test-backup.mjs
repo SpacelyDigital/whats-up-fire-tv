@@ -1356,13 +1356,13 @@ const flying=(hex,call,deg,mi,track,gs,tc,wob=0)=>t=>{const R=Math.PI/180,s=(t-t
   return plane(hex,call,{...xy(mi*Math.sin(deg*R)+s*Math.sin(track*R),mi*Math.cos(deg*R)+s*Math.cos(track*R)),track:track+sway(t)*wob,gs,baro_rate:0});};
 const hover=(hex,call,deg,mi)=>t=>plane(hex,call,{...xy(mi(t)*Math.sin(deg*Math.PI/180),mi(t)*Math.cos(deg*Math.PI/180)),gs:20,track:0,baro_rate:0});
 // The card over `seconds` of 5 s polls: each change of plane or heading, in order (an update that throws fails it);
-// `due` gathers every plane marked approaching (DUE on the Departures board). A flight answers null before it is there.
-async function cards(flights,zone={kind:'circle',radius:3},seconds=150,due){
+// `due` gathers every plane marked approaching (DUE on the Departures board); `each` sees every fresh model. A flight answers null before it is there.
+async function cards(flights,zone={kind:'circle',radius:3},seconds=150,due,each){
   const r=fresh(),seen=[],errors=[],error=console.error;console.error=(...a)=>a[0]==='feed update'?errors.push(String(a[1])):error(...a);
   try{
     r.feeds.fi={mode:'ok',get body(){const t=r.t/1000;return {ac:flights.map(f=>f(t)).filter(Boolean),now:Date.now()};}};
     const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24,zone},m=>{const h=m.fresh&&m.hero?`${m.hero.flight}: ${m.hero.status}`:'';if(h&&h!==seen.at(-1))seen.push(h);
-      if(m.fresh)for(const a of m.planes)if(a.approaching)due?.add(a.flight);});
+      if(m.fresh){each?.(m);for(const a of m.planes)if(a.approaching)due?.add(a.flight);}});
     await r.advance(seconds*1000);s.stop();
   }finally{r.restore();console.error=error;}
   assert.deepEqual(errors,[]);
@@ -1400,4 +1400,24 @@ test('hero: the slack is only for a plane the card already calls Approaching: on
   assert.ok(lone.length<=2&&lone.at(-1)==='UAL1234: Approaching',`alone at the cut-off: ${lone.join(' > ')}`);
   const side=await cards([flying('a0c005','AAL77',300,12,30,450,170,.3)],{kind:'window',from:300,to:30,miles:25});
   assert.ok(side.length<=2&&side.at(-1)==='AAL77: Approaching',`alone on the window's side: ${side.join(' > ')}`);
+});
+test('hero: the plane the card calls inside stays inside to 0.25 mi outside the alert radius (3° past a window\'s side), so one hovering at the ring beside an approaching airliner, or loitering on a window\'s side, no longer swaps the card and VoiceView every poll; the zone itself (what the chime counts) follows the true position, and a plane on its way in is inside at 3.0 mi, not before',async()=>{
+  // A helicopter at the alert radius, 0.05 mi either side on alternate polls; an airliner approaching, closest 2 mi in 190 s.
+  const counts=[],ring=await cards([hover('a0d001','N911HX',90,t=>3+.05*sway(t)),flying('a0d002','UAL1',290,2,200,300,190)],undefined,150,undefined,m=>counts.push(m.planes.filter(a=>a.inside).length));
+  assert.deepEqual(ring,['N911HX: Above you now'],`at the ring: ${ring.join(' > ')}`);
+  assert.ok(counts.includes(0)&&counts.includes(1),`the zone's count follows the position: ${counts.join('')}`);
+  // A plane really inside (2.5 mi from 60 s) takes the card from the helicopter at its first poll inside.
+  assert.deepEqual(await cards([hover('a0d001','N911HX',90,t=>3+.05*sway(t)),hover('a0d006','N3IN',0,t=>t<60?5:2.5)]),['N911HX: Above you now','N3IN: Above you now']);
+  // Window 300° to 30°: a plane loitering 10 mi out on its west side, 0.3° either side of it, and one approaching through it (closest 8 mi in 240 s, in the window from 170 s).
+  const loiter=t=>{const b=(300+.3*sway(t))*Math.PI/180;return plane('a0d003','N44XY',{...xy(10*Math.sin(b),10*Math.cos(b)),gs:25,track:0,baro_rate:0});};
+  const side=await cards([loiter,flying('a0d004','AAL7',340,8,70,300,240)],{kind:'window',from:300,to:30,miles:25});
+  assert.deepEqual(side,['AAL7: Approaching','N44XY: In your window'],`on the window's side: ${side.join(' > ')}`);
+  // Alone, in from 3.21 mi by 0.05 mi a poll: Nearest down to 3.01 mi, Above you now from 2.96 (no slack on the way in).
+  const r=fresh(),seen={},inbound=hover('a0d005','N3IN',0,t=>3.21-.01*t);
+  try{
+    r.feeds.fi={mode:'ok',get body(){const t=r.t/1000;return {ac:[inbound(t)],now:Date.now()};}};
+    const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24},m=>{if(m.fresh&&m.hero)seen[Math.round(r.t/1000)]=m.hero.status;});
+    await r.advance(30000);s.stop();
+  }finally{r.restore();}
+  assert.deepEqual(seen,{0:'Nearest',5:'Nearest',10:'Nearest',15:'Nearest',20:'Nearest',25:'Above you now',30:'Above you now'});
 });
