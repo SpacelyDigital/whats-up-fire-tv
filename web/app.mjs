@@ -685,7 +685,9 @@ async function runSearch(explicit=false){
   if(!explicit&&layer?.id!=='locate')return; // typed, then another screen came over it
   clearTimeout(searchTimer);
   const q=entry.trim(),seq=++searchSeq,box=$('results'),searchKey=$('keys').querySelector('[data-key="search"]');
-  const show=(...nodes)=>{box.replaceChildren(...nodes);$('results-src').textContent='';fitLine($('search-src'));keepFocus(searchKey);};
+  // Read out once as it changes (VoiceView): the status line, or how many places are listed; nothing while another screen is on top.
+  const show=(...nodes)=>{box.replaceChildren(...nodes);$('results-src').textContent='';fitLine($('search-src'));keepFocus(searchKey);
+    if(layer?.id==='locate')setText('sr-live',nodes[0]?.className.startsWith('msg')?nodes[0].textContent:nodes.length?`${nodes.length} place${nodes.length===1?'':'s'} found`:'');};
   const msg=(text,cls='msg')=>Object.assign(document.createElement('div'),{className:cls,textContent:text});
   const retry=()=>{const b=document.createElement('button');b.dataset.focus='';b.id='search-retry';b.className='retry';b.textContent='Try again';return b;};
   if(q.length<2){

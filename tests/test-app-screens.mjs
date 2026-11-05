@@ -612,3 +612,25 @@ test('screen reader: each dialog\'s body is its description, read with its first
   p.scrollDoc(doc,'down');assert.equal(writes.length,4,'Down at the end: the same view, nothing read again');
   p.scrollDoc(doc,'up');assert.equal(writes.at(-1),'We run no server. Your home stays on your TV. They get your location.');
 });
+
+test('screen reader: the search screen reads its status once as it changes: "Searching for", how many places were found, "No places match", the error, the hint for an empty entry; a search that lands under the confirm card reads nothing; the entry is a named text box',async()=>{
+  const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+  assert.match(html,/<div class="entry" role="textbox" aria-label="[^"]+" aria-describedby="entry-help"><span id="entry-text"><\/span>/);
+  const elem=tag=>({tag,className:'',textContent:'',dataset:{},children:[],append(...n){this.children.push(...n);},get firstElementChild(){return this.children[0]??null;}});
+  const box=Object.assign(elem('div'),{replaceChildren(...n){this.children=n;},querySelectorAll:()=>[]});
+  const els={results:box,'results-src':elem('p'),'search-src':elem('p'),keys:{querySelector:()=>({})},'search-retry':{}};
+  const writes=[],places={CHI:[{name:'Chicago, IL',admin:'Illinois',country:'United States'},{name:'Chicago Heights, IL'},{name:'Chicago Ridge, IL'}],DEN:[{name:'Denver, CO'}],QZXWV:[]};
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),fn('runSearch'),line('let lastQuery=')],{setText:(id,v)=>{if(id==='sr-live')writes.push(v);},
+    $:id=>els[id],fitLine(){},keepFocus(){},setFocus(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
+    searchPlaces:async q=>{if(q==='DOWN')throw new Error('503');return places[q];},searchAddress:async()=>[],placeLabel:pl=>pl.name,layer:{id:'locate'},layers:[],
+    clearTimeout(){},setTimeout:()=>0,document:{createElement:elem}});
+  const search=async(q,explicit=false)=>{writes.length=0;vm.runInContext(`entry=${JSON.stringify(q)}`,p);await p.runSearch(explicit);return writes.slice();};
+  assert.deepEqual(await search('CHI'),['Searching for “CHI”','3 places found'],'as you type');
+  assert.deepEqual(await search('DEN',true),['Searching for “DEN”','1 place found']);
+  assert.deepEqual(await search('QZXWV',true),['Searching for “QZXWV”','No places match “QZXWV”. Check the spelling, or try a ZIP or postal code.']);
+  assert.deepEqual(await search('DOWN',true),['Searching for “DOWN”','Search is unavailable. Check the connection.']);
+  assert.deepEqual(await search('X',true),['Type a ZIP or postal code, a city, or a street address first.']);
+  p.layers=[p.layer];p.layer={id:'confirm'};
+  assert.deepEqual(await search('CHI'),[],'landed under the confirm card: drawn, not read');
+  assert.equal(box.children.length,3);
+});
