@@ -310,6 +310,19 @@ test('map: when every tile comes back empty (a 200 with nothing), the build fail
   await assert.rejects(buildMap({latitude:39.10,longitude:-84.41},10,{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
   await assert.rejects(buildDetail({latitude:39.10,longitude:-84.41},{net,MVT:{VectorTile,Pbf}}),/map tiles empty/);
 });
+test('map: far north or south (Alert, 82.5 N) the wide radii ask only tile rows that exist, so the map is built',async()=>{
+  const tile=readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url));
+  const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+  const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+  const {buildMap}=await import('../web/mapgen.mjs');
+  for(const latitude of [82.5,-82.5])for(const range of [150,250]){
+    const asked=[];
+    const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),
+      getBytes:async url=>{asked.push(url);return new Uint8Array(tile);}};
+    await buildMap({latitude,longitude:-62.35},range,{net,MVT:{VectorTile,Pbf}});
+    for(const u of asked){const [z,x,y]=u.split('/').slice(-3).map(v=>parseInt(v));assert.ok(x>=0&&x<2**z&&y>=0&&y<2**z,`${latitude} ${range} mi: ${u}`);}
+  }
+});
 test('styles: a very long one-word place name wraps on the welcome and confirm cards instead of running off the screen',async()=>{
   const {readFileSync}=await import('node:fs');
   assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.big-city\{[^}]*overflow-wrap:anywhere/);

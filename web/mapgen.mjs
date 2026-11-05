@@ -104,11 +104,12 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,require
   const c=snapped(home),wide=lim+GRID_PAD_MI,ccos=Math.cos(c.latitude*DEG);
   const dLat=wide/69,dLon=wide/(69.172*ccos);
   // Far north or south a mile spans more tiles: step down up to two zooms to stay within
-  // MAX_TILES (Alaska and Nordic homes asked for hundreds).
+  // MAX_TILES (Alaska and Nordic homes asked for hundreds). Rows stop at the tile grid's top
+  // and bottom (~85°): near the poles the wide radii asked for rows past them (-1: refused).
   let x0,x1,y0,y1;
   for(let z=zoom;;z--){
     x0=Math.floor(tileX(c.longitude-dLon,z));x1=Math.floor(tileX(c.longitude+dLon,z));
-    y0=Math.floor(tileY(c.latitude+dLat,z));y1=Math.floor(tileY(c.latitude-dLat,z));
+    y0=Math.max(0,Math.floor(tileY(c.latitude+dLat,z)));y1=Math.min(2**z-1,Math.floor(tileY(c.latitude-dLat,z)));
     if((x1-x0+1)*(y1-y0+1)<=MAX_TILES||z<=Math.max(2,zoom-2)){zoom=z;break;}
   }
   const n=2**zoom;
