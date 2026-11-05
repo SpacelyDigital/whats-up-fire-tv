@@ -131,8 +131,10 @@ const TERRITORIES={'Guam':'GU','U.S. Virgin Islands':'VI','Virgin Islands':'VI',
 const US_CODES=new Set([...Object.values(US),...Object.values(TERRITORIES)]);
 const US_NAMES=[...Object.keys(US),...Object.keys(TERRITORIES),'United States','USA'].map(n=>n.toLowerCase().replace(/[.,]/g,''));
 // State codes that are also countries' (Germany DE, India IN, Colombia CO, Montenegro ME...): "... Berlin DE" is
-// no Delaware address, so these count only after a comma or with a ZIP.
+// no Delaware address, so these count only after a comma, with a ZIP, or after a street type that follows the street's
+// name, then the town ("233 S Wacker Dr Chicago IL"; not "5 Unter den Linden Berlin DE", "12 Avenue Habib Bourguiba Tunis TN").
 const NOT_ONLY_US=new Set(['DE','IN','CO','ME','AL','AR','GA','ID','IL','LA','MA','MD','MN','MS','MT','NE','PA','SC','SD','TN','VA']);
+const STREET_TYPE=/^(st|street|ave|avenue|dr|drive|rd|road|blvd|boulevard|ln|lane|ct|court|pl|place|way|pkwy|parkway|hwy|highway|cir|circle|ter|terrace|trl|trail|loop|pike|sq|square|cv|cove)$/i;
 export function looksLikeUSAddress(query){
   const q=clean(query,120);
   if(!looksLikeAddress(q))return false;
@@ -140,7 +142,7 @@ export function looksLikeUSAddress(query){
   if(/\b\d{5}(-\d{4})?\s*$/.test(rest)||/,\s*\d{5}(-\d{4})?\b/.test(rest))return true; // a ZIP at the end or after a comma
   const words=rest.replace(/[.]/g,'').split(/[\s,]+/).filter(Boolean);
   const last=words.at(-1)?.toUpperCase()||'';
-  if(US_CODES.has(last)&&!NOT_ONLY_US.has(last)&&words.length>2)return true; // "... Cincinnati OH"
+  if(US_CODES.has(last)&&words.length>2&&(!NOT_ONLY_US.has(last)||words.slice(1,-2).some(w=>STREET_TYPE.test(w))))return true; // "... Cincinnati OH", "... Wacker Dr Chicago IL"
   if([...rest.matchAll(/,\s*([A-Za-z]{2})\b/g)].some(m=>US_CODES.has(m[1].toUpperCase())))return true; // "..., OH ..."
   // A state's name at the end, or as a part after a comma ("..., Ohio, USA"); never in the street or town
   // ("800 W Georgia St Vancouver BC", "10 Station Rd Virginia Water").

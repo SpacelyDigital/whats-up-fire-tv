@@ -332,16 +332,36 @@ test('Census gets only text that looks like a U.S. address', async () => {
     '400 Marine Dr, Tamuning, GU 96913','5 Elm Street Springfield, IL','77 Oak Rd 45202'])assert.ok(looksLikeUSAddress(q),q);
   for(const q of ['10 Downing Street London','123 Main St','221B Baker Street','45202','Cincinnati','8 Rue de Rivoli Paris','12 Queen St W Toronto ON'])assert.ok(!looksLikeUSAddress(q),q);
 });
-test('Census: a state name counts only at the end or after a comma, and a state code that is also a country code (DE, IN, CO, ME...) only after a comma or with a ZIP',async()=>{
+test('Census: a state name counts only at the end or after a comma, and a state code that is also a country code (DE, IN, CO, ME...) only after a comma, with a ZIP or after a street type and a town',async()=>{
   const {looksLikeUSAddress}=await import('../web/place.mjs');
   for(const q of ['4 Elm Street, Springfield, IL','22 Market St Wilmington DE 19801','9 Meridian St Indianapolis, IN','1 Main St Springfield Illinois','1 Peachtree St Atlanta Georgia',
     '1 Main St, Springfield, Illinois, USA','350 Fifth Ave, New York','350 Fifth Ave New York NY','2 Main St Tulsa OK'])assert.ok(looksLikeUSAddress(q),q);
-  for(const q of ['22 BAKER ST LONDON DE','5 UNTER DEN LINDEN BERLIN DE','10 KING ST SYDNEY ME','7 PLAZA MAYOR MADRID CO','9 VIA ROMA MILANO IN','12 MG ROAD BANGALORE IN',
+  for(const q of ['5 UNTER DEN LINDEN BERLIN DE','7 PLAZA MAYOR MADRID CO','9 VIA ROMA MILANO IN',
     '800 W GEORGIA ST VANCOUVER BC','10 STATION RD VIRGINIA WATER','10 Station Rd, Virginia Water, Surrey','5 WASHINGTON ST LONDON','45 FLORIDA BUENOS AIRES',
     '3 COLORADO ST MADRID','1 INDIANA AVE KINGSTON'])assert.ok(!looksLikeUSAddress(q),q);
   const seen=stub([[/nominatim/,[200,[]]]]);
-  await searchAddress('22 Baker St London DE',{census:true,nominatim:true});
+  await searchAddress('5 Unter den Linden Berlin DE',{census:true,nominatim:true});
   assert.ok(!seen.some(u=>/census/.test(u))&&seen.some(u=>/nominatim/.test(u)),'to Nominatim, not the Census Bureau');
+});
+test('Census: a state code that is also a country code (IL, PA, GA...) counts after a street type and a town too, so "233 S Wacker Dr Chicago IL" goes to Census; foreign text typed that way does too, and with no match there goes on to Nominatim',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  // One for each such state, typed the usual way: no comma before the code, no ZIP; a direction, a unit, the type in full.
+  for(const q of ['233 S WACKER DR CHICAGO IL','123 MAIN ST PHILADELPHIA PA','100 STATE ST BOSTON MA','2 MAIN ST NASHVILLE TN','12 OAK ST, DENVER CO','12 Oak St. Denver CO',
+    '600 Dexter Ave Montgomery AL','500 Woodlane St Little Rock AR','411 Legislative Ave Dover DE','206 Washington St SW Atlanta GA','700 W Jefferson St Boise ID',
+    '200 W Washington St Indianapolis IN','900 N 3rd St Baton Rouge LA','210 State St Augusta ME','100 State Cir Annapolis MD','75 Rev Dr Martin Luther King Jr Blvd St Paul MN',
+    '400 High St Jackson MS','1301 E 6th Ave Helena MT','1445 K St Lincoln NE','1100 Gervais St Columbia SC','500 E Capitol Ave Pierre SD','1000 Bank St Richmond VA',
+    '233 S Wacker Dr Ste 3100 Chicago IL','123 Main Street Philadelphia PA','42 Peachtree Road Atlanta GA','9 Elm Lane Nashville TN','7 Oak Court Columbia SC'])assert.ok(looksLikeUSAddress(q),q);
+  // No street type after the street's name (none, or the type first as in French or Spanish): Nominatim alone.
+  for(const q of ['12 Avenue Habib Bourguiba Tunis TN','10 Boulevard Mohammed V Casablanca MA','10 Calle 50 Panama City PA','Hauptstrasse 5 Berlin DE'])assert.ok(!looksLikeUSAddress(q),q);
+  // Text alone can't tell these from U.S. addresses: Census first, then Nominatim.
+  for(const q of ['22 BAKER ST LONDON DE','10 KING ST SYDNEY ME','12 MG ROAD BANGALORE IN','123 HAY ST PERTH WA'])assert.ok(looksLikeUSAddress(q),q);
+  let seen=stub([[/census/,[200,{result:{addressMatches:[{matchedAddress:'233 S WACKER DR, CHICAGO, IL, 60606',addressComponents:{city:'CHICAGO',state:'IL'},coordinates:{x:-87.6359,y:41.8789}}]}}]]]);
+  const [p]=await searchAddress('233 S Wacker Dr Chicago IL',{census:true,nominatim:true});
+  assert.equal(p.street,'233 S Wacker Dr');assert.equal(placeLabel(p),'Chicago, IL');assert.equal(p.source,'census');
+  assert.ok(!seen.some(u=>/nominatim/.test(u)),'matched by Census: Nominatim not asked');
+  seen=stub([[/census/,[200,{result:{addressMatches:[]}}]],[/nominatim/,[200,[]]]]);
+  assert.deepEqual(await searchAddress('10 King St Sydney ME',{census:true,nominatim:true}),[]);
+  assert.deepEqual(seen.map(u=>new URL(u).hostname),['geocoding.geo.census.gov','nominatim.openstreetmap.org'],'no match at Census: then Nominatim');
 });
 
 test('place search: "Rosemont, Illinois" and "Rosemont IL" search the name, then match the state',async()=>{
