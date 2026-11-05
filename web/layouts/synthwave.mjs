@@ -126,13 +126,14 @@ function render(m){
     jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`}));
     if(tagged.has(a)){
       const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):fmt.hundreds(a.altitude_ft);
-      const l2=off?`↓ ${fmt.dist(a.ground,0)} ${compass(a.bearing)}`:alt,w=Math.max(a.flight.length*11,l2.length*9)+4,h=32;
-      const spot=[[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
-        .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)));
-      if(spot||isHero){
-        const b=spot||{x:px+16,y:py-16,w,h};boxes.push(b);
-        tags.push(svg('text',{class:`tag ${cls}`,x:b.x,y:b.y+13},a.flight),svg('text',{class:`tag2 ${cls}`,x:b.x,y:b.y+28},l2));
-      }
+      const l2=off?`↓ ${fmt.dist(a.ground,0)} ${compass(a.bearing)}`:alt,h=32;
+      const place=t=>{const w=Math.max(a.flight.length*11,t.length*9)+4;
+        return [[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
+          .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)))||(isHero?{x:px+16,y:py-16,w,h}:null);};
+      // Short of room, a plane off the floor (the hero always has its spot) tries its distance alone (↓ 28 mi) before going untagged.
+      let t=l2,b=place(t);
+      if(!b&&off)b=place(t=l2.replace(/ \S+$/,''));
+      if(b){boxes.push(b);tags.push(svg('text',{class:`tag ${cls}`,x:b.x,y:b.y+13},a.flight),svg('text',{class:`tag2 ${cls}`,x:b.x,y:b.y+28},t));}
     }
   }
   $.stalks.replaceChildren(...stalks);$.jets.replaceChildren(...jets);$.tags.replaceChildren(...tags);
