@@ -105,6 +105,24 @@ test('photos: Planespotters reply parsed, URLs kept unchanged, anything off-host
   assert.equal(parsePhoto({photos:[{...ok.photos[0],link:'javascript:alert(1)'}]}),null);
   assert.equal(PHOTO_URL('hex','a2b150'),'https://api.planespotters.net/pub/photos/hex/a2b150');
 });
+test('photos: every lookup passes the app bridge\'s allow-list; a registration it refuses (over 10 characters) is not asked for',async()=>{
+  const {photoFor,setPhotoGate}=await import('../web/photos.mjs');
+  const rule=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8').split('\n').find(l=>l.includes('api\\.planespotters')).trim().replace(/,$/,'');
+  const allowed=new RegExp(rule.slice(1,-1));
+  const real={fetch:globalThis.fetch,now:performance.now};let t=1e9;
+  performance.now=()=>(t+=2000); // no 1.5 s gap between lookups in the test
+  setPhotoGate(()=>Promise.resolve(true));
+  try{
+    for(let n=2;n<=12;n++){
+      const asked=[];
+      globalThis.fetch=async url=>{asked.push(String(url));return /\/hex\//.test(url)?new Response('{"photos":[]}',{status:200}):new Response('',{status:404});};
+      const reg='N'+'1234567890A'.slice(0,n-1),hex=(0xa10000+n).toString(16);
+      await photoFor({hex,registration:reg});
+      assert.ok(asked.every(u=>allowed.test(u)),`${n} characters: ${asked}`);
+      assert.equal(asked.length,n<=10?2:1,`${n} characters: ${asked}`);
+    }
+  }finally{globalThis.fetch=real.fetch;performance.now=real.now;}
+});
 test('model photos: bundled per ICAO type with author and license, files present',async()=>{
   const {MODELS,modelPhoto}=await import('../web/models.mjs');
   const {existsSync}=await import('node:fs');

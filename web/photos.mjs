@@ -71,7 +71,8 @@ function lookupPhoto(a,hex){
   entry.promise=(async()=>{
     let {status,payload}=await lookup(PHOTO_URL('hex',hex));
     let photo=status===200?parsePhoto(payload):null;
-    if(!photo&&status===200&&reg.length>=2){({status,payload}=await lookup(PHOTO_URL('reg',reg)));photo=status===200?parsePhoto(payload):null;}
+    // By registration only as the app bridge allows (2-10 characters): a longer one was refused and asked again every 5 min.
+    if(!photo&&status===200&&reg.length>=2&&reg.length<=10){({status,payload}=await lookup(PHOTO_URL('reg',reg)));photo=status===200?parsePhoto(payload):null;}
     if(status!==200&&status!==404)entry.until=Date.now()+300000; // a failure is asked again in 5 min
     return photo;
   })().catch(()=>{entry.until=0;return null;});
