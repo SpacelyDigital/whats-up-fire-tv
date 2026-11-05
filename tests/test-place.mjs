@@ -98,6 +98,22 @@ test('IP location: GeoJS reply becomes an unconfirmed guess with its accuracy',a
   stub([]);
   assert.equal(await locateByIp(),null);
 });
+test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°), saved or from a service',async()=>{
+  const CHI={name:'Chicago',admin:'Illinois',country:'United States',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'};
+  for(const bad of [null,'',' ',false,[],true,{}])for(const k of ['latitude','longitude']){
+    globalThis.localStorage={getItem:()=>JSON.stringify({place:{...CHI,[k]:bad},confirmed:true}),setItem(){},removeItem(){}};
+    assert.equal(loadSettings().place,null,`saved ${k} ${JSON.stringify(bad)}`);
+  }
+  globalThis.localStorage={getItem:()=>JSON.stringify({place:CHI,confirmed:true}),setItem(){},removeItem(){}};
+  assert.equal(loadSettings().place.latitude,41.85,'a real one is kept');
+  delete globalThis.localStorage;
+  stub([meteo(...[null,'',' ',false].map((v,i)=>({...CHICAGO,name:`Bad${i}`,latitude:v})),{...CHICAGO,name:'Badlon',longitude:null},{...CHICAGO,latitude:'41.85',longitude:'-87.65'})]);
+  assert.deepEqual((await searchPlaces('Chicago')).map(p=>[p.name,p.latitude,p.longitude]),[['Chicago',41.85,-87.65]],'only the readable one');
+  stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'',longitude:'-84.6444',timezone:'America/New_York',accuracy:null}]]]);
+  assert.equal(await locateByIp(),null,'an IP guess with no latitude is no guess');
+  stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'39.05',longitude:'-84.65',timezone:'America/New_York',accuracy:null}]]]);
+  assert.equal((await locateByIp()).accuracyKm,null,'no accuracy is unknown, not 0 km');
+});
 test('settings: bad saved values fall back to safe defaults',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({radiusMiles:99,distance:'parsecs',altitude:'m',layout:'<script>'}),setItem(){},removeItem(){}};
   const s=loadSettings();

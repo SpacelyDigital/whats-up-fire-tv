@@ -39,14 +39,16 @@ export function placeLabel(p){
   return [clean(p.name),region||country].filter(Boolean).join(', ');
 }
 const validTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true;}catch{return false;}};
+// A number, or one written as text (Nominatim, GeoJS); null, '', false or [] is none, never 0 (Null Island).
+const num=v=>typeof v==='number'?v:typeof v==='string'&&v.trim()?Number(v):NaN;
 function makePlace(o){
-  const latitude=Number(o.latitude),longitude=Number(o.longitude);
+  const latitude=num(o.latitude),longitude=num(o.longitude);
   if(!number(latitude)||!number(longitude)||Math.abs(latitude)>85||Math.abs(longitude)>180)return null;
   const timeZone=validTz(o.timeZone)?o.timeZone:'UTC';
   return {name:clean(o.name)||'Unknown place',admin:clean(o.admin),country:clean(o.country),
     countryCode:clean(o.countryCode,2).toUpperCase(),latitude,longitude,timeZone,source:o.source,
-    elevationM:number(Number(o.elevationM))?Number(o.elevationM):0,street:clean(o.street,80),
-    accuracyKm:number(Number(o.accuracyKm))?Number(o.accuracyKm):null,...(o.tzGuess===true?{tzGuess:true}:{})};
+    elevationM:number(num(o.elevationM))?num(o.elevationM):0,street:clean(o.street,80),
+    accuracyKm:number(num(o.accuracyKm))?num(o.accuracyKm):null,...(o.tzGuess===true?{tzGuess:true}:{})};
 }
 
 // Window view reach (Settings > Window distance) and whole-degree bearings.
