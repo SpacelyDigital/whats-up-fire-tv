@@ -545,8 +545,14 @@ test('screen reader: with no plane on the card the sky\'s state is read once as 
   sky({fresh:true,noCoverage:true});sky({fresh:true,noCoverage:true,planes:[]});assert.equal(writes.length,6);
   assert.deepEqual(sky({fresh:false,retryIn:120,retryAt:1}).slice(6),['No live data right now. Reconnecting.'],'minutes away: the same sentence');
   writes.length=0;live(true).announce({live:false,fresh:true,planes:[],hero:null});assert.deepEqual(writes,['Quiet skies. Nothing within range right now.'],'the demo\'s empty sky');
-  // 'Finding your location', 'Map unavailable', 'Drawing the street map': the note is a live region (written only on a change).
+  // 'Finding your location', 'Map unavailable', 'Drawing the street map': the note is a live region (written only on a change)...
   assert.match(readFileSync(new URL('../web/index.html',import.meta.url),'utf8'),/<div class="layout-note" id="layout-note" aria-live="polite"><\/div>/);
+  // ...hidden with the dashboard while a screen is open: a street map drawn behind Settings or a picker preview isn't read over them.
+  const attrs={},hb=page([line('const hideBehind=')],{$:id=>({setAttribute:(k,v)=>{attrs[id]=v;}}),layer:null,adj:null}),hide=()=>vm.runInContext('hideBehind()',hb);
+  hide();assert.deepEqual(attrs,{layout:'false','layout-note':'false'},'the dashboard');
+  hb.layer={id:'picker'};hide();assert.deepEqual(attrs,{layout:'true','layout-note':'true'},'behind a screen');
+  hb.layer=null;hb.adj={};hide();assert.equal(attrs['layout-note'],'true','behind Adjust position');
+  hb.adj=null;hide();assert.deepEqual(attrs,{layout:'false','layout-note':'false'},'restored on closing');
 });
 
 test('screen reader: OK on a Settings value row says "Editing <row>, <value>", OK again "Saved <value>", Back "Cancelled" (the value it puts back is not read over it); the layout picker focuses the layout\'s count and name, not the Previous arrow, and reads the name again at each opening',()=>{

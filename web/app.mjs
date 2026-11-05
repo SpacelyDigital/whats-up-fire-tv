@@ -374,8 +374,9 @@ function labelRow(el){
   const name=el.querySelector?.(':scope > span'),value=el.querySelector?.(':scope > b');
   if(name&&el.classList.contains('row'))el.setAttribute('aria-label',[name.textContent,value?.textContent].filter(Boolean).join(', '));
 }
-// While a screen is open the dashboard behind it is hidden from screen readers.
-const hideBehind=()=>{$('layout').setAttribute('aria-hidden',layer||adj?'true':'false');};
+// While a screen is open the dashboard behind it is hidden from screen readers, with the map's note (a live
+// region: a street map drawn behind Settings or a picker preview would be read over them).
+const hideBehind=()=>{for(const id of ['layout','layout-note'])$(id).setAttribute('aria-hidden',layer||adj?'true':'false');};
 let layer=null,focused=null;
 const layers=[];
 // The .focus class draws the highlight; DOM focus (without scrolling) lets a screen reader
