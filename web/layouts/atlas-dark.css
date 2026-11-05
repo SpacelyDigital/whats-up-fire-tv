@@ -31,3 +31,4 @@
 .L-atlas-dark .at-stats div{border-top-color:#2c3037}
 .L-atlas-dark .at-recent{border-top-color:#2c3037}
 .L-atlas-dark .emergency .at-fl{color:var(--at-red)}
+.L-atlas-dark .at-alert{background:#c8372d} /* the light Atlas red: white on --at-red (#ff5b52) is 3:1 */

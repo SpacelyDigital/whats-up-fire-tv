@@ -382,6 +382,27 @@ test('styles: a very long one-word place name wraps on the welcome and confirm c
   const {readFileSync}=await import('node:fs');
   assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.big-city\{[^}]*overflow-wrap:anywhere/);
 });
+// Contrast as the stylesheets state it (WCAG 2.x): a rule's value is the last one a layout's sheets give it
+// (variants layer their sheets in app.mjs's VARIANTS order), var(--x) comes from the last layout block
+// (.L-<id>{…}) or :root that sets it, and an alpha colour is laid over the opaque one under it.
+const SHEETS={'atlas-dark':['atlas','atlas-dark'],'atlas-satellite':['atlas','atlas-dark','atlas-satellite']};
+const layoutCss=id=>readFileSync(new URL(`../web/layouts/${id}.css`,import.meta.url),'utf8');
+const block=(css,sel)=>new RegExp(`(?:^|\\})\\s*${sel.replace(/[.()]/g,'\\$&')}\\{([^}]*)\\}`,'m').exec(css)?.[1]||'';
+const prop=(blk,name)=>[...blk.matchAll(new RegExp(`(?:^|;)\\s*${name}:([^;]+)`,'g'))].pop()?.[1].trim()||'';
+const vars=blk=>Object.fromEntries([...blk.matchAll(/(--[\w-]+):([^;]+)/g)].map(m=>[m[1],m[2].trim()]));
+const resolve=(v,map)=>v.replace(/var\((--[\w-]+)\)/g,(_,n)=>map[n]??_);
+const srgb=s=>{const m=/^#([0-9a-f]{3,6})$/i.exec(s=s.trim());if(m){const h=m[1].length===3?[...m[1]].map(c=>c+c).join(''):m[1];return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)).concat(1);}
+  const p=/^rgba?\(([^)]+)\)$/.exec(s)[1].split(/[\s,/]+/).map(Number);return [p[0],p[1],p[2],p[3]??1];};
+const lum=c=>c.slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
+const contrast=(fg,bg)=>{const f=srgb(fg),b=srgb(bg),l1=lum(f.map((v,i)=>v*f[3]+b[i]*(1-f[3]))),l2=lum(b);return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);};
+test('styles: the Atlas emergency banner keeps its white text at 4.5:1 or better on the fill in every variant and both phases of its blink (Dark and Satellite\'s --at-red is a text colour, too light under white)',()=>{
+  for(const id of ['atlas','atlas-dark','atlas-satellite']){
+    const sheets=(SHEETS[id]||[id]).map(s=>[s,layoutCss(s)]),map=Object.assign({},...sheets.map(([s,css])=>vars(block(css,`.L-${s}`))));
+    const fill=resolve(sheets.map(([s,css])=>prop(block(css,`.L-${s} .at-alert`),'background')).filter(Boolean).pop(),map);
+    const flash=/@keyframes at-flash\{50%\{background:([^}]+)\}/.exec(sheets[0][1])[1];
+    for(const [phase,c] of [['base',fill],['flash',flash]])assert.ok(contrast('#fff',c)>=4.5,`${id} ${phase}: #fff on ${c} is ${contrast('#fff',c).toFixed(2)}:1`);
+  }
+});
 test('place time zone refresh: both paths (pick and launch) go through one helper that restarts a street map in progress',async()=>{
   const {readFileSync}=await import('node:fs');
   const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');
