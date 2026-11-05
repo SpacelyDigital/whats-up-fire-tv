@@ -73,10 +73,11 @@ function drawMap(){paintMap($.canvas,maps,view,MAP);}
 
 // The squawk names the emergency only when it is 7500, 7600 or 7700 (a declared one may squawk 1200, or nothing).
 const sos=a=>/^7[567]00$/.test(a.squawk);
-// The card's words: Above you now, In your window (Window view, past a mile), Approaching (DUE).
+// The card's words: Above you now, In your window (Window view, past a mile; a quarter more for the plane the card's
+// slack holds, as the card has it), Approaching (DUE).
 function remark(a){
   if(a.emergency)return sos(a)?`SQUAWK${a.squawk}`:'EMERGENCY';
-  if(a.inside)return windowView()&&a.ground>ABOVE_MI?'IN WINDOW':'ABOVE';
+  if(a.inside||a.held)return windowView()&&a.ground>ABOVE_MI+(a.held?.25:0)?'IN WINDOW':'ABOVE';
   if(a.approaching)return `DUE ${Math.max(1,Math.round(a.cpa.seconds/60))} MIN`;
   if(number(a.vertical)&&a.vertical>500)return 'CLIMBING';
   if(number(a.vertical)&&a.vertical<-500)return 'DESCENDING';
@@ -104,7 +105,7 @@ function render(m){
   if(emergency)setText($.banner,'',[`${hero.squawk?`${hero.squawk} `:''}${emergency} · ${hero.flight}`,`${sos(hero)?hero.squawk:emergency} · ${hero.flight}`]);
 
   const live=byInterest(m).filter(a=>a.ground<=range()*1.1).slice(0,ROWS);
-  const lines=live.map(a=>({a,cells:[a.flight,dest(a),a.aircraft_type||'',altText(a.altitude_ft),distText(a.ground),remark(a)],cls:a===hero?'hero':a.inside?'in':''}));
+  const lines=live.map(a=>({a,cells:[a.flight,dest(a),a.aircraft_type||'',altText(a.altitude_ft),distText(a.ground),remark(a)],cls:a===hero?'hero':a.inside||a.held?'in':''}));
   for(const r of m.recent){
     if(lines.length>=ROWS)break;
     if(lines.some(l=>l.a.flight===r.flight))continue;

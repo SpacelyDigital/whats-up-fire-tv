@@ -1439,7 +1439,7 @@ test('hero: the slack is only for a plane the card already calls Approaching: on
   const side=await cards([flying('a0c005','AAL77',300,12,30,450,170,.3)],{kind:'window',from:300,to:30,miles:25});
   assert.ok(side.length<=2&&side.at(-1)==='AAL77: Approaching',`alone on the window's side: ${side.join(' > ')}`);
 });
-test('hero: the plane the card calls inside stays inside to 0.25 mi outside the alert radius (3° past a window\'s side), so one hovering at the ring beside an approaching airliner, or loitering on a window\'s side, no longer swaps the card and VoiceView every poll; the zone itself (what the chime counts) follows the true position, and a plane on its way in is inside at 3.0 mi, not before',async()=>{
+test('hero: the plane the card calls inside stays inside to 0.25 mi outside the alert radius (3° past a window\'s side), so one hovering at the ring beside an approaching airliner, or loitering on a window\'s side, no longer swaps the card and VoiceView every poll; the zone itself (what the chime counts) follows the true position, and a plane on its way in is inside at 3.0 mi, not before; held, it keeps its word (Above you now at 1.05 mi behind the viewer, not In your window) and the Departures row reads with the card (ABOVE, IN WINDOW)',async()=>{
   // A helicopter at the alert radius, 0.05 mi either side on alternate polls; an airliner approaching, closest 2 mi in 190 s.
   const counts=[],ring=await cards([hover('a0d001','N911HX',90,t=>3+.05*sway(t)),flying('a0d002','UAL1',290,2,200,300,190)],undefined,150,undefined,m=>counts.push(m.planes.filter(a=>a.inside).length));
   assert.deepEqual(ring,['N911HX: Above you now'],`at the ring: ${ring.join(' > ')}`);
@@ -1458,4 +1458,16 @@ test('hero: the plane the card calls inside stays inside to 0.25 mi outside the 
     await r.advance(30000);s.stop();
   }finally{r.restore();}
   assert.deepEqual(seen,{0:'Nearest',5:'Nearest',10:'Nearest',15:'Nearest',20:'Nearest',25:'Above you now',30:'Above you now'});
+  // The Departures board's row agrees with the card while the slack holds the plane: the helicopter 3.05 mi out reads
+  // ABOVE (not IN RANGE), the loiterer 0.3° past the window's side IN WINDOW (not IN RANGE).
+  const board=await departuresRemark(false),winBoard=await departuresRemark(true),rows=[],loiterRows=[],behindRows=[];
+  await cards([hover('a0d001','N911HX',90,t=>3+.05*sway(t))],undefined,60,undefined,m=>rows.push(`${m.hero.inside?'in':'out'} ${board(m.hero)}`));
+  assert.ok(rows.includes('out ABOVE')&&rows.every(r=>r.endsWith(' ABOVE')),`the board in the slack band: ${rows.join(', ')}`);
+  await cards([loiter,flying('a0d004','AAL7',340,8,70,300,240)],{kind:'window',from:300,to:30,miles:25},150,undefined,m=>{if(m.hero.flight==='N44XY')loiterRows.push(`${m.hero.inside?'in':'out'} ${winBoard(m.hero)}`);});
+  assert.ok(loiterRows.includes('out IN WINDOW')&&loiterRows.every(r=>r.endsWith(' IN WINDOW')),`the board on the window's side: ${loiterRows.join(', ')}`);
+  // Window view: a plane called Above you now (right above) hovering at 1.0 ± 0.05 mi behind the viewer keeps the word while
+  // the slack holds it (it is not in the window), instead of In your window every other poll; the board reads ABOVE with it.
+  const behind=await cards([hover('a0d008','N1HV',180,t=>1+.05*sway(t))],{kind:'window',from:300,to:30,miles:25},60,undefined,m=>behindRows.push(`${m.hero.inside?'in':'out'} ${winBoard(m.hero)}`));
+  assert.deepEqual(behind,['N1HV: Above you now'],`behind the viewer at a mile: ${behind.join(' > ')}`);
+  assert.ok(behindRows.includes('out ABOVE')&&behindRows.every(r=>r.endsWith(' ABOVE')),`the board behind the viewer: ${behindRows.join(', ')}`);
 });

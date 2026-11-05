@@ -266,8 +266,9 @@ function approaching(a,config,loose){
 // or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner). Called Approaching (held.app),
 // it stays so with the slack above; called inside (held.inside), it stays so to 0.25 mi outside the zone (3° past a
 // window's side), below a plane really inside and never on its way in; one called Nearest gets none. The zone itself
-// (a.inside: the chime's count, the boards, the drawing) follows the true position. Noisy positions near a cut-off or
-// a tie no longer swap the card, its heading, or VoiceView's line every poll.
+// (a.inside: the chime's count, the drawing) follows the true position; a.held marks the plane the slack holds, so a
+// board's row reads with the card. Noisy positions near a cut-off or a tie no longer swap the card, its heading, or
+// VoiceView's line every poll.
 function pickHero(planes,config,held={}){
   const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles,was=planes.find(a=>a.hex===held.hex&&onMap(a));
   if(was&&held.app)was.approaching=approaching(was,config,true);
@@ -281,8 +282,9 @@ function pickHero(planes,config,held={}){
     if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25)hero=was;
   }
   const inside=!!hero&&(hero.inside||hero===was&&near);
+  if(inside&&!hero.inside)hero.held=true;
   held.hex=hero?.hex;held.app=!!hero?.approaching;held.inside=inside;
-  if(hero)hero.status=hero.emergency?'Emergency':inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
+  if(hero)hero.status=hero.emergency?'Emergency':inside?(win&&hero.ground>ABOVE_MI+(hero.held?.25:0)?'In your window':'Above you now'):
     hero.approaching?'Approaching':'Nearest';
   return hero;
 }
