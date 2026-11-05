@@ -83,7 +83,7 @@ test('feed: the TV clock stepped back 10 min or an hour during an outage: planes
 });
 
 test('route lookups: one every 5 s by performance.now(), whatever the TV clock says; a 429 pauses 15 min, also for the next feed',async()=>{
-  const real=performance.now;let p=1000;performance.now=()=>p;
+  const real=performance.now;let p=1000;performance.now=()=>p;resetOutage(); // the pace is kept across Enrichers
   try{
     const now=Date.now()/1000,asked=[],L=new Ledger(),answer={status:404,payload:null};
     const e=new Enricher(L,async url=>{asked.push(url);return answer;});
@@ -241,7 +241,7 @@ test('outage: the TV clock stepped back 10 min with both feeds still down doesn\
 });
 
 test('route lookups: a pause saved by the build before (value true, not seconds) holds for what is left of it',async()=>{
-  const real=performance.now;let p=1000;performance.now=()=>p;
+  const real=performance.now;let p=1000;performance.now=()=>p;resetOutage();
   try{
     const now=Date.now()/1000,asked=[];
     const e=new Enricher(new Ledger({'cooldown:adsblol':{expires:now+800,value:true}}),async url=>{asked.push(url);return {status:404,payload:null};});

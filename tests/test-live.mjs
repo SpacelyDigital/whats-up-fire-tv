@@ -2,7 +2,7 @@
 // tests/test_office_aircraft_routes.py (route selection) plus the standalone parts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher} from '../web/live.mjs';
+import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher,resetOutage} from '../web/live.mjs';
 
 const NOW=Date.parse('2026-09-24T20:00:00Z')/1000;
 const AIRLINE={hex:'112233',callsign:'UAL2202',registration:'N123UA',latitude:45.78,longitude:-111.15,observed:NOW,inside:true,live:true};
@@ -114,6 +114,21 @@ test('enricher: one request per 5 s, hits and 404s cached 24 h, routes kept 6 h'
   assert.equal(restored.get('lol:UAL2202',1000+86413).name,undefined);
   assert.ok(restored.routes(1000+86413+6*3600-1).length>=1);
   assert.equal(restored.routes(1000+86413+6*3600+1).length,0);
+});
+// A feed restart (a map step, an alert change, a new place) starts a new Enricher: the 5 s pace holds
+// across it, also when the ledger with the saved pace was not written (a restart during a lookup).
+test('enricher: the 5 s pace holds across a feed restart, with or without the saved ledger',async t=>{
+  resetOutage();
+  const real=performance.now;let p=1000;performance.now=()=>p;
+  t.after(()=>{performance.now=real;resetOutage();});
+  const asked=[],request=async url=>{asked.push(url);return {status:404,payload:null};};
+  const a=n=>({...AIRLINE,hex:'a0000'+n,callsign:'UAL10'+n,observed:1000});
+  const first=new Ledger();
+  await new Enricher(first,request).tick([a(1)],1000);assert.equal(asked.length,1);
+  p=2500;await new Enricher(new Ledger(),request).tick([a(2)],1001);assert.equal(asked.length,1,'a restart 1.5 s on waits (ledger not saved)');
+  p=4000;await new Enricher(new Ledger(JSON.parse(JSON.stringify(first))),request).tick([a(2)],1003);assert.equal(asked.length,1,'with the saved ledger too');
+  p=6000;await new Enricher(new Ledger(),request).tick([a(2)],1005);assert.equal(asked.length,2,'asked once the 5 s are up');
+  assert.match(asked[1],/UAL102\.json$/);
 });
 test('selection: in Window view only planes inside the wedge (or overhead) count as inside',()=>{
   const now=1700000000,home={latitude:39.05,longitude:-84.65};

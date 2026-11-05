@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {browseOrder,step,apply,held,LookupGate,IDLE_MS,HOLD_MS} from '../web/browse.mjs';
 import {photoFor,setPhotoGate} from '../web/photos.mjs';
-import {Ledger,Enricher,setRouteFocus} from '../web/live.mjs';
+import {Ledger,Enricher,setRouteFocus,resetOutage} from '../web/live.mjs';
 
 const P=(hex,ground,more={})=>({hex,ground,flight:hex.toUpperCase(),...more});
 const sky=(planes,hero=planes[0])=>({planes,hero,now:0});
@@ -111,7 +111,7 @@ test('photos: nothing is sent for a plane passed over; a held plane is looked up
 test('routes: the held plane is asked for next; otherwise inside the zone, then nearest',async()=>{
   const base={registration:'',latitude:45.78,longitude:-111.15,observed:1000,live:true};
   const a={...base,hex:'112233',callsign:'UAL2202',inside:true,miles:1},b={...base,hex:'445566',callsign:'DAL9',inside:false,miles:30};
-  const run=async focus=>{const calls=[];setRouteFocus(()=>focus);
+  const run=async focus=>{const calls=[];setRouteFocus(()=>focus);resetOutage(); // the 5 s pace is kept across Enrichers
     await new Enricher(new Ledger(),async url=>{calls.push(url);return {status:404,payload:null};}).tick([a,b],1000);return calls;};
   try{
     assert.deepEqual(await run(''),['https://vrs-standing-data.adsb.lol/routes/UA/UAL2202.json']);

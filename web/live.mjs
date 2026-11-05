@@ -328,14 +328,17 @@ export class Ledger {
 let routeFocus=()=>'';
 export const setRouteFocus=fn=>{routeFocus=fn;};
 
+// When the next route lookup may go (performance.now() ms, which a TV clock step doesn't move): kept
+// here, not per Enricher, so the 5 s pace and the pauses hold across a feed restart (each starts a new one).
+let paceAt=0;
 export class Enricher {
   constructor(ledger,request){
     this.ledger=ledger;this.request=request;this.status='idle';
-    // Lookups are paced on performance.now(), which a TV clock step doesn't move. A pause saved by
-    // the feed before (a restart, the last launch) carries over, never longer than it was set for
-    // (its seconds; the build before saved true, so its row holds to its expiry, up to 15 min).
+    // A pause saved by the feed before (the last launch, or a restart whose ledger was saved) carries
+    // over, never longer than it was set for (its seconds; the build before saved true, so its row holds
+    // to its expiry, up to 15 min).
     const row=ledger.rows.get('cooldown:adsblol'),left=Math.min(900,typeof row?.value==='number'?row.value:900,(row?.expires??0)-Date.now()/1000);
-    this.next=left>0?performance.now()+left*1000:0;
+    if(left>0)paceAt=Math.max(paceAt,performance.now()+left*1000);
   }
   publish(a,route,now){
     if(route){
@@ -373,8 +376,8 @@ export class Enricher {
     // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
     // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
     // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
-    const wait=s=>{this.next=performance.now()+s*1000;L.put('cooldown:adsblol',s,now+s,now);};
-    if(missing.length&&performance.now()>=this.next){
+    const wait=s=>{paceAt=performance.now()+s*1000;L.put('cooldown:adsblol',s,now+s,now);};
+    if(missing.length&&performance.now()>=paceAt){
       wait(5);
       const f=routeFocus();
       const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
@@ -416,7 +419,7 @@ export const outage={...CLEAR};
 // Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
 const UNCHECKED={url:'',none:false,checked:-Infinity};
 let coverageOf={...UNCHECKED};
-export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};}; // tests
+export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};paceAt=0;}; // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles; paused: started while
 // the app is hidden (a restart just before Home), so nothing is asked until resume().
 export function startLive(show,config){
