@@ -1,0 +1,83 @@
+backup s403
+backup s429 120
+backup s500
+backup timeout
+backup slow30
+backup garbage
+backup portal
+backup empty
+backup offline
+feed s403
+feed s429 120
+feed s429 900
+feed s429
+feed s503 600
+feed s500
+feed timeout
+feed slow30
+feed noreply
+feed garbage
+feed portal
+feed empty
+feed offline
+routes s403
+routes s429 120
+routes s429 3600
+routes s500
+routes timeout
+routes slow30
+routes garbage
+routes portal
+routes empty
+routes offline
+psapi s403
+psapi s429 120
+psapi s429 7200
+psapi s500
+psapi timeout
+psapi slow30
+psapi garbage
+psapi portal
+psapi empty
+psapi offline
+psimg s403
+psimg s500
+psimg timeout
+psimg slow30
+psimg garbage
+psimg portal
+psimg empty
+psimg offline
+tilejson s403
+tilejson s429 120
+tilejson s500
+tilejson timeout
+tilejson garbage
+tilejson portal
+tilejson empty
+tilejson offline
+tiles s403
+tiles s429 120
+tiles s429 3600
+tiles s500
+tiles timeout
+tiles slow30
+tiles garbage
+tiles portal
+tiles empty
+tiles offline
+usgs s403
+usgs s500
+usgs timeout
+usgs slow30
+usgs garbage
+usgs portal
+usgs empty
+usgs offline
+eox s403
+eox s500
+eox timeout
+eox garbage
+eox portal
+eox empty
+eox offline
