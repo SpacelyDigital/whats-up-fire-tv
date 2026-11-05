@@ -157,7 +157,7 @@ async function useLayout(id){
   try{
     mod.mount(root,ctx);
     mod.setMap?.({...maps});
-    if(lastModel&&!adj)mod.render(shown(lastModel));
+    if(lastModel)draw(lastModel); // a model that came before the layout landed is drawn and read now, not at the next poll
   }catch(e){console.error(`layout ${id}`,e);}
   paintEdge();
   if(mod.map==='detail'){ensureDetail();const n=detailNote();if(n)setText('layout-note',n);} // a street map still being drawn says so again

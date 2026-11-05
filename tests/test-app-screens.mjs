@@ -572,3 +572,17 @@ test('screen reader: OK on a Settings value row says "Editing <row>, <value>", O
   next='Alert radius, 4 mi';s.editing=srow;s.showSettings();assert.equal(els['sr-live'].textContent,'4 mi','Right in edit mode');
   els['sr-live'].textContent='Cancelled';next='Alert radius, 3 mi';s.editing=null;s.showSettings();assert.equal(els['sr-live'].textContent,'Cancelled','the restore after Back');
 });
+
+test('screen reader: a plane that came before the layout script landed is read as soon as the layout has mounted, not at the next poll; a layout switch with the same plane, or no model yet, reads nothing',async()=>{
+  const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
+  const MOD={mount(){},setMap(){},render(){}},ENY={hex:'a1b2c3',status:'Nearest',flight:'ENY4198',type:'Embraer 170',ground:8.2};
+  const p=page([line('let active=null'),fn('useLayout'),fn('draw'),line('let spoken='),fn('announce')],{lastModel:{hero:ENY},adj:null,layer:null,
+    $:id=>id==='sr-live'?sr:{classList:{add(){},remove(){}},textContent:''},fmt:{dist:d=>`${d} mi`},quietText:()=>'',demo:false,
+    validLayout:id=>id,unloadExcept(){},busyNow:false,loadLayout:async()=>MOD,sheetsOf:id=>[id],stage:{classList:{add(){},remove(){}},dataset:{}},
+    root:{replaceChildren(){},querySelectorAll:()=>[]},pruneFitted(){},ctx:{},maps:{},paintEdge(){},refitScreens(){},flashCredits(){},requestAnimationFrame(){},
+    shown:m=>m,fitLine(){},ensureDetail(){},detailNote:()=>''});
+  await p.useLayout('radar');
+  assert.deepEqual(writes,['Nearest, ENY4198, Embraer 170, 8.2 mi'],'read as the layout mounts');
+  await p.useLayout('glass');assert.equal(writes.length,1,'a layout switch with the same plane reads nothing new');
+  p.lastModel=null;await p.useLayout('swiss');assert.equal(writes.length,1,'no model yet: nothing to read');
+});
