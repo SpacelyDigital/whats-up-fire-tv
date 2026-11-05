@@ -279,3 +279,19 @@ test('live: with the TV clock 10 min off the feed, the logbook is not written on
     assert.equal(writes,after1,'no extra write within 5 minutes of TV time');
   }finally{store.set=real;resetLog();}
 });
+test('saneLog: a type in the military tally that isn\'t text (damaged storage) is dropped, and the feed still starts',async()=>{
+  const {saneLog}=await import('../web/model.mjs');
+  const {store}=await import('../web/live.mjs');
+  const eve=H(2026,10,3,4,50),day='2026-11-02'; // 23:50 EST 2 Nov
+  for(const v of [5,{},[],null,true]){
+    const log=saneLog({day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{night:null,seen:{}},mil:{abc123:v,ae0001:'C17'}});
+    assert.deepEqual(log.mil,{ae0001:'C17'},JSON.stringify(v));
+    assert.deepEqual(logSummary(log).militaryTypes,[['C-17',1]]);
+  }
+  resetLog();store.set('whatsup.logbook.v1',{day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{night:null,seen:{}},mil:{abc123:5}});
+  try{
+    const m=await liveOnce({tvMs:eve,feedMs:eve,ac:[near('a0c001')]});
+    assert.ok(m.at(-1).fresh&&m.at(-1).planes.length===1,'planes shown');
+    assert.equal(m.at(-1).log.militaryToday,0);
+  }finally{resetLog();}
+});

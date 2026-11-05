@@ -384,7 +384,9 @@ const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:0,backupFails:0,back
 export const outage={...CLEAR};
 export const resetOutage=()=>Object.assign(outage,CLEAR); // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
-export function startLive(onUpdate,config){
+export function startLive(show,config){
+  // An update the display chokes on (a damaged saved value) is logged; the polling goes on.
+  const onUpdate=(s,ok)=>{try{show(s,ok);}catch(e){console.error('feed update',e);}};
   const home={latitude:config.latitude,longitude:config.longitude};
   const radius=Math.max(1,Math.min(10,Number(config.radiusMiles)||3));
   const ledger=new Ledger(store.get(LEDGER_KEY)),enricher=new Enricher(ledger,url=>getJson(url,8000));

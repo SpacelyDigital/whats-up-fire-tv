@@ -107,7 +107,7 @@ export function saneLog(log){
     planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v)&&(v.d===undefined||Number.isFinite(v.d)))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
     typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isFinite(n))):{},highest:rec(log.highest),fastest:rec(log.fastest),
     cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
-    mil:plain(log.mil)?log.mil:{}};
+    mil:plain(log.mil)?Object.fromEntries(Object.entries(log.mil).filter(([,t])=>typeof t==='string')):{}};
 }
 export function updateLog(log,planes,now){
   const day=localDay(now);

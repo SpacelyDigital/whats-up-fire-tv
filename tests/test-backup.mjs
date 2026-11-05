@@ -730,3 +730,20 @@ test('feed etiquette: back-off on errors, 429 at least 60 s, other 4xx 5 min, wi
     live.stop();
   }finally{r.restore();}
 });
+
+test('feed: an update that throws (a damaged saved value) is logged and never stops the polling',async()=>{
+  const r=fresh(),err=console.error,said=[];
+  console.error=(...a)=>said.push(a.map(String).join(' '));
+  try{
+    let calls=0;
+    const live=startLive(()=>{calls++;throw new TypeError('n.split is not a function');},CFG);
+    await r.advance(30000);
+    assert.ok(r.at('fi').length>=6,`adsb.fi polled every 5 s: ${r.at('fi')}`);
+    const logged=said.filter(t=>/^feed update TypeError/.test(t)).length;
+    assert.ok(calls>=7&&logged===calls,`each throw logged: ${calls} updates, ${logged} logged`);
+    r.feeds.fi={mode:'s503'};r.feeds.lol={mode:'s503'};
+    await r.advance(60000);
+    assert.ok(r.at('lol').length>=1,'failures handled as usual: over to adsb.lol');
+    live.stop();
+  }finally{console.error=err;r.restore();}
+});
