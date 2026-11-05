@@ -881,13 +881,14 @@ function showWelcome(place){
 }
 
 // --- Consent, privacy page and erase.
-// Consent is stored with the version of the text agreed to; a new version asks again
-// (once), and everything else the user set is kept.
-// Version 2: the text names every service by profile and says where searches go (asked again once).
-const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=2;
+// Consent is stored with the version of the policy agreed to (the "Version N" on top of
+// privacy-store.txt). A record from before the current consent text (CONSENT_SINCE) asks
+// again (once), and everything else the user set is kept.
+// Since Version 2 the text names every service by profile and says where searches go (asked again once).
+const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=3,CONSENT_SINCE=2;
 // The hosted policy (shown as a QR on the privacy page when set): the store build's only.
 const PRIVACY_URL=PROFILE.privacyUrl||'';
-function hasConsent(){try{return JSON.parse(localStorage.getItem(CONSENT_KEY))?.v===CONSENT_VERSION;}catch{return false;}}
+function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}
 function giveConsent(){store.set(CONSENT_KEY,{v:CONSENT_VERSION,at:new Date().toISOString().slice(0,10)});} // full storage: maps make room
 let consentDone=null;
 function askConsent(){$('consent-body').textContent=PROFILE.consent;return new Promise(r=>{consentDone=r;open('consent','consent-ok');});}

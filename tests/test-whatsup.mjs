@@ -386,3 +386,12 @@ test('type codes: a designator is read in capitals; ZZZZ ("none assigned") or an
   log.planes.xabc996={d:1,t:'A124'};
   assert.deepEqual(pickRarest(log,15),{code:'A124',name:'Antonov An-124 Ruslan',count:0},'a designator no longer tallied (past the 600 kept) is still the rarest');
 });
+test('consent: a new record holds the policy version agreed to (the "Version N" on top of the store policy); a record from Version 2 on is still valid',async()=>{
+  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
+  const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8'),policy=readFileSync(new URL('../web/privacy-store.txt',import.meta.url),'utf8');
+  const src=/^const CONSENT_KEY=.*$/m.exec(app)[0]+/^function hasConsent\(\).*$/m.exec(app)[0];
+  assert.equal(vm.runInNewContext(src+'CONSENT_VERSION'),Number(/^Version (\d+)/m.exec(policy)?.[1]));
+  const valid=raw=>vm.runInNewContext(src+'hasConsent()',{localStorage:{getItem:()=>raw}});
+  for(const v of [2,3])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
+  for(const raw of ['{"v":1}','{"v":"3"}','{"v":',null,'[]'])assert.equal(valid(raw),false,raw);
+});
