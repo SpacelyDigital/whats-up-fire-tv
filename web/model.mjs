@@ -218,7 +218,7 @@ function pruneSamples(now){for(const [k,l] of samples)if(now-l[l.length-1].t>120
 export const isMilitary=raw=>(Number(raw?.dbFlags)&1)===1;
 // A type's short name, as the app writes it elsewhere: "C-17 Globemaster III" -> "C-17".
 export const shortType=code=>{const n=typeName(code),w=n.split(' ')[0];return /\d/.test(w)?w:code||'';};
-const squawkOf=r=>typeof r.squawk==='string'?text(r.squawk,4):Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
+const squawkOf=r=>{const sq=typeof r.squawk==='string'?text(r.squawk):'';return /^[0-7]{4}$/.test(sq)?sq:Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):'';}; // text (cleaned as callsigns are): four octal digits, or none; a number: its 4 digits
 // Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
 // fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
 const DECLARED={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'},own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);

@@ -1242,8 +1242,8 @@ test('feed: an aircraft listed twice in one reply counts once, from its newest p
   }finally{r.restore();}
 });
 
-test('feed: a squawk sent as text is shown without control, bidi-override or line-break characters, and at most 4 long, so a declared emergency\'s notice can\'t be reordered or broken',async()=>{
-  for(const [squawk,shown] of [['\u202E1200\n\u0007','1200'],['12\u2028\u202D00','1200'],['\u2066'+'Z'.repeat(60),'ZZZZ'],['7700','7700'],['','']]){
+test('feed: a squawk sent as text is shown only as four octal digits, cleaned of control, bidi-override and line-break characters first; letters, five digits or an emoji are no squawk, so a declared emergency\'s notice can\'t be reordered, broken or given words',async()=>{
+  for(const [squawk,shown] of [['\u202E1200\n\u0007','1200'],['12\u2028\u202D00','1200'],['\u2066'+'Z'.repeat(60),''],['ZZZZ',''],['77001',''],['123\u{1F600}',''],['7700','7700'],['','']]){
     const r=fresh(),models=[];
     try{
       r.feeds.fi={mode:'ok',get body(){return {ac:[plane('a50001','UAL101',{squawk,emergency:'general'})],now:Date.now()};}};
