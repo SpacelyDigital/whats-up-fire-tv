@@ -171,6 +171,27 @@ test('Adjust position: at the 800 m limit the note says so, also while the stree
   }
 });
 
+test('a map that can\'t be built for want of the network (no TileJSON, a portal, a tile not fetched) is logged as a warning, by the base map, the street map and Adjust position; any other failure stays an error',async()=>{
+  const {buildMap}=await import('../web/mapgen.mjs');
+  const TJ={status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}};
+  const MVT={VectorTile:class{constructor(){throw new TypeError('bad tile');}},Pbf:class{}};
+  const fail=(json,bytes)=>buildMap({latitude:39.05,longitude:-84.41},10,{net:{getJson:async()=>json,getBytes:async()=>bytes},MVT}).then(()=>assert.fail('built'),e=>e);
+  const cases=[['tilejson connection_error',await fail({status:'connection_error',payload:null}),'warn'],['tilejson invalid',await fail({status:'invalid',payload:null}),'warn'],
+    ['tilejson 503',await fail({status:503,payload:null}),'warn'],['map tile unavailable',await fail(TJ,null),'warn'],['bad tile',await fail(TJ,new Uint8Array(1)),'error']];
+  const run=async(make,e)=>{const logs=[];const console={warn:(...a)=>logs.push(['warn',...a]),error:(...a)=>logs.push(['error',...a])};
+    await make(console,e);await new Promise(r=>setTimeout(r,10));return logs;};
+  const place={latitude:39.05,longitude:-84.41};
+  const base=(console,e)=>{page([fn('applyPlace')],{console,dLon:()=>0,placeToken:0,chime:null,feed:null,maps:{},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),savedMap:()=>null,
+    mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},setTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,buildMap:async()=>{throw e;},STALE:'stale'}).applyPlace(place);};
+  const detail=(console,e)=>page([fn('ensureDetail')],{console,settings:{place},maps:{},mapMiles:()=>10,detailSpec:()=>({}),savedDetail:()=>null,detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,
+    baseNote:'',clearTimeout(){},setTimeout(){},buildDetail:async()=>{throw e;},STALE:'stale'}).ensureDetail();
+  const adjust=async(console,e)=>(await adjustPage({console,buildMap:async()=>{throw e;}})).startAdjust(place);
+  for(const [what,make] of [['map',base],['detail map',detail],['adjust map',adjust]])for(const [msg,e,level] of cases){
+    assert.equal(e.message,msg);
+    assert.deepEqual(await run(make,e),[[level,what,msg]],`${what}: ${msg}`);
+  }
+});
+
 // localStorage as the page sees it: the app's keys are own properties (Object.keys lists them).
 const shelf=(items={})=>Object.assign(Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},removeItem(k){delete this[k];}}),items);
 test('Privacy offers Erase all data whenever anything of the app\'s is stored, also when the saved consent is of an older version, damaged or missing; a fresh TV hides it',()=>{

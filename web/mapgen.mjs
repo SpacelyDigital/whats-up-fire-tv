@@ -78,13 +78,15 @@ const touches=(pts,lim)=>{
   return x1>=-lim&&x0<=lim&&y1>=-lim&&y0<=lim;
 };
 
+// No TileJSON or a tile not fetched: the network, not a fault (the app logs it as a warning).
+const netError=m=>Object.assign(new Error(m),{net:true});
 // The tile URL (it names the current planet build) is asked for once an hour, not per build.
 const templates=new Map(); // keyed by the fetch function (the app's is always the same)
 async function tileTemplate(net){
   const known=templates.get(net.getJson);if(known&&Date.now()-known.at<3600000)return known.url;
   const {status,payload}=await net.getJson(TILEJSON,8000);
   const url=status===200&&Array.isArray(payload?.tiles)?payload.tiles[0]:'';
-  if(!TILE_URL.test(url))throw new Error(`tilejson ${status}`);
+  if(!TILE_URL.test(url))throw netError(`tilejson ${status}`);
   templates.set(net.getJson,{url,at:Date.now()});
   return url;
 }
@@ -121,7 +123,7 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,require
     const url=template.replace('{z}',zoom).replace('{x}',((tx%n)+n)%n).replace('{y}',ty);
     let bytes=await net.getBytes(url);
     if(!bytes){await new Promise(r=>setTimeout(r,1500));if(!alive())throw new Error(STALE);bytes=await net.getBytes(url);}
-    if(!bytes)throw new Error('map tile unavailable'); // no tile numbers: they place the home
+    if(!bytes)throw netError('map tile unavailable'); // no tile numbers: they place the home
     fetched++;
     const tile=new MVT.VectorTile(new MVT.Pbf(bytes));
     if(Object.keys(tile.layers).length)withData++;

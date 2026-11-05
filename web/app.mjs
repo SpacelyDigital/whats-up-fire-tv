@@ -202,7 +202,7 @@ async function ensureDetail(){
     setText('layout-note',baseNote);
   }catch(e){
     if(e?.message===STALE)return;
-    console.error('detail map',e?.message||e);
+    (e?.net?console.warn:console.error)('detail map',e?.message||e);
     if(token!==detailToken)return;
     if(active?.mod.map==='detail')setText('layout-note',baseNote||'Street map unavailable, trying again soon');
     const wait=Math.min(300000,30000*2**detailTries++);
@@ -319,7 +319,7 @@ async function applyPlace(place,{fresh=false}={}){
       break;
     }catch(e){
       if(e?.message===STALE||token!==placeToken)return;
-      console.error('map',e?.message||e);
+      (e?.net?console.warn:console.error)('map',e?.message||e);
       baseNote=attempt?'Map unavailable, retrying':'Map unavailable';setText('layout-note',baseNote);
       if(demo)startFeed();
       await new Promise(r=>setTimeout(r,Math.min(300000,30000*(attempt+1))));
@@ -804,7 +804,7 @@ async function startAdjust(place,{from=''}={}){
   try{
     const m=await adjStreets(place);
     if(adj?.place===place){adj.map=m;setText('adjust-note',adj.note='');drawAdjust();}
-  }catch(e){console.error('adjust map',e?.message||e);if(adj?.place===place)setText('adjust-note',adj.note='Street map unavailable');}
+  }catch(e){(e?.net?console.warn:console.error)('adjust map',e?.message||e);if(adj?.place===place)setText('adjust-note',adj.note='Street map unavailable');}
 }
 function drawAdjust(){
   const c={latitude:adj.latitude,longitude:adj.longitude},ppm=AR/ADJ_RANGE;
