@@ -401,8 +401,9 @@ export class Enricher {
 //    60 s) and slows adsb.lol to one request every 15, then 20 s; a 429 at 20 s, or any other
 //    4xx, pauses its positions for 15 minutes (saved with the route lookups' pause). The pace
 //    goes back to 10 s when adsb.fi returns. No receiver-coverage check on it.
-// The outage outlives a feed restart (place, radius or zone changed): while adsb.fi is known to
-// be down, the new feed starts on the backup with both back-offs kept.
+// The outage outlives a feed restart (place, radius or zone changed): adsb.fi's back-off, Retry-After
+// and 15 s mark are kept (a failure that lands after the restart counts too), and while adsb.fi is
+// known to be down the new feed starts on the backup with both back-offs kept.
 export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
@@ -469,8 +470,6 @@ export function startLive(show,config){
     if(typeof status==='number'&&status>=400&&status<500)return 300000;
     return Math.min(300000,Math.max(retryAfter*1000,jitter(config.pollSeconds*1000*2**(fails-1))));
   };
-  // A restart with adsb.fi up asks it at once, as before; on the backup, the outage carries on.
-  if(!outage.down)Object.assign(outage,{fails:0,since:0,retryAt:0});
   // busy: a feed request is out; next: when the next poll is due; asked: when the last request went; good: the last data came in
   let paused=!!config.paused,busy=false,next=0,asked=-Infinity,good=false,hid=0;
   // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
@@ -501,6 +500,11 @@ export function startLive(show,config){
   }
   // No data this poll: the display keeps its last picture a while, then counts down to `at`.
   const failed=at=>{good=false;states={...states,retryAt:at};onUpdate(states,false);};
+  const fiFailed=(status,retryAfter,started)=>{
+    if(!outage.fails)outage.since=started;
+    outage.retryAt=performance.now()+backoff(status,retryAfter||0,++outage.fails);
+    if(outage.fails>=2)outage.down=true; // two in a row
+  };
   async function poll(){
     if(stopped||paused||busy)return;
     const started=performance.now(),feed=pick(started);
@@ -512,7 +516,6 @@ export function startLive(show,config){
     // Wide areas are big replies: more time to arrive (4 s up to 25 NM, 12 s at 250).
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
     busy=false;
-    if(stopped||paused)return; // a reply that lands while hidden is dropped
     const reply=status===200?(backup?fromBackup(payload):feedReply(payload)):null,stamp=feedStamp(reply),now=Date.now()/1000;
     // The TV's clock can be off by seconds, minutes or days: positions are judged against
     // the feed's own clock (it was just received), and the offset goes to the display. Up to
@@ -520,6 +523,8 @@ export function startLive(show,config){
     // (none, not a number, or further off) is a failed poll, as a 5xx: none of its positions can
     // be judged (adsb.lol stands in), and a broken feed can't move the logbook's day far.
     const body=stamp>0&&Math.abs(stamp-now)<7*86400?reply:null;
+    // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts.
+    if(stopped||paused){if(!body&&!backup)fiFailed(status,retryAfter,started);return;}
     if(body){
       const ac=oneEach(body.ac),skew=stamp-now,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
@@ -549,9 +554,7 @@ export function startLive(show,config){
       }else outage.backupRetryAt=now+backoff(status,retryAfter||0,++outage.backupFails);
       failed(schedule(started));
     }else{
-      if(!outage.fails)outage.since=started;
-      outage.retryAt=performance.now()+backoff(status,retryAfter||0,++outage.fails);
-      if(outage.fails>=2)outage.down=true; // two in a row
+      fiFailed(status,retryAfter,started);
       const at=schedule(started);
       // A failed check on adsb.fi while adsb.lol's positions are coming in changes nothing shown.
       if(!(outage.down&&good))failed(at);

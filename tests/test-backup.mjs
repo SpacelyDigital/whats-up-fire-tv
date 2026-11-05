@@ -580,6 +580,41 @@ test('background: the last picture is not re-judged while the app is hidden, and
   }finally{r.restore();}
 });
 
+// adsb.fi's back-off is kept across a feed restart (Up/Down, an alert change, Adjust position, a new
+// place): adsb.fi limits the TV, not one query. A failure that lands after the restart counts too.
+test('restart: within 15 s of an adsb.fi failure a restart keeps its back-off and Retry-After, and adsb.lol still takes over by the 15 s mark',async()=>{
+  for(const [name,fi,retry] of [['429, Retry-After 120 s',{mode:'s429',retryAfter:120},125000],['503',{mode:'s503'},10000]]){
+    const r=fresh();
+    try{
+      let live=r.live();
+      await r.advance(4000);r.feeds.fi=fi; // good at 0, then the failure at 5 s
+      await r.advance(3000);live.stop();live=r.live(); // restarted 2 s after it
+      await r.advance(60000);
+      assert.deepEqual(r.at('fi',5001,retry-1),[],`${name}: adsb.fi not asked again before ${retry/1000} s`);
+      assert.ok(r.at('lol')[0]<=20000,`${name}: adsb.lol by 15 s after the failure: ${r.at('lol')}`);
+      live.stop();
+    }finally{r.restore();}
+  }
+  // adsb.fi hanging, a restart every 3 s (each before the 4.5 s timeout): the stopped feeds' timeouts
+  // still count, so adsb.lol takes over instead of adsb.fi being asked again on every restart.
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'timeout'};
+    let live=r.live();
+    for(let i=0;i<20;i++){await r.advance(3000);live.stop();live=r.live();}
+    assert.ok(r.at('fi').length<=3,`adsb.fi asked ${r.at('fi').length} times in 60 s`);
+    assert.ok(r.at('lol')[0]<=15000,`adsb.lol asked by 15 s: ${r.at('lol')}`);
+    assert.equal(lastData(r).source,'adsb.lol');
+    live.stop();
+    // Hidden while a request is out: its failure counts, so the return doesn't ask adsb.fi inside its back-off.
+    resetOutage();r.feeds.fi={mode:'ok'};live=r.live();await r.advance(1000);
+    r.feeds.fi={mode:'timeout'};const t=r.t;await r.advance(5000);live.pause(); // asked at +4 s, times out hidden
+    await r.advance(5000);live.resume();await r.advance(2000);
+    assert.deepEqual(r.at('fi',t+4001,t+12000),[],`not asked again on return: ${r.at('fi',t)}`);
+    live.stop();
+  }finally{r.restore();}
+});
+
 // Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
 function withStorage(saved,full=false){
   const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
