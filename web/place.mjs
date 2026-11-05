@@ -127,6 +127,9 @@ export const looksLikeAddress=q=>/^\d+[A-Z]?\s+[A-Z]/i.test(clean(q))&&!/^\d{5}(
 const TERRITORIES={'Guam':'GU','U.S. Virgin Islands':'VI','Virgin Islands':'VI','American Samoa':'AS','Northern Mariana Islands':'MP'};
 const US_CODES=new Set([...Object.values(US),...Object.values(TERRITORIES)]);
 const US_NAMES=[...Object.keys(US),...Object.keys(TERRITORIES),'United States','USA'].map(n=>n.toLowerCase().replace(/[.,]/g,''));
+// State codes that are also countries' (Germany DE, India IN, Colombia CO, Montenegro ME...): "... Berlin DE" is
+// no Delaware address, so these count only after a comma or with a ZIP.
+const NOT_ONLY_US=new Set(['DE','IN','CO','ME','AL','AR','GA','ID','IL','LA','MA','MD','MN','MS','MT','NE','PA','SC','SD','TN','VA']);
 export function looksLikeUSAddress(query){
   const q=clean(query,120);
   if(!looksLikeAddress(q))return false;
@@ -134,10 +137,12 @@ export function looksLikeUSAddress(query){
   if(/\b\d{5}(-\d{4})?\s*$/.test(rest)||/,\s*\d{5}(-\d{4})?\b/.test(rest))return true; // a ZIP at the end or after a comma
   const words=rest.replace(/[.]/g,'').split(/[\s,]+/).filter(Boolean);
   const last=words.at(-1)?.toUpperCase()||'';
-  if(US_CODES.has(last)&&words.length>2)return true; // "... Cincinnati OH"
+  if(US_CODES.has(last)&&!NOT_ONLY_US.has(last)&&words.length>2)return true; // "... Cincinnati OH"
   if([...rest.matchAll(/,\s*([A-Za-z]{2})\b/g)].some(m=>US_CODES.has(m[1].toUpperCase())))return true; // "..., OH ..."
-  const flat=` ${rest.toLowerCase().replace(/[.,]/g,' ').replace(/\s+/g,' ')} `;
-  return US_NAMES.some(n=>flat.includes(` ${n} `));
+  // A state's name at the end, or as a part after a comma ("..., Ohio, USA"); never in the street or town
+  // ("800 W Georgia St Vancouver BC", "10 Station Rd Virginia Water").
+  const flat=rest.toLowerCase().replace(/[.]/g,'').replace(/[\s,]+$/,'').replace(/\s+/g,' '),parts=flat.split(/\s*,\s*/).slice(1);
+  return US_NAMES.some(n=>flat.endsWith(` ${n}`)||parts.includes(n));
 }
 const title=s=>s.toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 

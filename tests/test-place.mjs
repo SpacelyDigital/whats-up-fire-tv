@@ -82,9 +82,9 @@ test('address search: falls back to Nominatim; both failing is null, no match is
   assert.equal(placeLabel(p),'London, UK');
   assert.equal((await refineZone(p)).timeZone,'Europe/London','looked up when picked');
   stub([[/census/,[200,{result:{addressMatches:[]}}]],[/nominatim/,[200,[]]]]);
-  assert.deepEqual(await searchAddress('1 Nowhere Lane Springfield IL',{census:true,nominatim:true}),[]);
+  assert.deepEqual(await searchAddress('1 Nowhere Lane Springfield OH',{census:true,nominatim:true}),[]);
   stub([]);
-  assert.equal(await searchAddress('2 Nowhere Lane Springfield IL',{census:true,nominatim:true}),null,'both failing is null (and not cached)');
+  assert.equal(await searchAddress('2 Nowhere Lane Springfield OH',{census:true,nominatim:true}),null,'both failing is null (and not cached)');
   // The same search again in this session is answered from the cache (Nominatim policy).
   const again=stub([]);
   assert.equal((await searchAddress('10 Downing Street London',{census:true,nominatim:true}))[0].street,'10 Downing Street');
@@ -254,6 +254,17 @@ test('Census gets only text that looks like a U.S. address', async () => {
     '400 Marine Dr, Tamuning, GU 96913','5 Elm Street Springfield, IL','77 Oak Rd 45202'])assert.ok(looksLikeUSAddress(q),q);
   for(const q of ['10 Downing Street London','123 Main St','221B Baker Street','45202','Cincinnati','8 Rue de Rivoli Paris','12 Queen St W Toronto ON'])assert.ok(!looksLikeUSAddress(q),q);
 });
+test('Census: a state name counts only at the end or after a comma, and a state code that is also a country code (DE, IN, CO, ME...) only after a comma or with a ZIP',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  for(const q of ['4 Elm Street, Springfield, IL','22 Market St Wilmington DE 19801','9 Meridian St Indianapolis, IN','1 Main St Springfield Illinois','1 Peachtree St Atlanta Georgia',
+    '1 Main St, Springfield, Illinois, USA','350 Fifth Ave, New York','350 Fifth Ave New York NY','2 Main St Tulsa OK'])assert.ok(looksLikeUSAddress(q),q);
+  for(const q of ['22 BAKER ST LONDON DE','5 UNTER DEN LINDEN BERLIN DE','10 KING ST SYDNEY ME','7 PLAZA MAYOR MADRID CO','9 VIA ROMA MILANO IN','12 MG ROAD BANGALORE IN',
+    '800 W GEORGIA ST VANCOUVER BC','10 STATION RD VIRGINIA WATER','10 Station Rd, Virginia Water, Surrey','5 WASHINGTON ST LONDON','45 FLORIDA BUENOS AIRES',
+    '3 COLORADO ST MADRID','1 INDIANA AVE KINGSTON'])assert.ok(!looksLikeUSAddress(q),q);
+  const seen=stub([[/nominatim/,[200,[]]]]);
+  await searchAddress('22 Baker St London DE',{census:true,nominatim:true});
+  assert.ok(!seen.some(u=>/census/.test(u))&&seen.some(u=>/nominatim/.test(u)),'to Nominatim, not the Census Bureau');
+});
 
 test('place search: "Rosemont, Illinois" and "Rosemont IL" search the name, then match the state',async()=>{
   const reply={results:[{name:'Rosemont',admin1:'Illinois',country:'United States',country_code:'US',latitude:41.995,longitude:-87.884,timezone:'America/Chicago'},
@@ -292,7 +303,7 @@ test('address search privacy: a failed Census search never falls through to Nomi
   assert.equal(await searchAddress('3087 Terminal Dr Hebron KY 41048',{census:true,nominatim:true}),null,'Search is unavailable, Try again');
   assert.ok(!seen.some(u=>/nominatim/.test(u)),'the U.S. address was not sent to Nominatim');
   const off=stub([[/nominatim/,[200,[]]]]);
-  assert.equal(await searchAddress('4 Elm Street Springfield IL',{census:true,nominatim:true}),null,'Census unreachable: null, still no Nominatim');
+  assert.equal(await searchAddress('4 Elm Street, Springfield, IL',{census:true,nominatim:true}),null,'Census unreachable: null, still no Nominatim');
   assert.ok(!off.some(u=>/nominatim/.test(u)));
   for(const t of ['SW1A 2AA','M5V 3L9','75008','10115'])assert.ok(looksLikePostcode(t),t);
   for(const t of ['CHICAGOO','St Johns','Springfield'])assert.ok(!looksLikePostcode(t),t);
