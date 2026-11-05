@@ -714,7 +714,7 @@ function select(el){
     case 'set-done':return close();
     case 'set-about':return openAbout();
     case 'set-privacy':return openPrivacy();
-    case 'consent-ok':return agree();
+    case 'consent-ok':if(performance.now()<consentArm)return;return agree();
     case 'consent-policy':return openPrivacy();
     case 'privacy-back':return close();
     case 'privacy-erase':return open('erase','erase-cancel');
@@ -890,8 +890,15 @@ const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=3,CONSENT_SINCE=2;
 const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}
 function giveConsent(){store.set(CONSENT_KEY,{v:CONSENT_VERSION,at:new Date().toISOString().slice(0,10)});} // full storage: maps make room
-let consentDone=null;
-function askConsent(){$('consent-body').textContent=PROFILE.consent;return new Promise(r=>{consentDone=r;open('consent','consent-ok');});}
+let consentDone=null,consentArm=0;
+// Erase reloads onto this screen with focus on Agree: an OK pressed twice in a hurry must not agree
+// unread. After Erase, OK is taken once a key is released here, or after 0.8 s.
+const ERASED_KEY='whatsup.erased',erased=(()=>{try{const v=sessionStorage.getItem(ERASED_KEY);sessionStorage.removeItem(ERASED_KEY);return v==='1';}catch{return false;}})();
+addEventListener('keyup',()=>{consentArm=0;});
+function askConsent(){
+  consentArm=erased?performance.now()+800:0;
+  $('consent-body').textContent=PROFILE.consent;return new Promise(r=>{consentDone=r;open('consent','consent-ok');});
+}
 function agree(){giveConsent();closeAll();const r=consentDone;consentDone=null;r?.();}
 // The chosen layout's colours for the consent screen, without starting the layout (its
 // code may fetch map imagery): only its stylesheets and stage classes.
@@ -925,6 +932,7 @@ function eraseAll(){
   feed?.stop();feed=null;store.seal();placeToken++;detailToken++;clearTimeout(detailRetry);
   try{for(const k of Object.keys(localStorage))if(k.startsWith('whatsup.'))localStorage.removeItem(k);}catch{/* nothing stored */}
   try{indexedDB?.deleteDatabase?.('whatsup');}catch{/* none */}
+  try{sessionStorage.setItem(ERASED_KEY,'1');}catch{/* the consent screen takes OK at once */}
   location.reload();
 }
 
