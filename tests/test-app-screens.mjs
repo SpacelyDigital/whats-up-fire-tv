@@ -183,8 +183,8 @@ test('a map that can\'t be built for want of the network (no TileJSON, a portal,
   const place={latitude:39.05,longitude:-84.41};
   const base=(console,e)=>{page([fn('applyPlace')],{console,dLon:()=>0,placeToken:0,chime:null,feed:null,maps:{},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),savedMap:()=>null,
     mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},setTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,buildMap:async()=>{throw e;},STALE:'stale'}).applyPlace(place);};
-  const detail=(console,e)=>page([fn('ensureDetail')],{console,settings:{place},maps:{},mapMiles:()=>10,detailSpec:()=>({}),savedDetail:()=>null,detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,
-    baseNote:'',clearTimeout(){},setTimeout(){},buildDetail:async()=>{throw e;},STALE:'stale'}).ensureDetail();
+  const detail=(console,e)=>page([line('const detailNote='),fn('ensureDetail')],{console,settings:{place},maps:{},mapMiles:()=>10,detailSpec:()=>({}),savedDetail:()=>null,detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,
+    baseNote:'',active:null,clearTimeout(){},setTimeout(){},buildDetail:async()=>{throw e;},STALE:'stale'}).ensureDetail();
   const adjust=async(console,e)=>(await adjustPage({console,buildMap:async()=>{throw e;}})).startAdjust(place);
   for(const [what,make] of [['map',base],['detail map',detail],['adjust map',adjust]])for(const [msg,e,level] of cases){
     assert.equal(e.message,msg);
