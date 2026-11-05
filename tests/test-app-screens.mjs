@@ -59,6 +59,19 @@ test('choosing a place: a move of a few hundred metres across the date line keep
   assert.ok(Math.abs(cx+.515)<.001,`away from the date line as before: ${cx}`);
 });
 
+test('Adjust position from a search result, then Back: the confirm card over the screens that were under it; with no saved place, over a search screen at least',()=>{
+  const seen=[];
+  const p=page([fn('endAdjust')],{adj:null,settings:{},lastModel:null,stage:{classList:{remove(){}}},$:()=>({replaceChildren(){}}),syncApp(){},showSettings(){},
+    open:id=>seen.push(id),openLocate:()=>seen.push('search'),confirmPlace:()=>seen.push('confirm')});
+  const back=(under,place=null)=>{seen.length=0;p.settings={place};p.adj={from:'confirm',under:under.map(id=>[{id}]),place:{latitude:41.85,longitude:-87.65}};p.endAdjust();return seen.join();};
+  assert.equal(back(['locate']),'locate,confirm','first run, lookup failed');
+  assert.equal(back(['welcome','locate']),'welcome,locate,confirm','first run, the welcome card');
+  assert.equal(back(['settings','locate'],{latitude:1,longitude:2}),'settings,locate,confirm','saved home');
+  assert.equal(back([],{latitude:1,longitude:2}),'confirm');
+  assert.equal(back([]),'search,confirm','no saved place: Search again has a search screen to return to');
+  assert.equal(back(['welcome']),'welcome,search,confirm');
+});
+
 // Adjust position from `let adj=null;` to the end of startAdjust, and nudge; drawing is a stub.
 async function adjustPage(globals){
   const {dLon}=await import('../web/core.mjs');

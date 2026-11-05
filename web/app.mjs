@@ -827,6 +827,7 @@ function endAdjust(save=false){
       source:moved?'adjusted':a.place.source});
   }else if(a.from==='confirm'){
     for(const [l] of a.under){if(l.id==='settings')showSettings();open(l.id);}
+    if(!settings.place&&!a.under.some(([l])=>l.id==='locate'))openLocate(); // a first run: Search again needs a search screen
     confirmPlace(a.place);
     for(const [l,last] of a.under)l._last=last;
   }
