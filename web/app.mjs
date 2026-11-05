@@ -728,11 +728,12 @@ function select(el){
   }
 }
 
-let lastBack=0;
+let lastBack=-Infinity;
 function back(){
   // The app and the page may both report one press: de-duplicate first, so one Back while
-  // editing only cancels the edit (it also closed Settings).
-  const now=Date.now();if(now-lastBack<350)return;lastBack=now;
+  // editing only cancels the edit (it also closed Settings). On the monotonic clock: a TV clock
+  // set back must not swallow every Back until it catches up.
+  const now=performance.now();if(now-lastBack<350)return;lastBack=now;
   if(editing)return cancelEdit();
   if(adj)return endAdjust();
   if(!layer&&browse)return endBrowse();
