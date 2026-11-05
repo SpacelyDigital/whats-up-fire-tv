@@ -160,7 +160,7 @@ async function useLayout(id){
     if(lastModel&&!adj)mod.render(shown(lastModel));
   }catch(e){console.error(`layout ${id}`,e);}
   paintEdge();
-  if(mod.map==='detail')ensureDetail();
+  if(mod.map==='detail'){ensureDetail();const n=detailNote();if(n)setText('layout-note',n);} // a street map still being drawn says so again
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
   refitScreens(); // screens open over the switch now have this layout's fonts
   flashCredits();done();
@@ -184,6 +184,8 @@ function mapsChanged(){
 // a failed one is tried again after 30 s, 60 s... up to 5 min, and an older saved map for
 // this place and radius is shown meanwhile. Its notes give way to the base map's (baseNote).
 let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null,baseNote='';
+// The street map's note while it is drawn, on the layouts that draw it.
+const detailNote=()=>baseNote||(detailBusy&&active?.mod.map==='detail'?(mapMiles()<=15?'Drawing the street map':'Filling in map detail'):'');
 async function ensureDetail(){
   const place=settings.place;
   if(!place||maps.detail&&!maps.detail.stale||detailBusy)return;
@@ -191,7 +193,7 @@ async function ensureDetail(){
   if(saved){maps.detail=decodeDetail(saved);detailTries=0;return mapsChanged();}
   if(!maps.detail){const old=savedDetail(place,spec,{stale:true});if(old){maps.detail={...decodeDetail(old),stale:true};mapsChanged();}}
   const token=++detailToken;detailBusy=true;clearTimeout(detailRetry);
-  setText('layout-note',baseNote||(mapMiles()<=15?'Drawing the street map':'Filling in map detail'));
+  setText('layout-note',detailNote());
   try{
     const built=await buildDetail(place,{...spec,alive:()=>token===detailToken&&settings.place===place});
     if(token!==detailToken||settings.place!==place)return;
@@ -202,7 +204,7 @@ async function ensureDetail(){
     if(e?.message===STALE)return;
     console.error('detail map',e?.message||e);
     if(token!==detailToken)return;
-    setText('layout-note',baseNote||'Street map unavailable, trying again soon');
+    if(active?.mod.map==='detail')setText('layout-note',baseNote||'Street map unavailable, trying again soon');
     const wait=Math.min(300000,30000*2**detailTries++);
     detailRetry=setTimeout(()=>{if(token===detailToken){setText('layout-note',baseNote);detailBusy=false;if(active?.mod.map==='detail')ensureDetail();}},wait);
   }finally{if(token===detailToken)detailBusy=false;}
@@ -312,7 +314,7 @@ async function applyPlace(place,{fresh=false}={}){
     try{
       const m=await buildMap(place,range,{alive:()=>token===placeToken});
       if(token!==placeToken)return;
-      maps.base=m;saveMap(m);mapsChanged();baseNote='';setText('layout-note','');flashCredits();
+      maps.base=m;saveMap(m);mapsChanged();baseNote='';setText('layout-note',detailNote());flashCredits();
       break;
     }catch(e){
       if(e?.message===STALE||token!==placeToken)return;

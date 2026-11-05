@@ -63,7 +63,7 @@ test('applying a place: maps built at the date line are kept for a home 50 m acr
   const {dLon}=await import('../web/core.mjs');
   const built=[],ctx={dLon,placeToken:0,chime:null,feed:null,maps:{},store:{remove(){}},HISTORY_KEY:'h',resetLog(){},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),
     savedMap:()=>null,mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},
-    demo:false,buildMap:async place=>{built.push(place);return {latitude:place.latitude,longitude:place.longitude,range:10};},saveMap(){},flashCredits(){},STALE:'stale'};
+    demo:false,buildMap:async place=>{built.push(place);return {latitude:place.latitude,longitude:place.longitude,range:10};},saveMap(){},flashCredits(){},STALE:'stale',detailNote:()=>''};
   const p=page([fn('applyPlace')],ctx);
   const apply=async([lat,lon],[latitude,longitude])=>{
     const base={latitude:lat,longitude:lon,range:10},detail={latitude:lat,longitude:lon};p.maps={base,detail};p.feed=null;built.length=0;
@@ -76,6 +76,34 @@ test('applying a place: maps built at the date line are kept for a home 50 m acr
     assert.equal(await apply(from,to),'rebuilt',`map at ${from}, home at ${to}`);
 });
 
+test('the street map\'s note stays while it is drawn: the base map landing first or a base-map layout in between doesn\'t clear it; a failure says so only on a street-map layout; the base map\'s note wins',async()=>{
+  const {dLon}=await import('../web/core.mjs');
+  const builds=[],bases=[],settle=()=>new Promise(r=>setImmediate(r)),place={latitude:41.85,longitude:-87.65};
+  const MODS={blueprint:{map:'detail'},swiss:{},radar:{}};for(const m of Object.values(MODS))Object.assign(m,{mount(){},setMap(){}});
+  const p=page([line('let active=null'),line('let detailToken=0'),line('const detailNote='),fn('useLayout'),fn('ensureDetail'),fn('applyPlace')],{dLon,
+    settings:{place:null},maps:{},mapMiles:()=>10,detailSpec:()=>({key:'r10'}),detailFits:()=>true,savedDetail:()=>null,decodeDetail:m=>m,saveDetail(){},mapsChanged(){},STALE:'stale',
+    buildDetail:()=>new Promise((res,rej)=>builds.push({res,rej})),buildMap:()=>new Promise((res,rej)=>bases.push({res,rej})),savedMap:()=>null,saveMap(){},
+    placeToken:0,chime:null,feed:null,store:{remove(){}},HISTORY_KEY:'h',resetLog(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,flashCredits(){},
+    clearTimeout(){},setTimeout(){},requestAnimationFrame(){},validLayout:id=>id,unloadExcept(){},busyNow:false,loadLayout:async id=>MODS[id],sheetsOf:id=>[id],
+    stage:{classList:{add(){},remove(){}},dataset:{}},root:{replaceChildren(){}},pruneFitted(){},ctx:{},lastModel:null,adj:null,paintEdge(){},refitScreens(){}});
+  p.$=id=>({classList:{add(){},remove(){}},get textContent(){return p.texts[id]??'';}});
+  const note=()=>p.texts['layout-note']??'',layout=async id=>{await p.useLayout(id);await settle();};
+  await layout('blueprint');p.settings.place=place;p.applyPlace(place);await settle();
+  assert.equal(note(),'Drawing the street map');
+  bases.shift().res({latitude:place.latitude,longitude:place.longitude,range:10});await settle();
+  assert.equal(note(),'Drawing the street map','the base map landed first: the street map is still being drawn');
+  await layout('swiss');assert.equal(note(),'','not on a layout without a street map');
+  await layout('blueprint');assert.equal(note(),'Drawing the street map','back on Blueprint while it is still drawn');
+  await layout('radar');builds.shift().rej(new Error('map tile unavailable'));await settle();
+  assert.equal(note(),'','a failure seen from Radar writes nothing there');
+  await layout('blueprint');assert.equal(note(),'Drawing the street map','tried again on Blueprint');
+  builds.shift().rej(new Error('map tile unavailable'));await settle();
+  assert.equal(note(),'Street map unavailable, trying again soon');
+  p.maps.base=null;p.applyPlace(place);await settle();bases.shift().rej(new Error('tilejson 500'));await settle();
+  assert.equal(note(),'Map unavailable','both failing: the base map\'s note wins');
+  builds.shift().rej(new Error('map tile unavailable'));await settle();
+  assert.equal(note(),'Map unavailable');
+});
 test('Adjust position from a search result, then Back: the confirm card over the screens that were under it; with no saved place, over a search screen at least',()=>{
   const seen=[];
   const p=page([fn('endAdjust')],{adj:null,settings:{},lastModel:null,stage:{classList:{remove(){}}},$:()=>({replaceChildren(){}}),syncApp(){},showSettings(){},
