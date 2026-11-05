@@ -10,7 +10,7 @@ import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
-import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted} from './kit.mjs';
+import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
@@ -368,7 +368,7 @@ function setFocus(el){focused?.classList.remove('focus');const was=focused;focus
 // to 13 px; if the focused row's hint is what doesn't fit, drop the hint on that row.
 function fitValue(row){
   const b=row?.querySelector?.('b');if(!b||!row.closest('#settings')||!b.clientWidth)return;
-  const alts=b._alts||[b.textContent],fits=()=>b.scrollWidth<=b.clientWidth+1;
+  const alts=b._alts||[b.textContent],fits=()=>!overflows(b);
   const attempt=()=>{for(const t of alts){b.textContent=t;b.style.fontSize='';let size=parseFloat(getComputedStyle(b).fontSize);
     while(!fits()&&size>13){size-=.5;b.style.fontSize=`${size}px`;}if(fits())return true;}return false;};
   row.classList.remove('nohint');b.classList.remove('wrap');

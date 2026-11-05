@@ -225,6 +225,7 @@ export function swapText(root,was,now){
 const over=e=>{if(e.scrollWidth>e.clientWidth)return true;const r=document.createRange();r.selectNodeContents(e);
   const cs=getComputedStyle(e),inner=e.getBoundingClientRect().width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-parseFloat(cs.borderLeftWidth)-parseFloat(cs.borderRightWidth);
   return r.getBoundingClientRect().width>inner+.5;};
+export const overflows=over; // Settings values (app.mjs fitValue) use the same test
 export function fitLine(e){
   const alts=e._alts||[e.textContent];
   // Not laid out (hidden): show the full wording and fit again at the next setText.
