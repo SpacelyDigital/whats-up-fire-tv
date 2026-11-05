@@ -130,6 +130,23 @@ test('map: a 429 on the TileJSON waits out its Retry-After and the tile pause; n
   }finally{performance.now=real.perf;globalThis.fetch=real.fetch;}
 });
 
+test('map: a 5xx or 403 on the TileJSON starts no tile pause: its 30 s retry asks again, and tiles are asked',async()=>{
+  const real={perf:performance.now,fetch:globalThis.fetch};let p=2e7,status=500;const asked=[];
+  performance.now=()=>p;
+  globalThis.fetch=async url=>{asked.push(String(url));return {status,headers:{get:()=>null},
+    text:async()=>JSON.stringify({tiles:['https://tiles.openfreemap.org/planet/x/{z}/{x}/{y}.pbf']}),arrayBuffer:async()=>new ArrayBuffer(8)};};
+  const TILEJSON='https://tiles.openfreemap.org/planet',TILE='https://tiles.openfreemap.org/planet/x/10/271/391.pbf';
+  try{
+    for(const code of [500,503,403]){
+      status=code;assert.equal((await getJson(TILEJSON)).status,code);
+      p+=30000;status=200;
+      assert.equal((await getJson(TILEJSON)).status,200,`TileJSON asked again 30 s after a ${code}`);
+      assert.equal((await getBytes(TILE))?.length,8,`and a tile after a ${code}`);
+    }
+    assert.equal(asked.length,9);
+  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;}
+});
+
 test('route cache: after the TV clock steps back an hour, expired rows still go and the 800-lookup cap still holds',()=>{
   const now=T0/1000,L=new Ledger();
   for(let i=0;i<900;i++)L.put('lol:A'+i,{},now+86400,now);

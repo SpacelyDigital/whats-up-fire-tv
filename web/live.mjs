@@ -45,12 +45,14 @@ const pending=new Map();let nextRequest=Math.floor(Math.random()*1e9);
 if(typeof window!=='undefined')window.__whatsupReply=(id,status,text)=>{
   const done=pending.get(id);if(done){pending.delete(id);done(status,text);}
 };
-// OpenFreeMap requests (TileJSON too) share the tile slots and the tile pause below.
+// OpenFreeMap requests (TileJSON too) share the tile slots and wait out the tile pause below. Of the
+// TileJSON's own errors only a 429 starts that pause (with its Retry-After); after a 5xx or 403 the
+// map's own retry asks again (30 s on).
 export function getJson(url,timeoutMs=8000){
   if(!/^https:\/\/[\w.-]*openfreemap\.org\//.test(url))return rawGetJson(url,timeoutMs);
   if(performance.now()<tileCooldown)return Promise.resolve({status:'cooldown',payload:null});
   return tileSlot().then(()=>performance.now()<tileCooldown?{status:'cooldown',payload:null}:
-    rawGetJson(url,timeoutMs).then(r=>{tileStatus(r.status,r.retryAfter);return r;})).finally(tileFree);
+    rawGetJson(url,timeoutMs).then(r=>{if(r.status===429)tileStatus(429,r.retryAfter);return r;})).finally(tileFree);
 }
 function rawGetJson(url,timeoutMs){
   const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
