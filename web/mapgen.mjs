@@ -13,7 +13,7 @@ import {snapped,GRID_PAD_MI,number,dLon as eastOf} from './core.mjs';
 export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
-const KEY='whatsup.map.v2',VERSION=5,MAX_AGE=30*86400000; // v3: airfields, v4: shore, v5: no tile failed or empty (a v4 map can be blank or have holes)
+const KEY='whatsup.map.v2',VERSION=5,MAX_AGE=30*86400000; // v3: airfields, v4: shore, v5: no failed tile, and not every tile empty (a v4 map can be blank or have holes)
 // Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
 // ahead) counts as old, so it is rebuilt rather than kept for ever.
 const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
@@ -283,8 +283,8 @@ export function evictMaps({keepBase=null,keepDetail=null}={}){
 }
 // At launch the saved maps this build never reads go, instead of taking the TV's storage until Erase
 // (up to 3.3 MB): the first build's whatsup.map.v1, and base and street maps of an older format, such
-// as the 10-mile street map older builds kept in .wide. Only the start of each is read ({"v":N, as
-// buildMap and buildDetail write it), not megabytes of street map.
+// as the 10-mile street map older builds kept in .wide. Only the start of each is checked (not parsed):
+// {"v":N, as buildMap and buildDetail write it.
 export function dropOldMaps(){
   try{
     for(const k of Object.keys(localStorage)){
