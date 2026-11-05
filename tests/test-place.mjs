@@ -128,6 +128,17 @@ test('settings: bad saved values fall back to safe defaults',()=>{
   assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-dark');assert.equal(s.placeNames,'cities');
   delete globalThis.localStorage;
 });
+test('settings: a saved place that can\'t be read is damaged (the logbook and \'Recently above\' wait for a confirmed place); no place or an unconfirmed guess (saved as null) is not',async()=>{
+  const {placeDamaged}=await import('../web/place.mjs');
+  const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'};
+  const damaged=raw=>{globalThis.localStorage={getItem:()=>raw,setItem(){},removeItem(){}};return placeDamaged();};
+  for(const place of [{...CHI,latitude:'abc'},{...CHI,latitude:91},{...CHI,longitude:'x'},'Chicago',{},[41.85,-87.65],true]){
+    assert.equal(damaged(JSON.stringify({place,confirmed:true})),true,JSON.stringify(place));
+    assert.equal(loadSettings().place,null);
+  }
+  for(const raw of [JSON.stringify({place:CHI,confirmed:true}),JSON.stringify({place:null,mapMiles:25}),'{}','[]','"x"','null'])assert.equal(damaged(raw),false,raw);
+  delete globalThis.localStorage;
+});
 test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft',()=>{
   useSettings({distance:'mi',altitude:'ft'});
   assert.equal(fmt.dist(2.345),'2.3 mi');assert.equal(fmt.speed(400),'400 kt');assert.equal(fmt.alt(35000),'FL350');

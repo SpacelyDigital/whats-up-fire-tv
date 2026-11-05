@@ -81,6 +81,8 @@ export function loadSettings(){
     viewMiles:VIEW_MILES.includes(Number(s.viewMiles))?Number(s.viewMiles):25,
     layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-dark'};
 }
+// A saved place that can't be read (damaged), not none or an unconfirmed guess (saved as null).
+export const placeDamaged=()=>{const p=store.get(KEY)?.place;return !!p&&!makePlace(p);};
 // An unconfirmed location guess (from the IP address) is never stored; the rest is.
 export const saveSettings=s=>store.set(KEY,s.confirmed?s:{...s,place:null});
 

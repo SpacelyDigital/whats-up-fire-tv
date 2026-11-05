@@ -8,7 +8,7 @@ import {PROFILE} from './profile.mjs';
 import {chimeGate} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
-import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
+import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
@@ -977,13 +977,15 @@ async function boot(){
     if(screen==='locate'){showSettings();open('settings');openLocate();for(const c of (query.get('typed')||'').toUpperCase())typeKey(c===' '?'space':c);runSearch(true);setFocus($('keys').children[2]);}
     return;
   }
+  const damaged=placeDamaged();
   setText('layout-note','Finding your location');
   const place=await locateByIp();
   setText('layout-note','');
   if(!place)return openLocate('We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.');
-  // Not saved until the user confirms it (Confirm, or a place chosen through Change).
+  // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
+  // that can't be read keeps 'Recently above' and the logbook until a confirmed place replaces it.
   settings={...settings,place,confirmed:false};useSettings(settings);
-  applyPlace(place,{fresh:true});
+  applyPlace(place,{fresh:!damaged});
   showWelcome(place);
   setTimeout(()=>{if(layer?.id==='welcome')close();},60000);
 }
