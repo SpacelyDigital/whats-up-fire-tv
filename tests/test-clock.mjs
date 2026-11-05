@@ -204,3 +204,21 @@ test('hidden and shown: a poll at most once a second and never while one is out;
     live.stop();
   }finally{r.restore();}
 });
+
+test('outage: the TV clock stepped back 10 min with both feeds still down doesn\'t bring the last picture back as live',async()=>{
+  const r=fresh();resetLog();const models=[];
+  try{
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({t:r.t,m}));
+    await r.advance(16000);assert.ok(models.at(-1).m.fresh&&models.at(-1).m.planes.length,'live first');
+    r.feeds.fi.mode='s500';r.feeds.lol.mode='s503';
+    await r.advance(90000);const was=models.at(-1).m;
+    assert.ok(!was.fresh&&!was.planes.length,'no live data after a minute down');
+    r.step(-600000);const at=r.t;
+    await r.advance(120000);
+    const back=models.filter(x=>x.t>at&&(x.m.fresh||x.m.planes.length));
+    assert.equal(back.length,0,`${back.length} models with planes after the step, the first at +${back[0]?.t-at} ms`);
+    r.feeds.fi.mode='ok';await r.advance(400000,()=>models.some(x=>x.t>at&&x.m.fresh));
+    assert.ok(models.some(x=>x.t>at&&x.m.fresh&&x.m.planes.length),'live again once a feed is back');
+    s.stop();
+  }finally{r.restore();}
+});
