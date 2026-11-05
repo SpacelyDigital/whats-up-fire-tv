@@ -646,11 +646,11 @@ test('restart: adsb.fi is never asked within a second of the last request (a ste
     await r.advance(3000);
     assert.ok(gapsOf(r.at('fi')).every(g=>g>=1000),`adsb.fi gaps: ${gapsOf(r.at('fi'))}`);
     assert.ok(r.at('fi').length>=8,'each step still asks for its radius');
-    // Restarted just before Home, shown again 0.2 s later.
-    const t=r.t;await r.advance(5000-t%5000);live.stop();live=r.live({...CFG,paused:true}); // the poll just went
+    // Restarted just before Home 0.3 s after a poll, shown again 0.2 s later: the first poll waits for the second.
+    const n=r.at('fi').length;while(r.at('fi').length===n)await r.advance(100); // the next poll goes
+    const last=r.at('fi').at(-1);await r.advance(300);live.stop();live=r.live({...CFG,paused:true});
     await r.advance(200);live.resume();await r.advance(2000);
-    const fi=r.at('fi',t);
-    assert.ok(gapsOf(fi).every(g=>g>=1000),`shown again: ${gapsOf(fi)}`);
+    assert.deepEqual(r.at('fi',last+1),[last+1000],`shown again 0.5 s after the last request: asked at ${r.at('fi',last+1)}`);
     live.stop();
   }finally{r.restore();}
 });
