@@ -272,6 +272,7 @@ export function saveMap(m){
 store.onFull=()=>evictMaps({keepBase:recentMaps()[0]??null});
 export function evictMaps({keepBase=null,keepDetail=null}={}){
   for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY])if(k!==keepDetail)try{localStorage.removeItem(k);}catch{/* none */}
+  keepWide(WIDE.filter(k=>detailKey({key:k})===keepDetail));
   for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
   store.set(RECENT_KEY,keepBase?[keepBase]:[]);
 }
@@ -398,10 +399,20 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
 }
 
 // The detail map is saved straight to localStorage (not kept in memory by `store`),
-// so a layout that doesn't draw it costs nothing. Three slots: the street map (up to
-// 5 mi), the 10-mile map (the default radius gets its own) and the most recent wider one.
-// Storage full: the other slots and base maps are evicted and it is tried once more.
-const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_KEY}.r10`:`${DETAIL_KEY}.wide`;
+// so a layout that doesn't draw it costs nothing. A slot each for the street map (up to
+// 5 mi), the 10-mile map (the default radius gets its own) and each wider radius, of which
+// the two used last are kept, so going back and forth between two wider sizes downloads nothing.
+// Storage full: a wider map makes room first from the street and 10-mile maps, then from the
+// other wider one; then the other slots and base maps are evicted and it is tried once more.
+const detailKey=spec=>spec.key==='street'?DETAIL_KEY:`${DETAIL_KEY}.${spec.key}`;
+const WIDE=DETAIL_SPECS.filter(([max])=>max>10).map(([max])=>`r${max}`),WIDE_RECENT='whatsup.detail.recent',KEEP_WIDE=2;
+const recentWide=()=>{const r=store.get(WIDE_RECENT);return Array.isArray(r)?r.filter(k=>WIDE.includes(k)):[];};
+// The wider maps to keep, most recent first; the others are removed.
+function keepWide(keep){
+  for(const k of WIDE)if(!keep.includes(k))try{localStorage.removeItem(detailKey({key:k}));}catch{/* none */}
+  store.set(WIDE_RECENT,keep);
+}
+const useWide=k=>WIDE.includes(k)&&keepWide([k,...recentWide().filter(r=>r!==k)].slice(0,KEEP_WIDE));
 export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
@@ -411,14 +422,25 @@ export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
     if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'))&&Array.isArray(m.places)&&m.places.every(label('name')))){
       localStorage.removeItem(detailKey(spec));return null;
     }
+    if(same)useWide(spec.key);
     return same?m:null;
   }catch{return null;}
 }
 export function saveDetail(m){
   if(store.sealed)return false;
-  const key=detailKey({key:m.key||'street'}),json=JSON.stringify(m);
-  try{localStorage.setItem(key,json);return true;}catch{/* full: make room */}
+  const key=detailKey({key:m.key||'street'}),json=JSON.stringify(m),put=()=>{try{localStorage.setItem(key,json);return true;}catch{return false;}};
+  useWide(m.key);try{localStorage.removeItem(`${DETAIL_KEY}.wide`);}catch{/* none */} // the one slot all wider sizes shared before
+  if(put())return true;
+  if(WIDE.includes(m.key))try{
+    const held=[`${DETAIL_KEY}.r10`,DETAIL_KEY].map(k=>[k,localStorage.getItem(k)]).filter(([,v])=>v);
+    for(const [k] of held)localStorage.removeItem(k);
+    if(put())return true;
+    // Too big to sit beside the other wider one even so: that one goes instead (as with one slot) and
+    // the street and 10-mile maps are put back.
+    keepWide([m.key]);
+    if(put()){for(const [k,v] of held)try{localStorage.setItem(k,v);}catch{/* no room */}return true;}
+  }catch{/* storage unusable */}
   evictMaps({keepDetail:key,keepBase:recentMaps()[0]??null});
-  try{localStorage.setItem(key,json);return true;}
-  catch{console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;}
+  if(put())return true;
+  console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;
 }

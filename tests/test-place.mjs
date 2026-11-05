@@ -230,7 +230,7 @@ test('saved maps: a street map with a damaged layer (missing, not a list, a feat
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
   const home={latitude:41.85,longitude:-87.65};
   for(const mi of [2,10,25]){
-    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
+    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':`whatsup.detail.v1.${spec.key}`;
     const detail={v:4,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
       water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'}],landuse:[],parks:[],aero:[],buildings:[],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
     saveDetail(detail);
@@ -244,6 +244,51 @@ test('saved maps: a street map with a damaged layer (missing, not a list, a feat
     }
   }
   delete globalThis.localStorage;
+});
+test('street maps: each size from 15 mi up has its own slot and the two used last are kept, so going back and forth between two of them builds nothing',async()=>{
+  const {store}=await import('../web/live.mjs');
+  const data=new Map(),home={latitude:41.85,longitude:-87.65};let quota=Infinity;
+  const used=()=>[...data].reduce((n,[k,v])=>n+k.length+v.length,0);
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,removeItem:k=>data.delete(k),
+    setItem(k,v){v=String(v);if(used()-(data.has(k)?k.length+data.get(k).length:0)+k.length+v.length>quota)throw new Error('QuotaExceededError');data.set(k,v);}};
+  // A street map for a radius, about `size` characters saved.
+  const detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:4,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
+    built:Date.now()-60000,water:[],shore:[],waterways:[],roads:[{c:'minor',p:'0,0'+',1,0'.repeat(size/4)}],landuse:[],parks:[],aero:[],buildings:[],places:[]};};
+  const has=mi=>!!savedDetail(home,detailSpec(mi)); // a hit counts as a use
+  const base=range=>({v:4,...home,range,built:Date.now(),water:[],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
+  try{
+    // 25 -> 50 -> 25 -> 50 mi: both stay saved (they shared one slot, so each return built it again).
+    saveDetail(detail(25));saveDetail(detail(50));
+    assert.ok(has(25)&&has(50),'25 and 50 mi both kept');
+    // 25 used last: 100 takes the place of 50.
+    has(25);saveDetail(detail(100));
+    assert.ok(!has(50)&&has(25)&&has(100),'the third wider size replaces the one used least recently');
+    // The street and 10 mi maps keep their own slots; the old shared slot goes at the next save.
+    data.set('whatsup.detail.v1.wide',JSON.stringify(detail(150)));
+    saveDetail(detail(2));saveDetail(detail(10));
+    assert.ok(has(2)&&has(10)&&has(25)&&has(100)&&!has(150));
+    assert.equal(data.get('whatsup.detail.v1.wide'),undefined,'the old shared slot is removed');
+    // Storage full: the street and 10 mi maps make room for the second wider one; the base maps stay.
+    const A=20000,fresh=()=>{data.clear();store.remove('whatsup.detail.recent');store.remove('whatsup.map.recent');saveMap(base(25));saveMap(base(50));};
+    quota=3.6*A;fresh();
+    for(const mi of [2,10,25])saveDetail(detail(mi,A));
+    assert.ok(has(2)&&has(10)&&has(25));
+    assert.ok(saveDetail(detail(50,A)));
+    assert.ok(has(25)&&has(50)&&!has(2)&&!has(10),'two wider maps kept, the street and 10 mi maps evicted');
+    assert.ok(savedMap(home,25)&&savedMap(home,50),'base maps kept');
+    // Two wider maps too big to sit side by side: the other one goes (as with one slot), the 10 mi map stays.
+    fresh();saveDetail(detail(10,A));saveDetail(detail(25,1.5*A));
+    assert.ok(saveDetail(detail(50,2.4*A)));
+    assert.ok(has(50)&&has(10)&&!has(25),'the 10 mi map is put back');
+    assert.ok(savedMap(home,25)&&savedMap(home,50),'base maps still kept');
+    // Any other save that finds storage full frees every street map, the wider ones too.
+    assert.ok(store.set('whatsup.qa.big','x'.repeat(A)));
+    assert.ok(!has(50)&&!has(10)&&savedMap(home,50)&&!savedMap(home,25));
+    assert.deepEqual([...data.keys()].filter(k=>k.startsWith('whatsup.detail.v1')),[]);
+  }finally{
+    delete globalThis.localStorage;
+    for(const k of ['whatsup.qa.big','whatsup.detail.recent','whatsup.map.recent','whatsup.map.v2.r25','whatsup.map.v2.r50'])store.remove(k);
+  }
 });
 test('keep screen awake: off unless turned on (a saved ON is kept)',()=>{
   for(const [saved,want] of [[undefined,false],[true,true],[false,false],['no',false]]){
