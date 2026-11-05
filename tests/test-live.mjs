@@ -152,6 +152,40 @@ test('route lookups: the 5 s pace is kept in memory, so a lookup that succeeds s
     p+=601000;await e.tick([a],now);assert.equal(again.length,1,`a saved ${value}: over`);
   }
 });
+test('route re-check from a saved sighting: a plane that left the zone before its turn is looked up from its sighting, whose heading, speed and climb rate decide the leg (a same-callsign round trip, or a leg near the shared airport); without them the route stays blank',async t=>{
+  const real=performance.now;let p=1000;performance.now=()=>p;t.after(()=>{performance.now=real;});
+  const payloads={UAL2202:CHAIN,AAL2939:AA2939,SKW3676:SKW3676},asked=[];
+  const request=async url=>{const call=/\/([A-Z0-9]+)\.json$/.exec(url)[1];asked.push(call);return payloads[call]?{status:200,payload:payloads[call]}:{status:404,payload:null};};
+  // Two planes inside the zone with no route yet: the nearer takes the one lookup of these 5 s, the
+  // other is noted. 5 s on it has left the zone (from history now, not live): its lookup, a
+  // DFW-FCA-DFW round trip, is judged at the saved sighting, whose heading points along FCA-DFW.
+  const near={...AIRLINE,observed:NOW,miles:1};
+  const passing={...PASSING,hex:'aa2939',observed:NOW,heading:130,altitude_ft:30000,vertical_rate:0,miles:3};
+  const gone={hex:'aa2939',callsign:'AAL2939',registration:'N123UA',observed:NOW,live:false,inside:true};
+  const L=new Ledger(),e=new Enricher(L,request);
+  await e.tick([near,passing],NOW);
+  assert.deepEqual(asked,['UAL2202']);
+  const seen=L.get('sighting:aa2939:AAL2939',NOW);
+  assert.deepEqual(Object.keys(seen),['latitude','longitude','heading','speed_kt','altitude_ft','vertical_rate','observed']);
+  p+=5000;const routes=await e.tick([gone],NOW+5);
+  assert.deepEqual(asked,['UAL2202','AAL2939'],'looked up from the sighting');
+  const leg=r=>{const x=r.find(x=>x.hex==='aa2939'&&!x.historical);return x?[x.origin,x.destination]:null;};
+  assert.deepEqual(leg(routes),['FCA','DFW']);
+  assert.ok(routes.some(x=>x.hex==='aa2939'&&x.historical),'kept for Recently above');
+  // The same sighting without its heading, speed or climb rate: the round trip can't be told apart.
+  for(const drop of [['heading','speed_kt','vertical_rate'],['heading'],['speed_kt']]){
+    const row=Object.fromEntries(Object.entries(seen).filter(([k])=>!drop.includes(k)));
+    const e2=new Enricher(new Ledger({'sighting:aa2939:AAL2939':{expires:NOW+3600,value:row}}),request);
+    assert.equal(leg(await e2.tick([gone],NOW+5)),null,`without ${drop}: no leg`);
+  }
+  // Near the shared airport of a SLC-BZN-SLC round trip the saved climb rate decides the leg.
+  const bzn={latitude:45.60,longitude:-111.10,heading:340,speed_kt:200,altitude_ft:9000,observed:NOW},skw={hex:'3676aa',callsign:'SKW3676',registration:'N288SY',observed:NOW,live:false,inside:true};
+  for(const [rate,expected] of [[-900,['SLC','BZN']],[2500,['BZN','SLC']],[null,null]]){
+    const e3=new Enricher(new Ledger({'sighting:3676aa:SKW3676':{expires:NOW+3600,value:{...bzn,vertical_rate:rate}}}),request);
+    const r=(await e3.tick([skw],NOW+5)).find(x=>x.hex==='3676aa'&&!x.historical);
+    assert.deepEqual(r?[r.origin,r.destination]:null,expected,`climb rate ${rate}`);
+  }
+});
 test('selection: in Window view only planes inside the wedge (or overhead) count as inside',()=>{
   const now=1700000000,home={latitude:39.05,longitude:-84.65};
   const at=(deg,mi)=>({hex:'abc'+String(deg).padStart(3,'0'),lat:home.latitude+mi*Math.cos(deg*Math.PI/180)/69,
