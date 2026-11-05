@@ -204,3 +204,22 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   assert.deepEqual((await run({place:CHI})).seen,[['apply',41.85,false]],'a saved place: kept, no lookup');
   assert.deepEqual((await run({damaged:true,found:null})).seen,[['search']],'the lookup failed: the search screen');
 });
+
+test('launch: a saved place with a null, empty, blank or false coordinate can\'t be read either, so \'Recently above\' and the logbook wait for a confirmed place (home is never put at 0°)',async()=>{
+  const {loadSettings,saveSettings,placeDamaged}=await import('../web/place.mjs');
+  const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'};
+  const saved={};globalThis.localStorage={getItem:k=>saved[k]??null,setItem:(k,v)=>{saved[k]=String(v);},removeItem:k=>{delete saved[k];}};
+  try{
+    for(const [k,v] of [['latitude',null],['longitude',null],['latitude',''],['longitude',' '],['latitude',false],['longitude',[]]]){
+      const place={...CHI,[k]:v},tag=`${k} ${JSON.stringify(v)}`;saved['whatsup.settings.v1']=JSON.stringify({place,confirmed:true,layout:'radar'});
+      const seen=[],settings=loadSettings();
+      assert.equal(settings.place,null,`${tag}: no place`);assert.equal(placeDamaged(),true,`${tag}: damaged`);
+      const p=page([fn('boot')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+        hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged,locating:false,locateByIp:async()=>GUESS,setTimeout(){},layer:null,settings,
+        showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
+      await p.boot();
+      assert.deepEqual(seen,[['apply',41.878,false],['welcome','Chicago']],`${tag}: kept on the IP guess`);
+      saveSettings(p.settings);assert.deepEqual(JSON.parse(saved['whatsup.settings.v1']).place,place,`${tag}: still saved for the next launch`);
+    }
+  }finally{delete globalThis.localStorage;}
+});
