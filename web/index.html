@@ -33,7 +33,7 @@
   </div>
 
   <!-- Before anything is fetched (first launch, or a new version of this text): what leaves the TV. -->
-  <div class="overlay" id="consent" hidden role="dialog" aria-modal="true" aria-labelledby="consent-title">
+  <div class="overlay" id="consent" hidden role="dialog" aria-modal="true" aria-labelledby="consent-title" aria-describedby="consent-body">
     <div class="card wide consent">
       <div class="title" id="consent-title">Before we start</div>
       <p class="consent-body" id="consent-body"></p>
@@ -45,21 +45,21 @@
   </div>
 
   <!-- Settings > Privacy: the policy (assets/privacy.txt), scrolled with Up/Down, and Erase. -->
-  <div class="overlay" id="privacy" hidden role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+  <div class="overlay" id="privacy" hidden role="dialog" aria-modal="true" aria-labelledby="privacy-title" aria-describedby="privacy-hint">
     <div class="card wide privacy">
       <div class="title" id="privacy-title">Privacy</div>
       <div class="doc-wrap"><div class="doc" id="privacy-doc"></div><figure class="doc-qr-box" id="privacy-qr-box" hidden><img class="doc-qr" id="privacy-qr" alt="QR code for this policy online"><figcaption>Read online</figcaption></figure></div>
-      <p class="hint doc-hint">Up and Down scroll · Back closes</p>
+      <p class="hint doc-hint" id="privacy-hint">Up and Down scroll · Back closes</p>
       <div class="buttons">
         <button class="btn" id="privacy-erase" data-focus>Erase all data</button>
         <button class="btn" id="privacy-back" data-focus>Back</button>
       </div>
     </div>
   </div>
-  <div class="overlay" id="erase" hidden role="alertdialog" aria-modal="true" aria-labelledby="erase-title">
+  <div class="overlay" id="erase" hidden role="alertdialog" aria-modal="true" aria-labelledby="erase-title" aria-describedby="erase-body">
     <div class="card">
       <div class="title" id="erase-title">Erase all data?</div>
-      <p class="note">Erase your location, settings, history and saved maps from this TV? The app then starts again from the first screen.</p>
+      <p class="note" id="erase-body">Erase your location, settings, history and saved maps from this TV? The app then starts again from the first screen.</p>
       <div class="buttons">
         <button class="btn" id="erase-cancel" data-focus>Cancel</button>
         <button class="btn" id="erase-ok" data-focus>Erase</button>
@@ -68,9 +68,9 @@
   </div>
 
   <!-- First launch: the location found from the connection. -->
-  <div class="overlay" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-city">
+  <div class="overlay" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-label welcome-city" aria-describedby="welcome-note">
     <div class="card">
-      <div class="label" id="welcome-label">Is this right?</div>
+      <div class="label" id="welcome-label" aria-label="Is this right?">Is this right?</div>
       <div class="big-city" id="welcome-city"></div>
       <p class="note" id="welcome-note"></p>
       <div class="buttons">
@@ -116,18 +116,18 @@
 
   <!-- Settings > About & credits. -->
   <!-- About & credits: assets/licenses.txt (scripts/build-credits.mjs), scrolled with Up/Down. -->
-  <div class="overlay" id="about" hidden role="dialog" aria-modal="true" aria-labelledby="about-title">
+  <div class="overlay" id="about" hidden role="dialog" aria-modal="true" aria-labelledby="about-title" aria-describedby="about-hint">
     <div class="card wide about">
       <div class="title" id="about-title">About &amp; credits</div>
       <div class="doc-wrap"><div class="doc" id="about-doc"></div><figure class="doc-qr-box"><img class="doc-qr" id="about-qr" alt="QR code for adsb.fi"><figcaption>adsb.fi</figcaption></figure></div>
-      <p class="hint doc-hint">Up and Down scroll · Back closes</p>
+      <p class="hint doc-hint" id="about-hint">Up and Down scroll · Back closes</p>
       <div class="buttons"><button class="btn" id="about-back" data-focus>Back</button></div>
     </div>
   </div>
 
-  <div class="overlay" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-main">
+  <div class="overlay" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-label confirm-main" aria-describedby="confirm-sub confirm-note">
     <div class="card">
-      <div class="label" id="confirm-label"></div>
+      <div class="label" id="confirm-label" aria-label="Use this location?"></div>
       <div class="big-city small" id="confirm-main"></div>
       <div class="confirm-sub" id="confirm-sub"></div>
       <p class="note" id="confirm-note"></p>

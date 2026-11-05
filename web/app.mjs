@@ -915,9 +915,7 @@ document.addEventListener('keydown',e=>{
     if(k==='Enter'||k===' '){endPick(true);return close();}
     return;
   }
-  if(dir&&(layer.id==='privacy'||layer.id==='about')&&(dir==='up'||dir==='down')){
-    e.preventDefault();const d=$(`${layer.id}-doc`);d.scrollTop+=(dir==='down'?1:-1)*d.clientHeight*.6;return;
-  }
+  if(dir&&(layer.id==='privacy'||layer.id==='about')&&(dir==='up'||dir==='down')){e.preventDefault();return scrollDoc($(`${layer.id}-doc`),dir);}
   if(dir){
     e.preventDefault();
     return move(dir);
@@ -978,20 +976,27 @@ function renderDoc(box,text){
     p.startsWith('## ')?Object.assign(document.createElement('h4'),{textContent:p.slice(3)}):
     Object.assign(document.createElement('p'),{textContent:p.replace(/\s*\n\s*/g,' '),className:p.startsWith('• ')?'bullet':''})));
 }
+// Up/Down scrolls the page 60% of its height; the paragraphs whose top is in view are read out (VoiceView),
+// on opening too, each view once (the dialog itself is described by its scroll hint).
+function scrollDoc(d,dir){
+  if(dir)d.scrollTop+=(dir==='down'?1:-1)*d.clientHeight*.6;
+  const r=d.getBoundingClientRect();
+  setText('sr-live',[...d.children].filter(e=>{const b=e.getBoundingClientRect();return b.top>=r.top-1&&b.top<r.bottom;}).map(e=>e.textContent).join(' '));
+}
 // Anything of the app's on this TV: also with a consent of an older version, damaged or missing.
 const anyStored=()=>{try{return Object.keys(localStorage).some(k=>k.startsWith('whatsup.'));}catch{return false;}};
 function openPrivacy(){
   const doc=$('privacy-doc');renderDoc(doc,window.__whatsupDocs?.privacy||'');doc.scrollTop=0;
   $('privacy-qr-box').hidden=!PRIVACY_URL;if(PRIVACY_URL)$('privacy-qr').src=themedQr(PRIVACY_URL);
   $('privacy-erase').hidden=!hasConsent()&&!anyStored(); // nothing stored, nothing to erase
-  open('privacy','privacy-back');
+  open('privacy','privacy-back');scrollDoc(doc);
 }
 // About & credits (assets/licenses.txt), with the QR adsb.fi's terms ask for (a cite and a link).
 function openAbout(){
   const doc=$('about-doc');renderDoc(doc,window.__whatsupDocs?.licenses||'');doc.scrollTop=0;
   // adsb.fi's terms ask for a cite and a link (personal profile only; the store build uses adsb.lol).
   const fi=PROFILE.feed==='adsb.fi';$('about-qr').closest('figure').hidden=!fi;if(fi)$('about-qr').src=themedQr('https://adsb.fi');
-  open('about','about-back');
+  open('about','about-back');scrollDoc(doc);
 }
 // Everything the app stored on this TV, then a clean start at the consent screen.
 function eraseAll(){

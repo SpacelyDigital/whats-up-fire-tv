@@ -196,7 +196,7 @@ test('a map that can\'t be built for want of the network (no TileJSON, a portal,
 const shelf=(items={})=>Object.assign(Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},removeItem(k){delete this[k];}}),items);
 test('Privacy offers Erase all data whenever anything of the app\'s is stored, also when the saved consent is of an older version, damaged or missing; a fresh TV hides it',()=>{
   const els={};const $=id=>els[id]??={hidden:null};
-  const p=page([line('const CONSENT_KEY='),line('function hasConsent\\('),line('const anyStored='),fn('openPrivacy')],{$,renderDoc(){},window:{},PRIVACY_URL:'',themedQr(){},open(){},localStorage:null});
+  const p=page([line('const CONSENT_KEY='),line('function hasConsent\\('),line('const anyStored='),fn('openPrivacy')],{$,renderDoc(){},scrollDoc(){},window:{},PRIVACY_URL:'',themedQr(){},open(){},localStorage:null});
   const offered=items=>{if(items)p.localStorage=shelf(items);else Object.defineProperty(p,'localStorage',{get(){throw new Error('SecurityError');}});
     p.openPrivacy();return !els['privacy-erase'].hidden;};
   const SET=JSON.stringify({mapMiles:25});
@@ -585,4 +585,30 @@ test('screen reader: a plane that came before the layout script landed is read a
   assert.deepEqual(writes,['Nearest, ENY4198, Embraer 170, 8.2 mi'],'read as the layout mounts');
   await p.useLayout('glass');assert.equal(writes.length,1,'a layout switch with the same plane reads nothing new');
   p.lastModel=null;await p.useLayout('swiss');assert.equal(writes.length,1,'no model yet: nothing to read');
+});
+
+// VoiceView on the shared screens: each dialog's body is its description (read with the first button), the
+// policy and credits pages are read as they are scrolled, the search screen and Adjust position speak.
+test('screen reader: each dialog\'s body is its description, read with its first button: the consent text, "Is this right?" with the city and the accuracy note, "Use this location?" with the place, region and match note, the Erase warning, how to scroll the policy and the credits; Up/Down on those pages reads the paragraphs scrolled into view, each once',()=>{
+  const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+  const attrs=id=>Object.fromEntries([...(new RegExp(`<div class="overlay" id="${id}"([^>]*)>`).exec(html)?.[1]||'').matchAll(/([\w-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
+  assert.equal(attrs('consent')['aria-describedby'],'consent-body');
+  assert.deepEqual([attrs('welcome')['aria-labelledby'],attrs('welcome')['aria-describedby']],['welcome-label welcome-city','welcome-note']);
+  assert.deepEqual([attrs('confirm')['aria-labelledby'],attrs('confirm')['aria-describedby']],['confirm-label confirm-main','confirm-sub confirm-note']);
+  // The questions are drawn in capitals (CSS), which Chromium would put in the name: their aria-label keeps the spoken case.
+  assert.match(html,/<div class="label" id="welcome-label" aria-label="Is this right\?">Is this right\?<\/div>/);
+  assert.match(html,/<div class="label" id="confirm-label" aria-label="Use this location\?"><\/div>/);
+  assert.equal(attrs('erase')['aria-describedby'],'erase-body');assert.match(html,/<p class="note" id="erase-body">Erase your location/);
+  for(const id of ['privacy','about']){assert.equal(attrs(id)['aria-describedby'],`${id}-hint`);assert.match(html,new RegExp(`<p class="hint doc-hint" id="${id}-hint">Up and Down scroll`));}
+  // The page: on opening and after each Up/Down, the paragraphs whose top is in view are read; the same view again reads nothing.
+  const texts={},writes=[],p=page([fn('scrollDoc')],{setText:(id,v)=>{if(texts[id]!==v){texts[id]=v;writes.push(v);}}});
+  const paras=[['Privacy Policy',30],['Version 3',24],['This is a free app.',72],['The short version',30],['We run no server.',48],['Your home stays on your TV.',48],['They get your location.',96],['Erase deletes everything.',48]];
+  let st=0,y=0;const doc={clientHeight:150,get scrollTop(){return st;},set scrollTop(v){st=Math.max(0,Math.min(246,v));},getBoundingClientRect:()=>({top:200,bottom:350}),children:[]};
+  for(const [text,h] of paras){const top=y;doc.children.push({textContent:text,getBoundingClientRect:()=>({top:200+top-st,bottom:200+top+h-st})});y+=h;}
+  p.scrollDoc(doc);assert.deepEqual(writes,['Privacy Policy Version 3 This is a free app. The short version'],'opened');
+  p.scrollDoc(doc,'down');assert.equal(st,90);assert.equal(writes.at(-1),'The short version We run no server. Your home stays on your TV.');
+  p.scrollDoc(doc,'down');assert.equal(writes.at(-1),'Your home stays on your TV. They get your location.');
+  p.scrollDoc(doc,'down');assert.equal(st,246,'the end');assert.equal(writes.at(-1),'They get your location. Erase deletes everything.');
+  p.scrollDoc(doc,'down');assert.equal(writes.length,4,'Down at the end: the same view, nothing read again');
+  p.scrollDoc(doc,'up');assert.equal(writes.at(-1),'We run no server. Your home stays on your TV. They get your location.');
 });
