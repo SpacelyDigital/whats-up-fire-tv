@@ -131,14 +131,15 @@ function render(m){
   while(col.scrollHeight>col.clientHeight+1&&$.list.children.length>1)$.list.lastElementChild.remove();
   const L=m.log;
   setText($.seen,fmt.int(L.today));setText($.cargo,L.cargoTonight);
-  // The cards' bottom lines fit their card (cargo drops brands, military drops types), then
-  // all three take the smallest size so none is bigger than its neighbours.
+  // The cards' numbers and bottom lines fit their card (1,000 seen shrinks; cargo drops brands,
+  // military drops types), then each row takes its smallest size so no card is bigger than its neighbours.
   const brands=n=>L.cargoBy.slice(0,n).map(([b,n])=>`${n} ${b}`).join(' · '); // count first, like Military
   $['cargo-by']._alts=L.cargoBy.length?[...new Set([brands(2),brands(1)])]:[L.night?'none yet':'from 6 pm'];
   setText($.mil,L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
-  const lines=[$['seen-by'],$['cargo-by'],$['mil-by']];
-  for(const e of lines){e.textContent=(e._alts||[e.textContent])[0];fitLine(e);}
-  const size=Math.min(...lines.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of lines)e.style.fontSize=`${size}px`;
+  for(const row of [[$.seen,$.cargo,$.mil],[$['seen-by'],$['cargo-by'],$['mil-by']]]){
+    for(const e of row){e.textContent=(e._alts||[e.textContent])[0];fitLine(e);}
+    const size=Math.min(...row.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of row)e.style.fontSize=`${size}px`;
+  }
 }
 
 export default {
