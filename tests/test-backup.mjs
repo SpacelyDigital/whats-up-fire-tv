@@ -819,3 +819,30 @@ test('backup: after a 4xx from both feeds the last picture is called stale 60 s 
     }finally{r.restore();}
   }
 });
+
+test('feed: an aircraft listed twice in one reply counts once, from its newest position (its 7700 kept, one history row)',async()=>{
+  const reply=ac=>({mode:'ok',get body(){return {ac,msg:'No error',now:Date.now(),total:ac.length};}});
+  const sos=plane('a50001','UAL101',{squawk:'7700',emergency:'general',seen_pos:0.1}),old=plane('a50001','UAL101',{squawk:'1200',emergency:'none',seen_pos:5,lat:39.066});
+  for(const [name,ac] of [['newest first',[sos,old]],['newest last',[old,sos]],['in capitals',[sos,{...old,hex:'A50001'}]]]){
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi=reply(ac);
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+      await r.advance(1000);
+      const m=models.at(-1);
+      assert.equal(m.planes.length,1,name);
+      assert.deepEqual([m.hero.status,m.hero.emergency,m.hero.squawk,m.hero.latitude],['Emergency','EMERGENCY','7700',39.065],name);
+      s.stop();
+    }finally{r.restore();}
+  }
+  const r=fresh();
+  try{
+    r.feeds.fi=reply([...Array.from({length:25},(_,i)=>plane('a50001','UAL101',{seen_pos:i/10})),plane('a50002','UAL102')]);
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,()=>{});
+    await r.advance(1000);
+    const h=store.get(HISTORY_KEY);
+    assert.deepEqual(h.map(a=>a.hex).sort(),['a50001','a50002'],'one history row each');
+    assert.equal(h.find(a=>a.hex==='a50001').last_seen,T0/1000,'from the newest position');
+    s.stop();
+  }finally{r.restore();}
+});

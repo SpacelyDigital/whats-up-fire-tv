@@ -141,6 +141,18 @@ export function feedStamp(body){
   const stamp=Number(body?.now)||0;
   return stamp>100000000000?stamp/1000:stamp;
 }
+// One row per aircraft: a broken feed can list one twice (a stale copy hid a 7700 and filled the
+// history). The one with the newest position is kept, as the map keeps it.
+const posAge=a=>position(a.lat,a.lon)&&number(a.seen_pos)&&a.seen_pos>=0?a.seen_pos:Infinity;
+function oneEach(ac){
+  const by=new Map();
+  for(const a of ac){
+    if(!a||typeof a!=='object'||typeof a.hex!=='string')continue;
+    const k=a.hex.toLowerCase(),o=by.get(k);
+    if(!o||posAge(a)<posAge(o))by.set(k,a);
+  }
+  return [...by.values()];
+}
 // `radius`: miles (the circle), or a Window view zone {kind:'window',from,to,miles}.
 export function selection(ac,stamp,home,radius,now){
   const age=now-stamp,fresh=age>=-5&&age<=15,radians=0.017453292519943295;
@@ -486,7 +498,7 @@ export function startLive(show,config){
     // be judged (adsb.lol stands in), and a broken feed can't move the logbook's day far.
     const body=stamp>0&&Math.abs(stamp-now)<7*86400?reply:null;
     if(body){
-      const ac=body.ac,skew=stamp-now,feedNow=now+skew;
+      const ac=oneEach(body.ac),skew=stamp-now,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
       // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
