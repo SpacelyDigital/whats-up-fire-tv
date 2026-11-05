@@ -762,3 +762,35 @@ test('feed: a saved route row with no value (damaged storage) doesn\'t keep the 
     s.stop();
   }finally{console.error=err;r.restore();}
 });
+
+test('backup: a 200 whose `now` is missing, not a number, 0 or below, or more than a week off counts as a failure (adsb.lol stands in)',async()=>{
+  const DAY_MS=86400000,body=now=>({ac:[FI_PLANE],msg:'No error',total:1,...now===undefined?{}:{now}});
+  for(const [name,fi] of [['missing',{body:body()}],['null',{body:body(null)}],['text',{body:body('2026-11-03T05:00:00Z')}],['zero',{body:body(0)}],
+    ['negative',{body:body(-T0)}],['1972',{body:body(86400000)}],['8 days ahead',{nowShiftMs:8*DAY_MS}],['8 days behind',{nowShiftMs:-8*DAY_MS}],['8 days ahead, in s',{nowShiftMs:8*DAY_MS,seconds:true}]]){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'ok',...fi};
+      const live=r.live();
+      await r.advance(20000);
+      assert.deepEqual(r.at('fi'),[0,5000],`${name}: adsb.fi backs off as for a 5xx`);
+      assert.ok(r.updates.every(u=>!u.ok||u.source==='adsb.lol'),`${name}: no update from adsb.fi`);
+      assert.equal(lastData(r)?.source,'adsb.lol',`${name}: adsb.lol stands in`);
+      live.stop();
+    }finally{r.restore();}
+  }
+  // Both feeds so: the outage sentence counts down.
+  const r=fresh(),models=[];
+  try{
+    r.feeds.fi={mode:'ok',body:body()};r.feeds.lol={mode:'ok',nowShiftMs:-30*DAY_MS};
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    await r.advance(60000);
+    assert.match(quietText(models.at(-1),false),/^No live data right now\. Reconnecting in \d+ s\.$/);
+    s.stop();
+  }finally{r.restore();}
+  // Still good: up to 6 days off, in ms or s.
+  for(const off of [-6*DAY_MS,6*DAY_MS])for(const seconds of [false,true]){
+    const r=fresh();
+    try{r.feeds.fi={mode:'ok',nowShiftMs:off,seconds};const live=r.live();await r.advance(6000);
+      assert.equal(lastData(r)?.source,'adsb.fi',`${off/DAY_MS} days ${seconds?'s':'ms'}`);live.stop();}finally{r.restore();}
+  }
+});

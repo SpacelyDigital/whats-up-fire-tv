@@ -478,14 +478,15 @@ export function startLive(show,config){
     // Wide areas are big replies: more time to arrive (4 s up to 25 NM, 12 s at 250).
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
     if(stopped||paused||my!==gen)return;
-    const body=status===200?(backup?fromBackup(payload):feedReply(payload)):null;
+    const reply=status===200?(backup?fromBackup(payload):feedReply(payload)):null,stamp=feedStamp(reply),now=Date.now()/1000;
+    // The TV's clock can be off by seconds, minutes or days: positions are judged against
+    // the feed's own clock (it was just received), and the offset goes to the display. Up to
+    // a week either way is trusted (a TV left with a wrong date). A reply with no usable clock
+    // (none, not a number, or further off) is a failed poll, as a 5xx: none of its positions can
+    // be judged (adsb.lol stands in), and a broken feed can't move the logbook's day far.
+    const body=stamp>0&&Math.abs(stamp-now)<7*86400?reply:null;
     if(body){
-      const now=Date.now()/1000,stamp=feedStamp(body),ac=body.ac;
-      // The TV's clock can be off by seconds, minutes or days: positions are judged against
-      // the feed's own clock (it was just received), and the offset goes to the display. Up to
-      // a week either way is trusted (a TV left with a wrong date); beyond that the stamp is
-      // treated as nonsense, so a broken feed can't move the logbook's day far.
-      const skew=Math.abs(stamp-now)<7*86400?stamp-now:0,feedNow=now+skew;
+      const ac=body.ac,skew=stamp-now,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
       // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
