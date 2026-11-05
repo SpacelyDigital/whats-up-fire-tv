@@ -83,13 +83,21 @@ p('Parts of this app (the feed selection and route matching, aircraft types and 
 p(MIT('2026 Alex Miller'));
 
 // --- Native shell packages (production, transitive), one line each; texts once per license.
-const lock=JSON.parse(read('package-lock.json'));
+// Only what the app's dependencies reach without going through a build or test tool (Babel, the
+// Metro bundler, Jest, TypeScript, type definitions, the CLI, dev server and debugger), each
+// name and version once (a package copied into several node_modules is one package).
+const lock=JSON.parse(read('package-lock.json')),pkgs=lock.packages;
+const TOOL=/^(jest|jest-.+|@jest\/.+|babel-jest|ts-jest|@types\/.+|typescript|fsevents|metro|metro-(?!runtime$).+|@babel\/(?!runtime$).+|@react-native\/(codegen|community-cli-plugin|dev-middleware|debugger-.+|babel-.+|metro-.+|gradle-plugin))$/;
+const at=(from,n)=>{for(let b=from;;b=b.slice(0,Math.max(0,b.lastIndexOf('/node_modules/')))){const p=`${b&&b+'/'}node_modules/${n}`;if(pkgs[p])return p;if(!b)return null;}};
+const ships=new Set(),todo=[''],listed=new Set();
+for(const q of todo)for(const n of Object.keys({...pkgs[q].dependencies,...pkgs[q].optionalDependencies}))if(!TOOL.test(n)){let r=at(q,n);if(pkgs[r]?.link)r=pkgs[r].resolved;if(r&&!ships.has(r)){ships.add(r);todo.push(r);}}
 const ALLOWED=new Set(['MIT','ISC','BSD-2-Clause','BSD-3-Clause','Apache-2.0','0BSD','CC-BY-4.0','(MIT OR Apache-2.0)','(MIT OR CC0-1.0)','Python-2.0','BlueOak-1.0.0','CC0-1.0','Unlicense']);
 const rows=[],notices=[],fullText={}; // fullText: one license file per license that needs its own text
-for(const [path,pkg] of Object.entries(lock.packages)){
-  if(!path||pkg.dev||pkg.devOptional||pkg.link)continue;
+for(const [path,pkg] of Object.entries(pkgs)){
+  if(!path||pkg.dev||pkg.devOptional||pkg.link||!ships.has(path))continue;
   const name=path.replace(/^.*node_modules\//,'');
   if(path.startsWith('native/')||name.startsWith('@whatsup/'))continue; // this app's own module
+  if(listed.has(`${name} ${pkg.version}`))continue;listed.add(`${name} ${pkg.version}`);
   let lic=String(pkg.license||'');
   const dir=join(root,path),files=existsSync(dir)?readdirSync(dir):[];
   const licFile=files.find(f=>/^(licen[cs]e|copying)/i.test(f));

@@ -298,6 +298,17 @@ test('satellite credit: US imagery is credited as the USGS service asks, on scre
   assert.match(credits,/USDA, USGS The National Map/);
   assert.doesNotMatch(app,/'Imagery: USGS'/);
 });
+test('credits: About & credits lists each app framework package once, none of the build and test tools (Babel, the Metro bundler, Jest, TypeScript, type definitions, the CLI, dev server and debugger), and still what the app runs',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const text=readFileSync(new URL('../web/licenses.txt',import.meta.url),'utf8'),section=text.slice(text.indexOf('## App framework'),text.indexOf('## MIT License'));
+  const rows=section.split('\n').filter(l=>/^[@a-z0-9][^ ]* \d[^:]*: /.test(l)),names=rows.map(l=>l.split(':')[0]);
+  assert.equal(new Set(names).size,names.length,`listed twice: ${[...new Set(names.filter((n,i)=>names.indexOf(n)!==i))].join(', ')}`);
+  assert.match(section,new RegExp(`It includes these packages \\(${rows.length}\\)`));
+  const tools=names.filter(n=>/^(jest|jest-\S+|@jest\/\S+|babel-jest|@types\/\S+|typescript|fsevents|metro|metro-(?!runtime )\S+|@babel\/(?!runtime )\S+|@react-native\/(codegen|community-cli-plugin|dev-middleware|debugger-\S+|gradle-plugin)|chrome-launcher|caniuse-lite) /.test(n));
+  assert.deepEqual(tools,[],'build and test tools');
+  for(const n of ['react ','react-native ','scheduler ','metro-runtime ','@babel/runtime ','regenerator-runtime ','@react-native/js-polyfills ','@react-native/virtualized-lists ','@amazon-devices/react-native-kepler ','@amazon-devices/webview '])
+    assert.ok(names.some(x=>x.startsWith(n)),`${n.trim()} is credited`);
+});
 test('styles: the busy cog\'s rules target the cog only, so the search screen\'s "Searching for …" message (class "msg busy") stays in its column',async()=>{
   const {readFileSync}=await import('node:fs');
   const css=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
