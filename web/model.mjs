@@ -222,7 +222,7 @@ function enrich(a,raw,route,now){
   // (or a holding company named after one). It only tells Amazon's cargo flights apart.
   const operator=(cargo==='Amazon'?'Amazon Air':'')||airline;
   const flight=a.callsign||a.registration||a.hex.toUpperCase();
-  const squawk=typeof r.squawk==='string'?r.squawk:'';
+  const squawk=typeof r.squawk==='string'?r.squawk:Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
   // Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
   // fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
   const declared={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'}[String(r.emergency||'')];

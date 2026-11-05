@@ -531,7 +531,7 @@ test('backup: an adsb.lol reply with missing, null, wrong-type, extra or out-of-
     }
     const p=Object.fromEntries(m.planes.map(a=>[a.hex,a]));
     assert.equal(p.a20202.speed_kt,null,'an impossible speed is no reading');assert.equal(p.a20202.heading,null);
-    assert.equal(p.a30303.squawk,'');assert.equal(p.a30303.emergency,'');assert.equal(p.a30303.year,'');
+    assert.equal(p.a30303.squawk,'7700','a number squawk reads as its digits');assert.equal(p.a30303.emergency,'EMERGENCY');assert.equal(p.a30303.year,'');
     assert.equal(p.a40404.emergency,'','"constructor" is no emergency');
     s.stop();
   }finally{r.restore();}
@@ -845,4 +845,19 @@ test('feed: an aircraft listed twice in one reply counts once, from its newest p
     assert.equal(h.find(a=>a.hex==='a50001').last_seen,T0/1000,'from the newest position');
     s.stop();
   }finally{r.restore();}
+});
+
+test('feed: a squawk sent as a number reads as its four digits (7700 is an emergency)',async()=>{
+  for(const [squawk,shown,emergency] of [[7700,'7700','EMERGENCY'],[7500,'7500','HIJACK'],[7600,'7600','RADIO FAILURE'],[1200,'1200',''],[17,'0017',''],
+    ['7700','7700','EMERGENCY'],[7700.5,'',''],[-7700,'',''],[17700,'',''],[NaN,'','']]){
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi={mode:'ok',get body(){return {ac:[plane('a50001','UAL101',{squawk,emergency:'none'})],now:Date.now()};}};
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+      await r.advance(1000);
+      const h=models.at(-1).hero;
+      assert.deepEqual([h.squawk,h.emergency],[shown,emergency],String(squawk));
+      s.stop();
+    }finally{r.restore();}
+  }
 });
