@@ -58,3 +58,36 @@ test('choosing a place: a move of a few hundred metres across the date line keep
   const [cx]=mapShift({latitude:41.85,longitude:-87.65},{latitude:41.85,longitude:-87.64});
   assert.ok(Math.abs(cx+.515)<.001,`away from the date line as before: ${cx}`);
 });
+
+test('Adjust position: its street map is built once per place (within ~1 km, as the saved maps) and kept for 30 days, so opening it again sends OpenFreeMap nothing',async()=>{
+  const {dLon}=await import('../web/core.mjs');
+  const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)?.[0];assert.ok(region,'startAdjust in app.mjs');
+  const builds=[];let fail=false,now=0;
+  const p=page([line('const ADJ_RANGE='),region],{dLon,performance:{now:()=>now},layers:[],closeAll(){},makeCanvas:()=>({}),$:()=>({replaceChildren(){}}),
+    stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},
+    buildMap:async(place,range,o)=>{builds.push({range,...o});await new Promise(r=>setTimeout(r,5));if(fail)throw new Error('map tile unavailable');return {latitude:place.latitude,longitude:place.longitude,n:builds.length};}});
+  const back=()=>vm.runInContext('adj=null',p);
+  const open=async place=>{back();await p.startAdjust(place);return {map:vm.runInContext('adj',p)?.map,note:p.texts['adjust-note']};};
+  const CHI={latitude:41.85003,longitude:-87.65005};
+  const first=await open(CHI);
+  assert.ok(first.map&&first.note==='',first.note);assert.deepEqual(builds[0],{range:1.5,zoom:13,detail:true});
+  for(let i=0;i<2;i++)assert.equal((await open(CHI)).map,first.map);
+  assert.equal(builds.length,1,'opened three times, built once');
+  assert.equal((await open({...CHI,longitude:-87.6404})).map,first.map,'the home moved 800 m east: the same map');
+  assert.equal(builds.length,1);
+  const dl=await open({latitude:0,longitude:180});
+  assert.equal((await open({latitude:0,longitude:-179.99955})).map,dl.map,'50 m east across the date line: the same map');
+  assert.equal(builds.length,2);
+  await open(CHI);await open({...CHI,latitude:41.877});
+  assert.equal(builds.length,4,'3 km away: a map of its own');
+  // Back before it lands, then open again: one build, and the screen gets it.
+  const NYC={latitude:40.71,longitude:-74.0};back();const early=p.startAdjust(NYC);
+  const late=await open(NYC);await early;
+  assert.equal(builds.length,5);assert.equal(late.map?.n,5);
+  // A failed build is tried again on the next open; one older than 30 days is built again.
+  const DEN={latitude:39.74,longitude:-104.99};fail=true;
+  assert.deepEqual(await open(DEN),{map:null,note:'Street map unavailable'});fail=false;
+  const den=await open(DEN);assert.equal(builds.length,7);assert.ok(den.map&&den.note==='');
+  now+=29*864e5;assert.equal((await open(DEN)).map,den.map);now+=2*864e5;await open(DEN);
+  assert.equal(builds.length,8,'after 30 days: built again');
+});

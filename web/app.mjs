@@ -758,6 +758,17 @@ function adjMap(){
     {layer:'runways',stroke:c(.85),width:2.4}];
 }
 let adj=null;
+// Its street map is built once per place (within ~1 km, as the saved maps) and kept while the app runs,
+// at most 30 days: opening Adjust position again asks OpenFreeMap for nothing. A failed build is tried again.
+let adjBuilt=null;
+function adjStreets(place){
+  const b=adjBuilt;
+  if(b&&performance.now()-b.at<30*864e5&&Math.abs(b.latitude-place.latitude)<.01&&Math.abs(dLon(b.longitude,place.longitude))<.01)return b.map;
+  const map=buildMap(place,ADJ_RANGE+.5,{zoom:13,detail:true});
+  adjBuilt={latitude:place.latitude,longitude:place.longitude,at:performance.now(),map};
+  map.catch(()=>{if(adjBuilt?.map===map)adjBuilt=null;});
+  return map;
+}
 // from: 'confirm' when opened on a search result (Back returns to it, not to an empty
 // dashboard on a first run): the screens under it, and their focus, come back too.
 async function startAdjust(place,{from=''}={}){
@@ -770,7 +781,7 @@ async function startAdjust(place,{from=''}={}){
   drawAdjust();syncApp();
   setText('adjust-note','Loading street map');
   try{
-    const m=await buildMap(place,ADJ_RANGE+.5,{zoom:13,detail:true});
+    const m=await adjStreets(place);
     if(adj?.place===place){adj.map=m;setText('adjust-note','');drawAdjust();}
   }catch(e){console.error('adjust map',e?.message||e);if(adj)setText('adjust-note','Street map unavailable');}
 }
