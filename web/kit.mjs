@@ -15,7 +15,7 @@
 // longitude, altitude_ft, speed_kt, heading, vertical (fpm), squawk, emergency,
 // route {origin,destination,from,to}, progress {flown,left,share}, x/y (miles east/
 // north of home), ground (miles), bearing, elevation (deg up), cpa {seconds,miles,
-// receding}, inside (within the alert radius), trend {alt,speed,trail[]}, year;
+// receding}, inside (within the alert radius), approaching (as the card's 'Approaching'), trend {alt,speed,trail[]}, year;
 // hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency'); while Left/Right
 // browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
 // {index, count} (headingAlts words the card's heading).

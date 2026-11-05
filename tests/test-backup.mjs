@@ -1291,3 +1291,37 @@ test('feed: an emergency on the map is kept when the reply is cut to the nearest
     }finally{r.restore();}
   }
 });
+
+// Miles east/north of CVG as the model reads them, and a 300 kt flight at its closest `mi` from CVG on
+// bearing `deg` in `s` seconds (flying `track`, at right angles to that bearing).
+const xy=(x,y)=>({lat:CVG.latitude+y/69,lon:CVG.longitude+x/(69.172*Math.cos(CVG.latitude*Math.PI/180))});
+const passing=(deg,mi,track,s)=>{const R=Math.PI/180,v=300*1.15078/3600;
+  return {...xy(mi*Math.sin(deg*R)-v*s*Math.sin(track*R),mi*Math.cos(deg*R)-v*s*Math.cos(track*R)),track,gs:300,baro_rate:0};};
+// The Remarks column of the Departures board, as web/layouts/departures.mjs words it.
+async function departuresRemark(win){
+  const vm=await import('node:vm'),src=readFileSync(new URL('../web/layouts/departures.mjs',import.meta.url),'utf8');
+  const code=[/^const sos=.*$/m,/^function remark\(a\)\{[\s\S]*?^\}$/m].map(re=>re.exec(src)?.[0]||'').join('\n');assert.match(code,/function remark/,'remark() in departures.mjs');
+  return vm.runInNewContext(`${code}\nremark`,{number:v=>typeof v==='number'&&Number.isFinite(v),windowView:()=>win,ABOVE_MI:1,alertRadius:()=>3});
+}
+test('Window view: the Departures remarks say what the card would (ABOVE right above, IN WINDOW further out in it, DUE n MIN only for a plane whose closest point is in it); the circle reads as before',async()=>{
+  const OVER=plane('a0d004','OVER4',{...xy(0,-.5),gs:20,baro_rate:0}), // half a mile south: right above, outside the wedge
+    AAL=plane('a0d001','AAL20',{...xy(0,20),track:90,gs:300,baro_rate:0}), // 20 mi north, in the wedge
+    SWA=plane('a0d002','SWA30',passing(180,1.5,90,180)), // closest 1.5 mi south in 3 min: never in the window
+    UAL=plane('a0d003','UAL40',passing(340,15,70,180)); // closest 15 mi at 340° (in the window) in 3 min
+  const zones={window:{kind:'window',from:300,to:30,miles:25},circle:{kind:'circle',radius:3}};
+  const run=async(zone,ac)=>{
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi={mode:'ok',get body(){return {ac,now:Date.now()};}};
+      const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24,zone:zones[zone]},m=>models.push(m));
+      await r.advance(1000);s.stop();
+      const m=models.at(-1),remark=await departuresRemark(zone==='window');
+      return {hero:`${m.hero.flight}: ${m.hero.status}`,board:Object.fromEntries(m.planes.map(a=>[a.flight,remark(a)]))};
+    }finally{r.restore();}
+  };
+  assert.deepEqual(await run('window',[OVER,AAL,SWA,UAL]),{hero:'OVER4: Above you now',board:{OVER4:'ABOVE',AAL20:'IN WINDOW',SWA30:'IN RANGE',UAL40:'DUE 3 MIN'}});
+  assert.deepEqual((await run('window',[AAL,SWA,UAL])).hero,'AAL20: In your window');
+  assert.deepEqual(await run('window',[SWA,UAL]),{hero:'UAL40: Approaching',board:{SWA30:'IN RANGE',UAL40:'DUE 3 MIN'}});
+  assert.deepEqual(await run('circle',[OVER,AAL,SWA,UAL]),{hero:'OVER4: Above you now',board:{OVER4:'ABOVE',AAL20:'LEAVING',SWA30:'DUE 3 MIN',UAL40:'IN RANGE'}});
+  assert.deepEqual(await run('circle',[AAL,SWA,UAL]),{hero:'SWA30: Approaching',board:{AAL20:'LEAVING',SWA30:'DUE 3 MIN',UAL40:'IN RANGE'}});
+});

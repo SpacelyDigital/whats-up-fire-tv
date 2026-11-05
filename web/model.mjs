@@ -252,15 +252,19 @@ function inAlert(a,config){
   const z=config.zone;
   return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
 }
-function pickHero(planes,config){
-  const z=config.zone,win=z?.kind==='window';
-  const approaching=a=>a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(win?inZone(z,a.cpa.x,a.cpa.y):
+// Every plane carries it (a.approaching), so a board's remark says what the card would.
+function approaching(a,config){
+  const z=config.zone;
+  return !!a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(z?.kind==='window'?inZone(z,a.cpa.x,a.cpa.y):
     a.cpa.miles<config.radiusMiles+1);
+}
+function pickHero(planes,config){
+  const win=config.zone?.kind==='window';
   const hero=planes.find(a=>a.emergency&&a.ground<=config.rangeMiles)||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
-    planes.filter(approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
+    planes.filter(a=>a.approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
     planes.find(a=>a.ground<=config.rangeMiles)||null; // 'Nearest' only from planes on the map
   if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
-    approaching(hero)?'Approaching':'Nearest';
+    hero.approaching?'Approaching':'Nearest';
   return hero;
 }
 
@@ -295,7 +299,7 @@ function liveSource(config,onModel,was){
     const sos=all.length>MAX_PLANES?all.filter(a=>emergencyOf(raw.get(a.hex))&&derive(a).ground<=config.rangeMiles):[];
     const keep=new Set([...sos,...all.filter(a=>!sos.includes(a))].slice(0,MAX_PLANES));
     const planes=all.filter(a=>keep.has(a)).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
-    for(const a of planes)a.inside=inAlert(a,config);
+    for(const a of planes){a.inside=inAlert(a,config);a.approaching=approaching(a,config);}
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
@@ -386,7 +390,7 @@ function demoSource(config,onModel,airports){
         heading:track,position_timestamp:now/1000-1};
       a.distance_mi=Math.hypot(east,north);a.inside=a.distance_mi<=config.radiusMiles;
       const raw={ownOp,year,squawk:scene==='emergency'&&hex===DEMO[0][0]?'7700':'2214',baro_rate:fpm,dbFlags:MILITARY.has(hex)?1:0};
-      const p=enrich(a,raw,route?{...route,flight:callsign}:null,now);p.inside=inAlert(p,config);return p;
+      const p=enrich(a,raw,route?{...route,flight:callsign}:null,now);p.inside=inAlert(p,config);p.approaching=approaching(p,config);return p;
     }).filter(a=>a.distance_mi<config.rangeMiles+3&&scene!=='quiet')
       .sort((a,b)=>Number(b.inside)-Number(a.inside)||a.distance_mi-b.distance_mi);
     const recent=recentRows.map(([hex,flight,code,route,mins])=>({hex,flight,callsign:flight,aircraft_type:code,

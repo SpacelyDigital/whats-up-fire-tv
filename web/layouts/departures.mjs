@@ -1,7 +1,8 @@
 // Layout 6, Departures: an amber split-flap board. Rows are the aircraft in range
 // now (hero first) and then those recently above; only the characters that change
 // flip. A small dark map inset shows where they are.
-import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
+import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,windowView,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
+import {ABOVE_MI} from '../core.mjs';
 
 // Columns: [key, label, width in characters, align]
 const COLS=[['flight','Flight',7],['dest','Destination',11],['type','Type',4],['alt','Alt',5,'r'],['dist','Dist',4,'r'],['remark','Remarks',10]];
@@ -72,10 +73,11 @@ function drawMap(){paintMap($.canvas,maps,view,MAP);}
 
 // The squawk names the emergency only when it is 7500, 7600 or 7700 (a declared one may squawk 1200, or nothing).
 const sos=a=>/^7[567]00$/.test(a.squawk);
+// The card's words: Above you now, In your window (Window view, past a mile), Approaching (DUE).
 function remark(a){
   if(a.emergency)return sos(a)?`SQUAWK${a.squawk}`:'EMERGENCY';
-  if(a.inside)return 'ABOVE';
-  if(a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.cpa.miles<alertRadius()+1)return `DUE ${Math.max(1,Math.round(a.cpa.seconds/60))} MIN`;
+  if(a.inside)return windowView()&&a.ground>ABOVE_MI?'IN WINDOW':'ABOVE';
+  if(a.approaching)return `DUE ${Math.max(1,Math.round(a.cpa.seconds/60))} MIN`;
   if(number(a.vertical)&&a.vertical>500)return 'CLIMBING';
   if(number(a.vertical)&&a.vertical<-500)return 'DESCENDING';
   return a.cpa?.receding?'LEAVING':'IN RANGE';
