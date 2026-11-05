@@ -584,18 +584,18 @@ function editHint(row,was){
   const card=$('settings').querySelector('.card');card.classList.toggle('editing',!!row);card.classList.toggle('big',row?.dataset.big!==undefined);
   fitValue(row||was);
 }
-// Back while editing puts the value back as it was when OK was pressed, applied once (a Map radius
-// step's own pending apply is dropped).
+// Back while editing puts the value back as it was when OK was pressed, applied once: a Map radius
+// step's own pending apply (the step undone, or one kept with OK moments before) is folded into it.
 let editSnap=null;
 function cancelEdit(){
   const before=editSnap;stopEdit();
   if(!before)return;
   const {place,...now}=settings,changed=Object.keys(before).filter(k=>before[k]!==now[k]);
   if(!changed.length)return;
-  const mapMoved=before.mapMiles!==settings.mapMiles;
+  const mapStep=before.mapMiles!==settings.mapMiles||!!mapTimer;
   Object.assign(settings,before);saveSettings(settings);useSettings(settings);showSettings();tellAwake();
   busy(()=>{mapsChanged();refreshLayout();});
-  clearTimeout(mapTimer);clearTimeout(zoneTimer);zoneTimer=setTimeout(mapMoved?()=>applyPlace(settings.place):restartFeed,700);
+  clearTimeout(mapTimer);mapTimer=0;clearTimeout(zoneTimer);zoneTimer=setTimeout(mapStep?()=>applyPlace(settings.place):restartFeed,700);
 }
 
 // Map radius: Settings > Map radius, or Up/Down on the dashboard. The view redraws at
@@ -611,7 +611,7 @@ function stepMap(dir){
   if(maps.detail&&!detailFits(maps.detail,detailSpec(next)))maps.detail=null;
   busy(()=>{mapsChanged();refreshLayout();});
   clearTimeout(mapTimer);
-  mapTimer=setTimeout(()=>{if(settings.place)applyPlace(settings.place);},700);
+  mapTimer=setTimeout(()=>{mapTimer=0;if(settings.place)applyPlace(settings.place);},700);
 }
 function toast(text){
   const t=$('toast');t.textContent=text;t.classList.add('on');
