@@ -1,7 +1,7 @@
 // Layout 6, Departures: an amber split-flap board. Rows are the aircraft in range
 // now (hero first) and then those recently above; only the characters that change
 // flip. A small dark map inset shows where they are.
-import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts} from '../kit.mjs';
+import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
 
 // Columns: [key, label, width in characters, align]
 const COLS=[['flight','Flight',7],['dest','Destination',11],['type','Type',4],['alt','Alt',5,'r'],['dist','Dist',4,'r'],['remark','Remarks',10]];
@@ -33,7 +33,7 @@ function setFlaps(row,text){
     c.classList.remove(flip?'fa':'fb');c.classList.add(flip?'fb':'fa');
   }
 }
-// A board cell: too long, it keeps whole words (FRANKFURT AM MAIN -> FRANKFURT), as boards do.
+// A board cell: too long, it keeps whole words, as boards do (Destination gives a code instead).
 const words=(s,n)=>{if(s.length<=n)return s;let o='';for(const w of s.split(/\s+/)){const t=o?`${o} ${w}`:w;if(t.length>n)break;o=t;}return o||s.slice(0,n);};
 const fit=(s,n,right)=>{s=words(String(s??'').toUpperCase().trim(),n);return right?s.padStart(n):s.padEnd(n);};
 
@@ -83,7 +83,7 @@ function remark(a){
 // "Cincinnati/Northern Kentucky International" -> "Cincinnati"
 const city=s=>String(s||'').split(/[\/(,]/)[0].replace(/\s+(International|Regional|Municipal|Airport|Intl)\b.*$/i,'').trim();
 // No route: the operator, MILITARY for a military aircraft ("US AIR" read like US Airways), or PRIVATE.
-const dest=a=>a.route?city(a.route.to?.city)||a.route.destination:a.military?'MILITARY':a.operator?a.operator:'PRIVATE';
+const dest=a=>a.route?boardCity(city(a.route.to?.city),a.route.destination,11):a.military?'MILITARY':a.operator?boardOperator(a.operator,a.callsign,11):'PRIVATE';
 const altText=ft=>!number(ft)?'':fmt.altUnit()==='m'?String(Math.round(ft*.3048)):String(Math.round(ft/10)*10);
 // Four flaps: one decimal under 100, whole numbers above ("123." was the old cut).
 const distText=mi=>{if(!number(mi))return '';const d=metric()?mi*KM:mi;return d<99.95?d.toFixed(1):String(Math.min(9999,Math.round(d)));};
@@ -107,7 +107,7 @@ function render(m){
     if(lines.length>=ROWS)break;
     if(lines.some(l=>l.a.flight===r.flight))continue;
     const ago=Math.max(1,Math.round((now/1000-r.last_seen)/60));
-    lines.push({a:r,cells:[r.flight,r.route?city(r.route.to?.city)||r.route.destination:'',r.aircraft_type||'','','',ago<60?`${ago} MIN AGO`:'DEPARTED'],cls:'past'});
+    lines.push({a:r,cells:[r.flight,r.route?boardCity(city(r.route.to?.city),r.route.destination,11):'',r.aircraft_type||'','','',ago<60?`${ago} MIN AGO`:'DEPARTED'],cls:'past'});
   }
   if(!live.length&&lines.length<ROWS)lines.splice(0,0,{cells:['','QUIET SKIES','','','','NO TRAFFIC'],cls:'quiet'});
   $.rows.forEach((row,i)=>{

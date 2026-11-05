@@ -120,11 +120,15 @@ globalThis.document?.fonts?.addEventListener?.('loadingdone',()=>{
 });
 // Shorter wordings for common long values, longest first.
 export const placeAlts=()=>[...new Set([placeName(),cityName()].filter(Boolean))];
-export const airlineAlts=name=>{
+export const airlineAlts=(name,cut=true)=>{
   const s=String(name||''),corp=s.replace(/[\s,]+(S\.?A\.?( de C\.?V\.?)?|LLC|Inc\.?|Co\.?|Corp\.?|AG|GmbH|Ltd\.?|plc|SpA|NV|BV)$/i,'').trim();
   const short=corp.replace(/\s+(Air ?Lines|Airlines|Airways|Aviation|International|Express|Cargo|Services|Transportes?|Aerotransportes)\b/gi,'').trim();
-  return [...new Set([s,corp,short,short.split(/\s+/)[0]].filter(Boolean))];
+  return [...new Set([s,corp,short,cut&&short.split(/\s+/)[0]].filter(Boolean))];
 };
+// A Departures cell of n flaps: a city too long for it gives its airport code (SFO, never "SAN" or
+// "INDIANAPOLI"); an operator its short name, else the callsign's airline code (ANZ, not "AIR NEW").
+export const boardCity=(name,code,n)=>{const s=String(name||'').toUpperCase().trim();return s&&s.length<=n?s:String(code||'').toUpperCase();};
+export const boardOperator=(name,call,n)=>airlineAlts(name,false).map(s=>s.toUpperCase()).find(s=>s.length<=n)||String(call||'').slice(0,3).toUpperCase();
 export const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 // First spot (dx,dy offsets from p) where a w x h box fits inside bounds without hitting boxes.
 export function placeBox(boxes,p,w,h,spots,bounds){

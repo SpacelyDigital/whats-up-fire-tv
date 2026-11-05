@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fmt,useSettings,airlineAlts,militaryAlts,psCredit,shortAuthor,placeAlts,shortField,photoAlt} from '../web/kit.mjs';
+import {fmt,useSettings,airlineAlts,militaryAlts,psCredit,shortAuthor,placeAlts,shortField,photoAlt,boardCity,boardOperator} from '../web/kit.mjs';
 import {shortType,typeName} from '../web/model.mjs';
 import {MODELS,MILITARY_MODELS} from '../web/models.mjs';
 import {AIRCRAFT_TYPES} from '../web/aircraft-types.mjs';
@@ -120,6 +120,23 @@ test('airlineAlts: the shortest wording still names the operator (not "Air", "El
   const GENERIC=new Set(['Air','Aer','El','US','Sun','Sky','West','Western','China','Mountain']);
   const bad=[...new Set(Object.values(OPERATORS))].filter(n=>GENERIC.has(airlineAlts(n).at(-1))).map(n=>`${n} -> ${airlineAlts(n).at(-1)}`);
   assert.deepEqual(bad,[]);
+});
+test('boardCity / boardOperator: a Departures cell (11 flaps) shows the whole name or a code, never a first word or a cut',()=>{
+  for(const [c,code,want] of [['San Francisco','SFO','SFO'],['Fort Lauderdale','FLL','FLL'],['Colorado Springs','COS','COS'],['Salt Lake City','SLC','SLC'],
+    ['Indianapolis','IND','IND'],['Philadelphia','PHL','PHL'],['Frankfurt am Main','FRA','FRA'],['Dallas-Fort Worth','DFW','DFW'],['Jacksonville','JAX','JAX'],
+    ['San Jose del Cabo','SJD','SJD'],['Chicago','ORD','CHICAGO'],['Kansas City','MCI','KANSAS CITY'],['  New York ','JFK','NEW YORK'],['','KDEN','KDEN'],[undefined,'BOS','BOS']])
+    assert.equal(boardCity(c,code,11),want,String(c));
+  for(const [o,call,want] of [['Air New Zealand','ANZ5','ANZ'],['Air Hong Kong','AHK8402','AHK'],['British Airways','BAW296','BRITISH'],['Lufthansa Cargo','GEC8401','LUFTHANSA'],
+    ['Air China Cargo','CAO1043','AIR CHINA'],['US Air Force','RCH481','RCH'],['China Eastern','CES581','CES'],['Air Canada Rouge','ROU1720','ROU'],['AirBridgeCargo','ABW123','ABW'],
+    ['United','UAL77','UNITED'],['Amazon Air','ATN3121','AMAZON AIR']])
+    assert.equal(boardOperator(o,call,11),want,o);
+  // Every operator the app names: whole, its short name, or the callsign's code; never a lone first word cut from it.
+  for(const [code,o] of Object.entries(OPERATORS)){
+    const s=boardOperator(o,`${code}123`,11),first=o.split(/\s+/)[0].toUpperCase();
+    assert.ok(s.length<=11&&s.length>=2,`${o} -> "${s}"`);
+    assert.ok(s===code||airlineAlts(o).map(x=>x.toUpperCase()).includes(s),`${o} -> "${s}"`);
+    if(s===first&&/\s/.test(o))assert.ok(airlineAlts(o,false).map(x=>x.toUpperCase()).includes(s),`${o} -> "${s}": a first word, not its short name`);
+  }
 });
 test('militaryAlts: count first, most seen first, at most four types, shorter by dropping types, "none yet"',()=>{
   // The longest short names among the military types the app knows.
