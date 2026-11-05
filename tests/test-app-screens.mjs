@@ -142,3 +142,65 @@ test('Adjust position: at the 800 m limit the note says so, also while the stree
     p.nudge('left');assert.equal(note(),after,`${tag}: back inside`);
   }
 });
+
+// localStorage as the page sees it: the app's keys are own properties (Object.keys lists them).
+const shelf=(items={})=>Object.assign(Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},removeItem(k){delete this[k];}}),items);
+test('Privacy offers Erase all data whenever anything of the app\'s is stored, also when the saved consent is of an older version, damaged or missing; a fresh TV hides it',()=>{
+  const els={};const $=id=>els[id]??={hidden:null};
+  const p=page([line('const CONSENT_KEY='),line('function hasConsent\\('),line('const anyStored='),fn('openPrivacy')],{$,renderDoc(){},window:{},PRIVACY_URL:'',themedQr(){},open(){},localStorage:null});
+  const offered=items=>{if(items)p.localStorage=shelf(items);else Object.defineProperty(p,'localStorage',{get(){throw new Error('SecurityError');}});
+    p.openPrivacy();return !els['privacy-erase'].hidden;};
+  const SET=JSON.stringify({mapMiles:25});
+  assert.equal(offered({'whatsup.consent':'{"v":3,"at":"2026-11-05"}'}),true,'agreed');
+  for(const [tag,items] of [['Version 1',{'whatsup.consent':'{"v":1}','whatsup.settings.v1':SET}],['damaged',{'whatsup.consent':'{"v":','whatsup.history.v1':'[]'}],
+    ['missing',{'whatsup.settings.v1':SET,'whatsup.logbook.v1':'{}'}],['a newer version',{'whatsup.consent':'{"v":9}'}]])assert.equal(offered(items),true,`consent ${tag}, data stored`);
+  assert.equal(offered({}),false,'a fresh TV');
+  assert.equal(offered({'other.app':'1'}),false,'another app\'s keys only');
+  assert.equal(offered(null),false,'storage refused');
+});
+
+test('After Erase all data the fresh consent screen ignores OK until a key is released on it or 0.8 s has passed; the next launch takes OK at once',()=>{
+  const session=new Map(),sessionStorage={getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,String(v)),removeItem:k=>session.delete(k)};
+  let now=1000,agreed=0;
+  // One page load: the consent lines, askConsent and select cut from app.mjs; agree() counts.
+  const load=(globals={})=>{
+    const keyup=[];
+    return Object.assign(page([line('let consentDone=null'),line('const ERASED_KEY='),line("addEventListener\\('keyup'"),fn('askConsent'),fn('select'),fn('eraseAll')],
+      {performance:{now:()=>now},sessionStorage,$:()=>({}),PROFILE:{consent:'Agree?'},open(){},agree:()=>{agreed++;},addEventListener:(type,f)=>{if(type==='keyup')keyup.push(f);},...globals}),{keyup});
+  };
+  const ok=p=>{const was=agreed;p.select({id:'consent-ok',dataset:{}});return agreed>was;};
+  // Erase: everything of the app's goes, the marker is set before the reload.
+  const ls=shelf({'whatsup.consent':'{"v":3}','whatsup.settings.v1':'{}','other.app':'1'}),at={};
+  const before=load({feed:null,store:{seal(){}},placeToken:0,detailToken:0,detailRetry:0,clearTimeout(){},localStorage:ls,indexedDB:{deleteDatabase(){}},
+    location:{reload(){at.marker=sessionStorage.getItem('whatsup.erased');at.keys=Object.keys(ls);}}});
+  before.eraseAll();
+  assert.deepEqual(at,{marker:'1',keys:['other.app']},'at the reload');
+  // The reload: OK is ignored for 0.8 s, or until a key is released.
+  let p=load();p.askConsent();
+  assert.equal(session.has('whatsup.erased'),false,'the marker is read once');
+  now+=100;assert.equal(ok(p),false,'OK 0.1 s after the reload');
+  now+=600;assert.equal(ok(p),false,'0.7 s');
+  now+=150;assert.equal(ok(p),true,'0.85 s');
+  sessionStorage.setItem('whatsup.erased','1');p=load();p.askConsent();
+  now+=50;assert.equal(ok(p),false);
+  for(const f of p.keyup)f();assert.equal(ok(p),true,'after a key is released');
+  // Any other launch: OK at once.
+  p=load();p.askConsent();assert.equal(ok(p),true,'no Erase before it');
+});
+
+test('launch: a saved place that can\'t be read keeps \'Recently above\' and the logbook on the IP guess; no saved place starts them afresh; the guess is not confirmed',async()=>{
+  const GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'},CHI={name:'Chicago',latitude:41.85,longitude:-87.65};
+  const run=async({place=null,damaged=false,found=GUESS}={})=>{
+    const seen=[];
+    const p=page([fn('boot')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+      hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged:()=>damaged,locating:false,locateByIp:async()=>found,setTimeout(){},layer:null,
+      settings:{place,confirmed:true,layout:'radar'},showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),
+      applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
+    await p.boot();
+    return {seen,confirmed:p.settings.confirmed};
+  };
+  assert.deepEqual(await run({damaged:true}),{seen:[['apply',41.878,false],['welcome','Chicago']],confirmed:false},'damaged: kept');
+  assert.deepEqual(await run(),{seen:[['apply',41.878,true],['welcome','Chicago']],confirmed:false},'none saved: afresh');
+  assert.deepEqual((await run({place:CHI})).seen,[['apply',41.85,false]],'a saved place: kept, no lookup');
+  assert.deepEqual((await run({damaged:true,found:null})).seen,[['search']],'the lookup failed: the search screen');
+});
