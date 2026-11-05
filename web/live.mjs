@@ -417,7 +417,8 @@ export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
 // okAt: when the last adsb.fi request that answered with data went out. lastStamp: the last good reply's
-// own clock (s, either feed); no reply's clock may fall a day behind it, nor before OLDEST_STAMP (2024).
+// own clock (s, either feed); no reply's clock may fall a day behind it unless it agrees with the TV's to
+// within a day (one wrong clock must not lock the session out), nor before OLDEST_STAMP (2024).
 const OLDEST_STAMP=1704067200;
 const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,lastStamp:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
 export const outage={...CLEAR};
@@ -535,9 +536,11 @@ export function startLive(show,config){
     // The TV's clock can be off by seconds, days or a year (a TV left with a wrong date): positions
     // are judged against the feed's own clock (it was just received), and the offset goes to the
     // display; adsb.fi stays the feed. A reply whose clock can't be right (none, not a number, before
-    // 2024, more than a year ahead of the TV's, or more than a day before the last good reply's: a
-    // cached reply) is a failed poll, as a 5xx: none of its positions can be judged (adsb.lol stands in).
-    const body=typeof reply?.now==='number'&&stamp>=OLDEST_STAMP&&stamp<=now+365*DAY&&stamp>=outage.lastStamp-DAY?reply:null;
+    // 2024, more than a year ahead of the TV's, or more than a day before the last good reply's while a
+    // day or more off the TV's too: a cached reply) is a failed poll, as a 5xx: none of its positions can
+    // be judged (adsb.lol stands in). A clock that agrees with the TV's is used even after a plausible but
+    // wrong one (300 days ahead) was the last good reply's, so one such reply can't lock the session out.
+    const body=typeof reply?.now==='number'&&stamp>=OLDEST_STAMP&&stamp<=now+365*DAY&&(stamp>=outage.lastStamp-DAY||Math.abs(stamp-now)<DAY)?reply:null;
     // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts, unless
     // a request made since has answered (a hung request timing out after the restarted feed's good reply).
     if(stopped||paused){if(!body&&!backup&&started>outage.okAt)fiFailed(status,retryAfter,started);return;}

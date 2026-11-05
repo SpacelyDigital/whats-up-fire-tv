@@ -1132,10 +1132,13 @@ test('feed: a 200 with an implausible clock (before 2024, over a year ahead of t
       live.stop();
     }finally{r.restore();}
   }
-  // After good replies, one whose clock is days behind theirs (a cached reply) is a failure; 20 h behind is used.
-  for(const [name,off,used] of [['3 days before the last good reply',-3*DAY_MS,false],['20 hours before',-20*3600000,true]]){
+  // After good replies, one whose clock is days behind theirs (a cached reply) is a failure, also when the TV's
+  // clock is 300 days behind the feed's (the cached clock is off the TV's too); 20 h behind is used.
+  for(const [name,off,used,tv] of [['3 days before the last good reply',-3*DAY_MS,false],['20 hours before',-20*3600000,true],
+    ['3 days before, the TV clock 300 days behind the feed',297*DAY_MS,false,300*DAY_MS]]){
     const r=fresh();
     try{
+      if(tv){r.feeds.fi={mode:'ok',nowShiftMs:tv};r.feeds.lol={mode:'ok',nowShiftMs:tv};} // both feeds right, the TV behind
       const live=r.live();
       await r.advance(6000);r.feeds.fi={mode:'ok',nowShiftMs:off}; // good at 0 and 5 s
       await r.advance(20000);
@@ -1144,6 +1147,41 @@ test('feed: a 200 with an implausible clock (before 2024, over a year ahead of t
         assert.deepEqual(r.at('fi'),[0,5000,10000,15000],`${name}: two failures, then adsb.lol`);
         assert.ok(!r.updates.some(u=>u.ok&&u.source==='adsb.fi'&&u.t-T0>6000),`${name}: nothing shown from it`);
         assert.equal(lastData(r).source,'adsb.lol',name);
+      }
+      live.stop();
+    }finally{r.restore();}
+  }
+});
+
+// One plausible but wrong clock must never lock the session out: a reply 300 days ahead of the TV is used (under a
+// year), and the right clocks that follow agree with the TV's to within a day, so they are used too (from either
+// feed) and lastStamp follows them back down, instead of every later reply failing as a day behind the last good one.
+test('feed: after one reply 300 days ahead of the TV, the right clocks that follow (from either feed) are used, not rejected for the rest of the session',async()=>{
+  const DAY_MS=86400000;
+  for(const [name,lol] of [['adsb.fi right again',false],['adsb.fi offline, adsb.lol right',true]]){
+    const r=fresh();
+    try{
+      r.feeds.fi={mode:'ok',nowShiftMs:300*DAY_MS};
+      const live=r.live();
+      await r.advance(1000);
+      const first=lastData(r);
+      assert.equal(first?.source,'adsb.fi',`${name}: the reply 300 days ahead is used`);
+      assert.ok(Math.abs(first.skew-300*86400)<1,`${name}: its offset shown (${first.skew})`);
+      r.feeds.fi={mode:lol?'offline':'ok'}; // every later reply reads the right clock
+      await r.advance(40000);
+      const last=lastData(r);
+      assert.ok(Math.abs(last.skew)<1,`${name}: the right clock used (skew ${last.skew})`);
+      assert.ok(Math.abs(outage.lastStamp-last.t/1000)<1,`${name}: lastStamp follows it back down (${outage.lastStamp-T0/1000})`);
+      if(!lol){
+        assert.deepEqual(r.at('lol'),[],`${name}: nothing sent to adsb.lol`);
+        assert.deepEqual(r.at('fi'),[0,5000,10000,15000,20000,25000,30000,35000,40000],`${name}: adsb.fi every 5 s`);
+        assert.ok(r.updates.filter(u=>u.t-T0>=5000).every(u=>u.ok),`${name}: no failed poll`);
+        assert.equal(last.source,'adsb.fi',name);assert.equal(last.t-T0,40000,`${name}: data at 40 s`);
+      }else{
+        assert.deepEqual(r.at('fi'),[0,5000,10000],`${name}: adsb.fi down after two failures`);
+        assert.deepEqual(r.at('lol'),[15000,25000,35000],`${name}: adsb.lol every 10 s`);
+        assert.ok(r.updates.filter(u=>u.t-T0>=15000).every(u=>u.ok),`${name}: no failed poll once adsb.lol answers`);
+        assert.equal(last.source,'adsb.lol',name);assert.equal(last.t-T0,35000,`${name}: data at 35 s`);
       }
       live.stop();
     }finally{r.restore();}
