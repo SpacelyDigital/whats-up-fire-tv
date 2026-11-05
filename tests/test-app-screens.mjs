@@ -359,3 +359,27 @@ test('a held Play/Pause or Menu key acts once, as a held OK does: its repeats ar
   p.layer={id:'settings'};assert.equal(hold('Escape',27,3),'back,back,back,back','a held Back repeats as before');
   p.layer={id:'locate'};assert.equal(hold('r',82,3),'R,R,R,R','a held R on the search screen types R each repeat');
 });
+
+test('a search typed and then left within 0.8 s (Back, a result picked, Home) is never sent to the geocoder; one left alone is',async()=>{
+  const timers=new Map();let nextId=0;const asked=[];
+  const el=()=>({replaceChildren(){},querySelector:()=>el(),append(){},textContent:'',dataset:{},style:{}});
+  const p=page([line('let entry='),line('const stopSearch='),line('const SEARCH_LIMIT_MS='),fn('typeKey'),fn('runSearch'),fn('close'),line('function closeAll\\('),line('window.__whatsupActive=')],
+    {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:el,document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
+      focusables:()=>[],syncApp(){},showSettings(){},refitSettings(){},endPick(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,
+      PROFILE:{},placeLabel:()=>'',searchPlaces:async q=>{asked.push(q);return [];},searchAddress:async()=>[],lastQuery:'',settings:{place:{}},layer:null,layers:[],
+      window:{},feed:null,flushLog(){},onScreen:true});
+  const screen=id=>({id,hidden:false,style:{},contains:()=>false});
+  const typed=async(leave,stack=['settings','locate'])=>{
+    timers.clear();asked.length=0;vm.runInContext('entry=""',p);p.layers=stack.slice(0,-1).map(screen);p.layer=screen(stack.at(-1));
+    for(const c of 'OMA')p.typeKey(c);
+    leave?.();
+    for(const [id,t] of [...timers])if(t.ms<=800&&timers.delete(id))t.f();
+    await new Promise(r=>setImmediate(r));
+    return asked.join();
+  };
+  assert.equal(await typed(),'OMA','left alone: searched after the pause');
+  assert.equal(await typed(()=>p.close()),'','Back to Settings');
+  assert.equal(await typed(()=>p.closeAll()),'','a result picked (every screen closes)');
+  assert.equal(await typed(()=>p.window.__whatsupActive(false)),'','the app sent to the background');
+  assert.equal(await typed(()=>{p.layers.push(p.layer);p.layer=screen('confirm');}),'','the timer fires under another screen');
+});

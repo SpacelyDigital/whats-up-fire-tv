@@ -409,6 +409,7 @@ function close(){
   if(layer.id==='locate'&&!settings.place)return; // nothing to go back to
   if(layer.id==='consent')return; // Back on it leaves the app (syncApp tells the app not to catch Back)
   if(layer.id==='picker')endPick(false);
+  if(layer.id==='locate')stopSearch();
   layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;
   if(layer){
     if(layer.id==='settings'){showSettings();refitSettings();} // the layout (and its font) may have changed
@@ -432,7 +433,7 @@ function refitScreens(){
 }
 // A layout's font arriving changes text widths: fit the settings and the dashboard again.
 document.fonts?.addEventListener?.('loadingdone',()=>{if(layer?.id==='settings')refitSettings();refitScreens();if(lastModel)draw(lastModel);});
-function closeAll(){while(layer){if(layer.id==='picker')endPick(false);layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;}setFocus(null);syncApp();}
+function closeAll(){while(layer){if(layer.id==='picker')endPick(false);if(layer.id==='locate')stopSearch();layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;}setFocus(null);syncApp();}
 // The app swallows Back only while a screen is open (and there's somewhere to go).
 function syncApp(){
   const c=$('credit-flash');
@@ -646,6 +647,8 @@ function endPick(keep){
 // Location entry: an on-screen keyboard for the remote, plus results to pick.
 const KEYS=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ,-1234567890'.split(''),['Space','space w2'],['Delete','del w2'],['Clear','clear w3'],['Search','search w4']];
 let entry='',searchTimer=null,searchSeq=0;
+// Closed, the search screen sends nothing more: not the typing it was waiting on, nor the answer to one out.
+const stopSearch=()=>{clearTimeout(searchTimer);searchSeq++;};
 function buildKeys(){
   $('keys').replaceChildren(...KEYS.map(k=>{
     const [label,cls]=Array.isArray(k)?k:[k,''];
@@ -668,6 +671,7 @@ function typeKey(key){
 // "no match", or an error with Retry; focus never falls off the screen.
 const SEARCH_LIMIT_MS=25000;
 async function runSearch(explicit=false){
+  if(!explicit&&layer?.id!=='locate')return; // typed, then another screen came over it
   clearTimeout(searchTimer);
   const q=entry.trim(),seq=++searchSeq,box=$('results'),searchKey=$('keys').querySelector('[data-key="search"]');
   const show=(...nodes)=>{box.replaceChildren(...nodes);$('results-src').textContent='';fitLine($('search-src'));keepFocus(searchKey);};
@@ -980,8 +984,9 @@ function eraseAll(){
   location.reload();
 }
 
-// The app tells the page when it leaves or returns to the screen: polling pauses meanwhile.
-window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}keepTime();};
+// The app tells the page when it leaves or returns to the screen: polling pauses meanwhile, and a search
+// still waiting for the typing to pause is not sent.
+window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();clearTimeout(searchTimer);}keepTime();};
 addEventListener('pagehide',()=>flushLog());
 
 // --- Boot
