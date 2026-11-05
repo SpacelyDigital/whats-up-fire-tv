@@ -83,8 +83,9 @@ export function loadSettings(){
 }
 // A saved place that can't be read (damaged), not none or an unconfirmed guess (saved as null).
 export const placeDamaged=()=>{const p=store.get(KEY)?.place;return !!p&&!makePlace(p);};
-// An unconfirmed location guess (from the IP address) is never stored; the rest is.
-export const saveSettings=s=>store.set(KEY,s.confirmed?s:{...s,place:null});
+// An unconfirmed location guess (from the IP address) is never stored; the rest is. A damaged
+// saved place stays until a place is confirmed, so the next launch still keeps the logbook.
+export const saveSettings=s=>store.set(KEY,s.confirmed&&s.place?s:{...s,place:placeDamaged()?store.get(KEY).place:null});
 
 // Approximate place from the IP address. Null when the lookup fails.
 export async function locateByIp(){

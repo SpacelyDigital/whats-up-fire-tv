@@ -139,6 +139,28 @@ test('settings: a saved place that can\'t be read is damaged (the logbook and \'
   for(const raw of [JSON.stringify({place:CHI,confirmed:true}),JSON.stringify({place:null,mapMiles:25}),'{}','[]','"x"','null'])assert.equal(damaged(raw),false,raw);
   delete globalThis.localStorage;
 });
+test('settings: a damaged saved place stays saved through settings changes until a place is confirmed, so the next launch still keeps the logbook and \'Recently above\'',async()=>{
+  const {saveSettings,placeDamaged}=await import('../web/place.mjs'),{store}=await import('../web/live.mjs');
+  const KEY='whatsup.settings.v1',data=new Map(),saved=()=>JSON.parse(data.get(KEY));
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},GUESS={...CHI,latitude:41.878,source:'ip'};
+  for(const bad of [{...CHI,latitude:'abc'},{...CHI,latitude:91},'Chicago']){
+    data.set(KEY,JSON.stringify({place:bad,confirmed:true,mapMiles:10}));
+    const s=loadSettings();assert.equal(s.place,null);
+    saveSettings({...s,mapMiles:25}); // Up while 'Finding your location'
+    assert.deepEqual(saved(),{...s,place:bad,mapMiles:25});assert.equal(placeDamaged(),true,'while locating');
+    saveSettings({...s,place:GUESS,confirmed:false,mapMiles:5}); // the welcome card on the guess, Back, Up
+    assert.deepEqual(saved().place,bad);assert.equal(saved().mapMiles,5);assert.equal(placeDamaged(),true,'unconfirmed guess');
+    saveSettings({...s,place:GUESS,confirmed:true}); // Confirm
+    assert.deepEqual(saved().place,GUESS);assert.equal(placeDamaged(),false,'confirmed');
+  }
+  // No damaged place: an unconfirmed guess is never stored, as before.
+  for(const raw of [null,JSON.stringify({place:null,mapMiles:10}),JSON.stringify({place:CHI,confirmed:false})]){
+    if(raw)data.set(KEY,raw);else data.delete(KEY);
+    saveSettings({place:GUESS,confirmed:false,mapMiles:5});assert.equal(saved().place,null,raw);
+  }
+  store.remove(KEY);delete globalThis.localStorage;
+});
 test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft',()=>{
   useSettings({distance:'mi',altitude:'ft'});
   assert.equal(fmt.dist(2.345),'2.3 mi');assert.equal(fmt.speed(400),'400 kt');assert.equal(fmt.alt(35000),'FL350');
