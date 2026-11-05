@@ -1349,3 +1349,41 @@ test('trend: the altitude arrow compares with the reading about 20 s back, so Ra
   for(const t of [75,80,100,150])assert.equal(unrated[t],'FL310',`${t} s: level within 15 s of levelling off`);
   const slow=await run(500,false);for(const t of [30,45,55])assert.match(slow[t],/^FL3\d\d ↑$/,`${t} s: a 500 ft/min climb with no rate still shows`);
 });
+// A flight closest to CVG `mi` away on bearing `deg` at `tc` s, flying `track` (at right angles to that bearing) at `gs` kt,
+// its reported track `wob`° off, one way then the other on alternate polls (ordinary ADS-B jitter).
+const sway=t=>Math.round(t/5)%2?1:-1;
+const flying=(hex,call,deg,mi,track,gs,tc,wob=0)=>t=>{const R=Math.PI/180,s=(t-tc)*gs*1.15078/3600;
+  return plane(hex,call,{...xy(mi*Math.sin(deg*R)+s*Math.sin(track*R),mi*Math.cos(deg*R)+s*Math.cos(track*R)),track:track+sway(t)*wob,gs,baro_rate:0});};
+const hover=(hex,call,deg,mi)=>t=>plane(hex,call,{...xy(mi(t)*Math.sin(deg*Math.PI/180),mi(t)*Math.cos(deg*Math.PI/180)),gs:20,track:0,baro_rate:0});
+// The card over `seconds` of 5 s polls: each change of plane or heading, in order (an update that throws fails it).
+async function cards(flights,zone={kind:'circle',radius:3},seconds=150){
+  const r=fresh(),seen=[],errors=[],error=console.error;console.error=(...a)=>a[0]==='feed update'?errors.push(String(a[1])):error(...a);
+  try{
+    r.feeds.fi={mode:'ok',get body(){const t=r.t/1000;return {ac:flights.map(f=>f(t)),now:Date.now()};}};
+    const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:24,zone},m=>{const h=m.fresh&&m.hero?`${m.hero.flight}: ${m.hero.status}`:'';if(h&&h!==seen.at(-1))seen.push(h);});
+    await r.advance(seconds*1000);s.stop();
+  }finally{r.restore();console.error=error;}
+  assert.deepEqual(errors,[]);
+  return seen;
+}
+test('hero: the plane on the card keeps it while it stays within 0.5 mi of the Approaching cut-off (3° of a window\'s side) or within 0.25 mi of a closer one, so noise no longer swaps the card and VoiceView every poll; a clearly better plane still takes it',async()=>{
+  const heli=hover('a0a001','N911HX',90,()=>4.6),inbound=(cpa,wob=.3)=>flying('a0a002','UAL1234',110,cpa,200,420,170,wob);
+  // Closest approach 3.98 mi, the cut-off (alert radius 3 + 1 mi) 4: the track's jitter puts it either side.
+  const flicker=await cards([heli,inbound(3.98)]);
+  assert.ok(flicker.length<=2&&flicker.at(-1)==='UAL1234: Approaching',`at the cut-off: ${flicker.join(' > ')}`);
+  assert.deepEqual(await cards([heli,inbound(4.6)]),['N911HX: Nearest'],'well outside: never Approaching');
+  assert.deepEqual(await cards([heli,inbound(3.6)]),['UAL1234: Approaching'],'well inside');
+  // On the card, it keeps it to 4.5 mi; past that the nearest has it again.
+  const moved=cpa=>{const a=inbound(3.6,0),b=inbound(cpa,0);return t=>t<60?a(t):b(t);};
+  assert.deepEqual(await cards([heli,moved(4.3)]),['UAL1234: Approaching'],'0.3 mi past the cut-off: kept');
+  assert.deepEqual(await cards([heli,moved(4.7)]),['UAL1234: Approaching','N911HX: Nearest'],'0.7 mi past: given up');
+  // Window view 300° to 30°: closest point 12 mi out on the window's west side, ±0.3° either side of it.
+  const win={kind:'window',from:300,to:30,miles:25},edge=await cards([hover('a0a003','N44XY',120,()=>6),flying('a0a004','AAL77',300,12,30,450,170,.3)],win);
+  assert.ok(edge.length<=2&&edge.at(-1)==='AAL77: Approaching',`on the window's side: ${edge.join(' > ')}`);
+  // Two hovering 4.6 mi out, 0.06 mi either way on alternate polls: the first keeps the card until the other is 0.4 mi closer.
+  const tie=await cards([hover('a0b001','N1A',90,t=>4.6+.03*sway(t)),hover('a0b002','N2B',180,t=>t<60?4.6-.03*sway(t):4.2)]);
+  assert.deepEqual(tie,['N1A: Nearest','N2B: Nearest']);
+  // A plane inside the alert zone takes the card at once.
+  const over=await cards([heli,inbound(3.98),hover('a0b003','N3C',0,t=>t<60?9:2.5)],undefined,60);
+  assert.ok(over.at(-1)==='N3C: Above you now'&&over.length<=3,`inside, at the first poll: ${over.join(' > ')}`);
+});

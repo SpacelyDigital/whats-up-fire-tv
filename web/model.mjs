@@ -3,7 +3,7 @@
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
 // a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
 // &still=1: the planes hold where they start, for checks that step through them in order).
-import {IDS,airspace,recentSightings,number,inZone,ABOVE_MI,designator} from './core.mjs';
+import {IDS,airspace,recentSightings,number,inZone,inBearings,norm,ABOVE_MI,designator} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
 import {startLive,haversine,store,text} from './live.mjs';
 import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
@@ -253,17 +253,29 @@ function inAlert(a,config){
   const z=config.zone;
   return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
 }
-// Every plane carries it (a.approaching), so a board's remark says what the card would.
-function approaching(a,config){
+// Every plane carries it (a.approaching), so a board's remark says what the card would. `loose`: for the plane
+// already on the card, 0.5 mi past the cut-off, or the window 3° wider each side and 0.5 mi further out.
+const wider=(z,x,y)=>{const d=Math.hypot(x,y);return d<=ABOVE_MI+.5||d<=z.miles+.5&&(norm(z.to-z.from)>=354||inBearings(Math.atan2(x,y)*180/Math.PI,z.from-3,z.to+3));};
+function approaching(a,config,loose){
   const z=config.zone;
-  return !!a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(z?.kind==='window'?inZone(z,a.cpa.x,a.cpa.y):
-    a.cpa.miles<config.radiusMiles+1);
+  return !!a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(z?.kind==='window'?(loose?wider:inZone)(z,a.cpa.x,a.cpa.y):
+    a.cpa.miles<config.radiusMiles+1+(loose?.5:0));
 }
-function pickHero(planes,config){
-  const win=config.zone?.kind==='window';
-  const hero=planes.find(a=>a.emergency&&a.ground<=config.rangeMiles)||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
+// The plane on the card (held.hex) keeps it unless another is clearly first: an emergency, one higher in that order,
+// or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner); it stays Approaching with the
+// slack above. Noisy positions near a cut-off or a tie no longer swap the card, and VoiceView's line, every poll.
+function pickHero(planes,config,held={}){
+  const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles;
+  let hero=planes.find(a=>a.emergency&&onMap(a))||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
     planes.filter(a=>a.approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
-    planes.find(a=>a.ground<=config.rangeMiles)||null; // 'Nearest' only from planes on the map
+    planes.find(onMap)||null; // 'Nearest' only from planes on the map
+  const was=hero&&!hero.emergency&&hero.hex!==held.hex&&planes.find(a=>a.hex===held.hex&&onMap(a));
+  if(was){
+    const near=!was.inside&&approaching(was,config,true),rank=(a,app)=>a.inside?2:app?1:0,r=rank(hero,hero.approaching),p=rank(was,near);
+    // As high: how much closer the new one is, in miles (of two approaching, how far ahead in its flight).
+    if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25){hero=was;if(near)hero.approaching=true;}
+  }
+  held.hex=hero?.hex;
   if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
     hero.approaching?'Approaching':'Nearest';
   return hero;
@@ -278,7 +290,7 @@ export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):
 // carries on from that one's last reply: the planes stay until the next reply, an outage's countdown too.
 function liveSource(config,onModel,was){
   const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
-  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused,last=null;
+  const routes=new RouteLookup(),held={};let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused,last=null;
   const update=(states,ok)=>{
     last={states,ok};clearTimeout(stale);judge=null;
     if(ok){lastOk=performance.now();okAt=Date.now();}
@@ -315,7 +327,7 @@ function liveSource(config,onModel,was){
     // other feed's clock has moved past midnight already stays: logOf).
     // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
     // Connecting: neither a reply nor a failure yet (the first failure ends it).
-    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:lastOk<0&&!retryAt,planes,hero:pickHero(planes,config),recent,log:logSummary(logOf(log,localDay(feedNow))),retryIn:wait,retryAt,source:states.source||''};
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:lastOk<0&&!retryAt,planes,hero:pickHero(planes,config,held),recent,log:logSummary(logOf(log,localDay(feedNow))),retryIn:wait,retryAt,source:states.source||''};
     if(ok&&fresh)lastGood=model;
     onModel(model);
   };
