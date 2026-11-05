@@ -526,6 +526,9 @@ test('screen reader: the plane on the card is read again, with its distance, as 
   assert.deepEqual(say({...TST('Plane 1 of 3',2.5),browse}).slice(3),['Plane 1 of 3, TST101, Boeing 737-800, 2.5 mi'],'Left/Right: the chosen plane');
   say({...TST('Plane 1 of 3',1.2,true),browse},{...TST('Plane 1 of 3',3.1),browse});assert.equal(writes.length,4,'while browsing the zone edge is not read');
   assert.deepEqual(say(TST('Nearest',3.3)).slice(4),['Nearest, TST101, Boeing 737-800, 3.3 mi'],'Back: the card is automatic again');
+  // An emergency owns the card: read once, not again as it crosses the alert-zone edge either way.
+  const EMG=(ground,inside=false)=>({hex:'c0ffee',status:'Emergency',emergency:'EMERGENCY',flight:'DAL911',type:'Airbus A321',ground,inside});
+  assert.deepEqual(say(EMG(6),EMG(1,true),EMG(.5,true),EMG(5)).slice(5),['Emergency, DAL911, Airbus A321, 6.0 mi'],'an emergency across the zone edge: one line');
 });
 
 test('screen reader: with no plane on the card the sky\'s state is read once as it changes (connecting, quiet skies, no coverage, an outage without its countdown), a plane again when one comes; the map\'s notes are live too',async()=>{

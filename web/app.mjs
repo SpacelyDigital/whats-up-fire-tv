@@ -221,13 +221,14 @@ function listen(m){
 }
 // Screen readers: one polite announcement when the plane on the card changes (or Left/Right
 // browsing, an emergency, or its stay in the alert zone starts or ends on it: the line carries
-// the status and the distance), not for Approaching and Nearest trading places on it. With no plane
-// on the card, the sky's state as the layouts word it (connecting, quiet, no coverage, an outage),
-// once as it changes: never the outage line's countdown.
+// the status and the distance), not for Approaching and Nearest trading places on it, nor for an
+// emergency (it owns the card) crossing the zone edge. With no plane on the card, the sky's state as
+// the layouts word it (connecting, quiet, no coverage, an outage), once as it changes: never the
+// outage line's countdown.
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex+(h.emergency?'!':'')+(h.browse?'+':h.inside?'^':''):quietText({...m,retryIn:0},demo);
+  const h=m.hero,key=h?h.hex+(h.emergency?'!':h.browse?'+':h.inside?'^':''):quietText({...m,retryIn:0},demo);
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):key;
 }
