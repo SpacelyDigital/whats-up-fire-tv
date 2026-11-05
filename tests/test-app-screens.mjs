@@ -349,16 +349,16 @@ test('screen reader: closing the last screen reads the plane now on the card at 
   p.layer=screen('settings');p.lastModel=null;p.close();assert.equal(writes.length,2,'no model yet: nothing to read');
 });
 
-test('Settings: a Map radius step kept with OK, then another row\'s edit cancelled with Back before the step\'s 700 ms apply: the place is applied once for the new radius (its base map is built), not only the feed restarted; a cancelled step, or a step already applied, as before',()=>{
+test('Settings: a Map radius step kept with OK, then another row\'s edit cancelled with Back before the step\'s 700 ms apply: the place is applied once for the new radius (its base map is built), not only the feed restarted; a cancelled step, or a step already applied, as before; a cancelled step followed inside 0.7 s by another row\'s cancelled edit, or by an Alert radius step, still gets its one apply',()=>{
   let t=0;const timers=new Set(),calls=[];
   const settings={mapMiles:10,placeNames:'cities',radiusMiles:5,alertZone:'circle',place:{latitude:41.85,longitude:-87.65}};
-  const p=page([line('let zoneTimer='),line('let editing='),line('let editSnap='),line('let mapTimer='),fn('select'),fn('adjustSetting'),fn('stepMap'),fn('editKey'),fn('stopEdit'),fn('cancelEdit')],
+  const p=page([line('let zoneTimer='),line('let editing='),line('let editSnap='),line('let mapTimer='),line('const RADII='),fn('select'),fn('adjustSetting'),fn('stepMap'),fn('editKey'),fn('stopEdit'),fn('cancelEdit')],
     {settings,MAP_RADII:[2,5,10,15,25,50],mapMiles:()=>settings.mapMiles,fmt:{dist:v=>`${v} mi`},alertFor:r=>r,maps:{detail:null},detailFits:()=>true,detailSpec:()=>({}),layer:{id:'settings'},
     saveSettings(){},useSettings(){},showSettings(){},tellAwake(){},busy(){},mapsChanged(){},refreshLayout(){},editHint(){},toast(){},store:{remove(){}},HISTORY_KEY:'h',
     applyPlace:()=>calls.push('apply'),restartFeed:()=>calls.push('feed'),
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);}});
   const run=ms=>{const end=t+ms;for(let h;(h=[...timers].sort((a,b)=>a.at-b.at)[0])&&h.at<=end;){timers.delete(h);t=h.at;h.fn();}t=end;};
-  const row=id=>({id,dataset:{edit:'',adjust:''},classList:{add(){},remove(){}},getAttribute:()=>id,querySelector:()=>null}),MAP=row('set-map'),PLACES=row('set-places');
+  const row=id=>({id,dataset:{edit:'',adjust:''},classList:{add(){},remove(){}},getAttribute:()=>id,querySelector:()=>null}),MAP=row('set-map'),PLACES=row('set-places'),RADIUS=row('set-radius');
   const key=k=>p.editKey({key:k,preventDefault(){}}),done=()=>{run(3000);const c=calls.join();calls.length=0;return c;};
   // Map radius OK, Right (10 -> 15), OK, Down, OK (Place names), Right, Back: five presses in 0.5 s.
   p.select(MAP);key('ArrowRight');run(100);key('Enter');run(100);p.select(PLACES);run(100);key('ArrowRight');run(100);key('Escape');
@@ -373,6 +373,13 @@ test('Settings: a Map radius step kept with OK, then another row\'s edit cancell
   // No map step at all: a cancelled edit restarts the feed only.
   p.select(PLACES);key('ArrowRight');run(100);key('Escape');
   assert.equal(done(),'feed');assert.equal(settings.placeNames,'cities');
+  // (A) Map radius OK, Right (25 -> 50), Back, Down, OK (Place names), Right, Back, all inside 0.7 s: the cancelled step's
+  // apply (for the 25 mi put back: its street map was dropped for 50) survives the other row's cancel, once.
+  p.select(MAP);key('ArrowRight');run(100);key('Escape');run(100);p.select(PLACES);run(100);key('ArrowRight');run(100);key('Escape');
+  assert.equal(done(),'apply','(A) the cancelled step\'s apply, once');assert.equal(settings.mapMiles,25);assert.equal(settings.placeNames,'cities');
+  // (G) Map radius OK, Right, Back, Down, OK (Alert radius), Right: the step's apply at 0.7 s, then the alert radius' feed restart.
+  p.select(MAP);key('ArrowRight');run(100);key('Escape');run(100);p.select(RADIUS);run(100);key('ArrowRight');
+  assert.equal(done(),'apply,feed','(G) the cancelled step\'s apply, then the feed for the alert radius');assert.equal(settings.mapMiles,25);assert.equal(settings.radiusMiles,6);
 });
 
 test('a held Play/Pause or Menu key acts once, as a held OK does: its repeats are ignored, so Settings no longer opens and closes over and over; a held Back or letter still repeats',()=>{

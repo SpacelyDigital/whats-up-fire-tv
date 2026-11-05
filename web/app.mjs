@@ -603,7 +603,8 @@ function editHint(row,was){
   fitValue(row||was);
 }
 // Back while editing puts the value back as it was when OK was pressed, applied once: a Map radius
-// step's own pending apply (the step undone, or one kept with OK moments before) is folded into it.
+// step's own pending apply (the step undone, or one kept with OK moments before) is folded into it, and
+// kept in mapTimer, so a later cancel folds it again and the zone and alert radius timers leave it alone.
 let editSnap=null;
 function cancelEdit(){
   const before=editSnap;stopEdit();
@@ -613,7 +614,8 @@ function cancelEdit(){
   const mapStep=before.mapMiles!==settings.mapMiles||!!mapTimer;
   Object.assign(settings,before);saveSettings(settings);useSettings(settings);showSettings();tellAwake();
   busy(()=>{mapsChanged();refreshLayout();});
-  clearTimeout(mapTimer);mapTimer=0;clearTimeout(zoneTimer);zoneTimer=setTimeout(mapStep?()=>applyPlace(settings.place):restartFeed,700);
+  clearTimeout(mapTimer);mapTimer=0;clearTimeout(zoneTimer);
+  if(mapStep)mapTimer=setTimeout(()=>{mapTimer=0;if(settings.place)applyPlace(settings.place);},700);else zoneTimer=setTimeout(restartFeed,700);
 }
 
 // Map radius: Settings > Map radius, or Up/Down on the dashboard. The view redraws at
