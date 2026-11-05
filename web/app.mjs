@@ -571,7 +571,8 @@ function editHint(row,was){
   const card=$('settings').querySelector('.card');card.classList.toggle('editing',!!row);card.classList.toggle('big',row?.dataset.big!==undefined);
   fitValue(row||was);
 }
-// Back while editing puts the value back as it was when OK was pressed.
+// Back while editing puts the value back as it was when OK was pressed, applied once (a Map radius
+// step's own pending apply is dropped).
 let editSnap=null;
 function cancelEdit(){
   const before=editSnap;stopEdit();
@@ -581,7 +582,7 @@ function cancelEdit(){
   const mapMoved=before.mapMiles!==settings.mapMiles;
   Object.assign(settings,before);saveSettings(settings);useSettings(settings);showSettings();tellAwake();
   busy(()=>{mapsChanged();refreshLayout();});
-  clearTimeout(zoneTimer);zoneTimer=setTimeout(mapMoved?()=>applyPlace(settings.place):restartFeed,700);
+  clearTimeout(mapTimer);clearTimeout(zoneTimer);zoneTimer=setTimeout(mapMoved?()=>applyPlace(settings.place):restartFeed,700);
 }
 
 // Map radius: Settings > Map radius, or Up/Down on the dashboard. The view redraws at
