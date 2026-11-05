@@ -29,7 +29,7 @@ function paintEdge(){
   if(!(PROFILE.stageScale<1))return;
   const cs=getComputedStyle(stage),own=cs.getPropertyValue('--edge').trim(),bg=getComputedStyle($('layout')).backgroundColor;
   const edge=stage.classList.contains('adjusting')?cs.backgroundColor:own||(clear(bg)?cs.backgroundColor:bg);
-  const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o).backgroundColor).filter(c=>!clear(c));
+  const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o)).filter(c=>c.display!=='none').map(c=>c.backgroundColor).filter(c=>!clear(c));
   document.body.style.background=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
 }
 
