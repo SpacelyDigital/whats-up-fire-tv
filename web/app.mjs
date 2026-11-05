@@ -755,11 +755,12 @@ function adjMap(){
 }
 let adj=null;
 // from: 'confirm' when opened on a search result (Back returns to it, not to an empty
-// dashboard on a first run).
+// dashboard on a first run): the screens under it, and their focus, come back too.
 async function startAdjust(place,{from=''}={}){
   if(!place)return;
+  const under=from==='confirm'?layers.map(l=>[l,l._last]):[];
   closeAll();
-  adj={place,from,latitude:place.latitude,longitude:place.longitude,map:null,held:0,canvas:makeCanvas(540,540)};
+  adj={place,from,under,latitude:place.latitude,longitude:place.longitude,map:null,held:0,canvas:makeCanvas(540,540)};
   $('adjust-map').replaceChildren(adj.canvas);
   stage.classList.add('adjusting');
   drawAdjust();syncApp();
@@ -809,8 +810,9 @@ function endAdjust(save=false){
     choosePlace({...a.place,latitude:Math.max(-85,Math.min(85,a.latitude)),longitude,accuracyKm:moved?.05:a.place.accuracyKm,
       source:moved?'adjusted':a.place.source});
   }else if(a.from==='confirm'){
-    if(!settings.place)openLocate();
+    for(const [l] of a.under){if(l.id==='settings')showSettings();open(l.id);}
     confirmPlace(a.place);
+    for(const [l,last] of a.under)l._last=last;
   }
   if(lastModel)draw(lastModel);syncApp();
 }
