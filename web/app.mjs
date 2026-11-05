@@ -9,7 +9,7 @@ import {chimeGate,dLon} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
-import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
+import {buildMap,savedMap,saveMap,touchMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
@@ -309,7 +309,11 @@ async function applyPlace(place,{fresh=false}={}){
   const keepBase=same(maps.base)&&maps.base.range===range,keepDetail=same(maps.detail)&&detailFits(maps.detail,detailSpec(range));
   // No saved map for this radius yet: an older one, or the map already on screen (another
   // radius, same place: it's in miles, so it still draws), shows while the new one is built.
-  if(!keepBase)maps.base=savedMap(place,range)||(()=>{const old=savedMap(place,range,{stale:true})||(same(maps.base)?maps.base:null);return old&&{...old,stale:true};})();
+  if(!keepBase){
+    const fresh=savedMap(place,range),saved=fresh||savedMap(place,range,{stale:true});
+    if(saved)touchMap(range); // the map on screen is the newest saved one: never the one evicted to make room
+    maps.base=fresh||(()=>{const old=saved||(same(maps.base)?maps.base:null);return old&&{...old,stale:true};})();
+  }
   if(!keepDetail){maps.detail=null;detailToken++;detailBusy=false;clearTimeout(detailRetry);detailTries=0;}
   if(!keepBase||!keepDetail)mapsChanged();
   if(active?.mod.map==='detail'&&!keepDetail)ensureDetail();

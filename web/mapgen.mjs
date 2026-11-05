@@ -257,10 +257,15 @@ export function savedMap(home,range,{stale=false}={}){
   if(same&&!Object.entries(LAYERS).every(([k,ok])=>Array.isArray(m[k])&&m[k].every(ok))){store.remove(keyFor(range));return null;}
   return same?m:null;
 }
-export function saveMap(m){
-  const recent=[m.range,...recentMaps().filter(r=>r!==m.range)];
+// The radius shown goes to the front of the list, saved here or trusted from storage (app.mjs applyPlace), so the
+// two kept are the current and the previous size shown, and making room (evictMaps) never takes the map on screen.
+export function touchMap(range){
+  const recent=[range,...recentMaps().filter(r=>r!==range)];
   for(const r of recent.slice(KEEP_MAPS))store.remove(keyFor(r));
   store.set(RECENT_KEY,recent.slice(0,KEEP_MAPS));
+}
+export function saveMap(m){
+  touchMap(m.range);
   if(store.set(keyFor(m.range),m))return true;
   // Storage full: drop the other saved maps (not this radius's) and try once more.
   evictMaps({keepBase:m.range});

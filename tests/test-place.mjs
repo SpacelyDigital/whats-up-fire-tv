@@ -181,7 +181,7 @@ test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft'
 // --- Map radius
 import {MAP_RADII,alertFor} from '../web/place.mjs';
 import {niceStep,niceDistance,zoom,range} from '../web/kit.mjs';
-import {zoomFor,savedMap,saveMap,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
+import {zoomFor,savedMap,saveMap,touchMap,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
 test('map radius: saved value must be a step, default 10; alert ring never wider than the map',()=>{
   for(const [saved,want] of [[50,50],[7,10],['250',250],[undefined,10]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({mapMiles:saved}),setItem(){},removeItem(){}};
@@ -314,6 +314,39 @@ test('street maps: never more than three are saved (the policy says up to three)
   }
 });
 
+test('saved maps: the base map on screen is the newest of the two kept (a saved one trusted is stamped as a saved one is: touchMap), so storage filling up evicts the other, and a wider size then keeps the current one beside it, not the size two steps back',async()=>{
+  const {store}=await import('../web/live.mjs');
+  const data=new Map(),home={latitude:41.85,longitude:-87.65};let quota=Infinity;
+  const used=()=>[...data].reduce((n,[k,v])=>n+k.length+v.length,0);
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,removeItem:k=>data.delete(k),
+    setItem(k,v){v=String(v);if(used()-(data.has(k)?k.length+data.get(k).length:0)+k.length+v.length>quota)throw new Error('QuotaExceededError');data.set(k,v);}};
+  const A=20000,detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
+    built:Date.now()-60000,water:[],shore:[],waterways:[],roads:[{c:'minor',p:'0,0'+',1,0'.repeat(size/4)}],landuse:[],parks:[],aero:[],buildings:[],places:[]};};
+  const base=(range,size=0)=>({v:5,...home,range,built:Date.now(),water:[Array.from({length:size/8},(_,i)=>[0,i])],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
+  const recent=()=>JSON.parse(data.get('whatsup.map.recent')),kept=()=>[2,5,10,15,25].filter(r=>savedMap(home,r));
+  // A fresh install at 10 mi (built, saved, trusted at the next launch), then 5 mi (built), then back to 10 mi: trusted from storage (0 tiles).
+  const fresh=()=>{data.clear();store.remove('whatsup.map.recent');saveMap(base(10,A/2));touchMap(10);assert.deepEqual(recent(),[10]);saveMap(base(5,A/2));assert.deepEqual(recent(),[5,10]);
+    assert.equal(savedMap(home,10)?.range,10);touchMap(10);};
+  try{
+    fresh();
+    assert.deepEqual(recent(),[10,5],'the size on screen first');
+    assert.deepEqual(kept(),[5,10]);
+    // Three large street maps fill the storage: the third makes room, and the base map on screen stays.
+    quota=3.6*A;
+    saveDetail(detail(2,A));saveDetail(detail(10,A));
+    assert.ok(saveDetail(detail(25,3*A)),'the third street map saved: the other two and a base map made room');
+    assert.deepEqual(kept(),[10],'the map on screen kept, the previous size gone');
+    assert.deepEqual(recent(),[10]);
+    // A wider size after 10 -> 5 -> 10: the current (10) and the new size are kept, not 5 from two steps back.
+    quota=Infinity;fresh();
+    saveMap(base(15,A/2));
+    assert.deepEqual(kept(),[10,15]);
+    assert.deepEqual(recent(),[15,10]);
+    touchMap(15);assert.deepEqual(recent(),[15,10],'trusting the newest changes nothing');
+    touchMap(10);assert.deepEqual(recent(),[10,15],'back to 10: first again, both kept');
+    assert.deepEqual(kept(),[10,15]);
+  }finally{delete globalThis.localStorage;for(const k of ['whatsup.map.recent','whatsup.map.v2','whatsup.map.v2.r5','whatsup.map.v2.r15'])store.remove(k);}
+});
 test('saved maps: base and street maps saved as format 4 (older builds kept a map whose tiles failed or came back empty: blank, or with holes) are built again; maps built now are used',async()=>{
   const data=new Map();
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};

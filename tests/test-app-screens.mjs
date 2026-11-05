@@ -76,6 +76,19 @@ test('applying a place: maps built at the date line are kept for a home 50 m acr
     assert.equal(await apply(from,to),'rebuilt',`map at ${from}, home at ${to}`);
 });
 
+test('applying a place: a saved base map put on screen (a fresh one, or an older one shown while a new one is built) is stamped the newest (touchMap), so storage filling up never evicts the map on screen; one kept in memory or built is not stamped here (saveMap stamps the one built)',async()=>{
+  const {dLon}=await import('../web/core.mjs');
+  const place={latitude:41.85,longitude:-87.65},base={...place,range:10},stamped=[],built=[];let saved={};
+  const p=page([fn('applyPlace')],{dLon,placeToken:0,chime:null,feed:null,maps:{},store:{remove(){}},HISTORY_KEY:'h',resetLog(){},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),
+    savedMap:(pl,range,{stale=false}={})=>saved[stale?'stale':'fresh']??null,touchMap:r=>stamped.push(r),mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,
+    clearTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,buildMap:async()=>{built.push(1);return {...base};},saveMap(){},flashCredits(){},STALE:'stale',detailNote:()=>''});
+  const apply=async(s,inMemory=null)=>{saved=s;stamped.length=built.length=0;p.maps={base:inMemory};p.feed=null;await p.applyPlace(place);return `${stamped.join()||'-'} ${built.length?'built':'not built'}`;};
+  assert.equal(await apply({fresh:base,stale:base}),'10 not built','a fresh saved map: trusted and stamped');
+  assert.equal(await apply({stale:{...base,built:0}}),'10 built','an older saved map shown while a new one is built: stamped');
+  assert.equal(await apply({}),'- built','nothing saved: nothing to stamp');
+  assert.equal(await apply({fresh:base,stale:base},base),'- not built','the map already in memory: nothing to stamp');
+  assert.equal(await apply({},{...base,range:5}),'- built','a map of another radius in memory shows meanwhile: not stamped for this radius');
+});
 test('the street map\'s note stays while it is drawn: the base map landing first or a base-map layout in between doesn\'t clear it; a failure says so only on a street-map layout; the base map\'s note wins',async()=>{
   const {dLon}=await import('../web/core.mjs');
   const builds=[],bases=[],settle=()=>new Promise(r=>setImmediate(r)),place={latitude:41.85,longitude:-87.65};
