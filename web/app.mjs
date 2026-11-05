@@ -209,11 +209,11 @@ function listen(m){
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
 // Screen readers: one polite announcement when the plane on the card changes (or Left/Right
-// browsing starts or ends on it).
+// browsing, or an emergency, starts or ends on it).
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex+(h.browse?'+':''):'';
+  const h=m.hero,key=h?h.hex+(h.emergency?'!':'')+(h.browse?'+':''):'';
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
 }
