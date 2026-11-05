@@ -1101,3 +1101,25 @@ test('feed: a squawk sent as a number reads as its four digits (7700 is an emerg
     }finally{r.restore();}
   }
 });
+
+test('feed: an emergency on the map is kept when the reply is cut to the nearest 300, in place of the farthest; one off the map or a non-emergency is not',async()=>{
+  const near=Array.from({length:300},(_,i)=>plane((0xb00000+i).toString(16),`UAL${1000+i}`,{lat:39.05+(i%20)*0.004,lon:-84.65+Math.floor(i/20)*0.004}));
+  const far=(extra,lat=39.25)=>plane('c0ffee','DAL911',{lat,...extra}); // 13.8 mi north, inside the 25 mi map
+  for(const [name,sos,lat,kept,status] of [['7700',{squawk:'7700',emergency:'general'},39.25,true,'Emergency'],['7600 as a number',{squawk:7600},39.25,true,'Emergency'],
+    ['declared, squawk 1200',{squawk:'1200',emergency:'unlawful'},39.25,true,'Emergency'],['"constructor"',{squawk:'constructor',emergency:'constructor'},39.25,false,'Above you now'],
+    ['7700 off the map',{squawk:'7700'},39.5,false,'Above you now']]){
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi={mode:'ok',get body(){return {ac:[far(sos,lat),...near],now:Date.now()};}};
+      const s=start({...CVG,timeZone:'America/New_York'},{...CFG,rangeMiles:25,searchNm:25},m=>models.push(m));
+      await r.advance(1000);
+      const m=models.at(-1),hexes=m.planes.map(a=>a.hex);
+      assert.equal(m.planes.length,300,name);
+      assert.equal(hexes.includes('c0ffee'),kept,name);
+      assert.equal(hexes.includes((0xb00000+299).toString(16)),!kept,`${name}: the farthest of the 300 gives way`);
+      assert.ok(m.planes.every((a,i,all)=>!i||all[i-1].distance_mi<=a.distance_mi),`${name}: nearest first`);
+      assert.equal(m.hero.status,status,name);if(kept)assert.equal(m.hero.hex,'c0ffee',name);
+      s.stop();
+    }finally{r.restore();}
+  }
+});

@@ -213,6 +213,11 @@ function pruneSamples(now){for(const [k,l] of samples)if(now-l[l.length-1].t>120
 export const isMilitary=raw=>(Number(raw?.dbFlags)&1)===1;
 // A type's short name, as the app writes it elsewhere: "C-17 Globemaster III" -> "C-17".
 export const shortType=code=>{const n=typeName(code),w=n.split(' ')[0];return /\d/.test(w)?w:code||'';};
+const squawkOf=r=>typeof r.squawk==='string'?r.squawk:Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
+// Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
+// fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
+const DECLARED={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'},own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const emergencyOf=(r={})=>{const s=squawkOf(r),e=String(r.emergency||'');return own(EMERGENCY,s)?EMERGENCY[s]:own(DECLARED,e)?DECLARED[e]:'';};
 function enrich(a,raw,route,now){
   const r=raw||{},owner=typeof r.ownOp==='string'?r.ownOp.slice(0,80).trim():''; // capped: remote text through regexes
   const call=(a.callsign||'').toUpperCase();
@@ -222,11 +227,7 @@ function enrich(a,raw,route,now){
   // (or a holding company named after one). It only tells Amazon's cargo flights apart.
   const operator=(cargo==='Amazon'?'Amazon Air':'')||airline;
   const flight=a.callsign||a.registration||a.hex.toUpperCase();
-  const squawk=typeof r.squawk==='string'?r.squawk:Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
-  // Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
-  // fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
-  const declared={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'}[String(r.emergency||'')];
-  const emergency=(Object.prototype.hasOwnProperty.call(EMERGENCY,squawk)?EMERGENCY[squawk]:'')||(Object.prototype.hasOwnProperty.call({general:1,nordo:1,unlawful:1,downed:1},String(r.emergency||''))?declared:'');
+  const squawk=squawkOf(r),emergency=emergencyOf(r);
   let progress=null;
   if(route?.from&&route?.to&&number(route.from.lat)&&number(route.to.lat)){
     const flown=haversine(route.from.lat,route.from.lon,a.latitude,a.longitude),left=haversine(a.latitude,a.longitude,route.to.lat,route.to.lon);
@@ -285,8 +286,11 @@ function liveSource(config,onModel,was){
     routes.update(states[IDS.routes]?.attributes?.routes);
     const raw=new Map((states[IDS.feed]?.attributes?.ac||[]).filter(r=>r&&typeof r==='object').map(r=>[String(r.hex).toLowerCase(),r])); // one bad entry must not drop the update
     // A 250-mile map over a busy region can hold 500+ aircraft: draw the nearest MAX_PLANES
-    // (the feed is sorted by distance) to keep the stick's memory and frame rate in hand.
-    const planes=all.slice(0,MAX_PLANES).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
+    // (the feed is sorted by distance) to keep the stick's memory and frame rate in hand. An
+    // emergency on the map is always among them (it takes the card), in place of the farthest.
+    const sos=all.length>MAX_PLANES?all.filter(a=>emergencyOf(raw.get(a.hex))&&derive(a).ground<=config.rangeMiles):[];
+    const keep=new Set([...sos,...all.filter(a=>!sos.includes(a))].slice(0,MAX_PLANES));
+    const planes=all.filter(a=>keep.has(a)).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
     for(const a of planes)a.inside=inAlert(a,config);
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
