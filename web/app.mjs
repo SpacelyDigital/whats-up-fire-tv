@@ -44,18 +44,19 @@ const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true});
 
 // Rarest/Farthest follow the map radius (Settings > Map radius, Up/Down).
 setLogRadius(()=>settings.mapMiles||CONFIG.rangeMiles);
-let settings=loadSettings(),feed=null,lastModel=null,placeToken=0;
+let settings=loadSettings(),feed=null,lastModel=null,placeToken=0,onScreen=true;
 useSettings(settings);
 const mapMiles=()=>settings.mapMiles||CONFIG.rangeMiles;
 // The feed follows the map radius: adsb.fi (or adsb.lol) is asked for ~1.5x the radius (wide layouts
-// show that far sideways), at most its 250 NM, and polled less often over big areas.
+// show that far sideways), at most its 250 NM, and polled less often over big areas. One started while
+// the app is hidden (a restart timer that fires after Home) starts paused.
 const feedConfig=()=>{
   const r=mapMiles();
   const win=settings.alertZone==='window',view=alertFor(settings.viewMiles,r),reach=Math.max(r*1.5,win?view+3:0);
   return {...CONFIG,radiusMiles:alertFor(settings.radiusMiles,r),rangeMiles:r,
     zone:win?{kind:'window',from:settings.viewFrom,to:settings.viewTo,miles:view}:{kind:'circle',radius:alertFor(settings.radiusMiles,r)},
     searchNm:Math.min(MAX_NM,Math.max(CONFIG.searchNm,Math.ceil(reach/1.15078))),
-    pollSeconds:Math.max(PROFILE.minPollSeconds||0,r<=25?CONFIG.pollSeconds:r<=100?10:15)};
+    pollSeconds:Math.max(PROFILE.minPollSeconds||0,r<=25?CONFIG.pollSeconds:r<=100?10:15),paused:!onScreen};
 };
 const maps={base:null,detail:null};
 
@@ -965,7 +966,7 @@ function eraseAll(){
 }
 
 // The app tells the page when it leaves or returns to the screen: polling pauses meanwhile.
-window.__whatsupActive=on=>{if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}};
+window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}};
 addEventListener('pagehide',()=>flushLog());
 
 // --- Boot

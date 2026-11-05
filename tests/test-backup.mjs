@@ -519,6 +519,29 @@ test('background: back after an hour with both feeds down, the hour-old planes a
   }finally{r.restore();}
 });
 
+// A feed restarted while the app is hidden (a radius step, an alert change or a place refined just
+// before Home) starts paused: nothing goes out, routes and the coverage check included, until it is shown.
+test('background: a feed started while the app is hidden asks nothing until it is shown, then adsb.fi at once',async()=>{
+  const r=fresh(),models=[];
+  try{
+    const live=r.live({...CFG,paused:true});
+    await r.advance(60000);
+    assert.deepEqual(r.calls,[],'nothing asked while hidden');
+    live.resume();await r.advance(100);
+    assert.deepEqual(r.at('fi'),[60000],'adsb.fi asked once, at once, when shown');
+    await r.advance(20000);
+    assert.ok(gapsOf(r.at('fi')).every(g=>g>=5000),`then every 5 s: ${gapsOf(r.at('fi'))}`);
+    live.stop();
+    const s=start({...CVG,timeZone:'America/New_York'},{...CFG,paused:true},m=>models.push(m)),n=r.calls.length;
+    await r.advance(60000);
+    assert.equal(r.calls.length,n,'nor through the model');
+    assert.ok(models.length&&models.every(m=>m.connecting),'the screen waits on "Connecting"');
+    s.resume();await r.advance(100);
+    assert.equal(r.feedCalls().length,r.at('fi').length);assert.ok(models.at(-1).fresh,'live once shown');
+    s.stop();
+  }finally{r.restore();}
+});
+
 // Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
 function withStorage(saved,full=false){
   const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');

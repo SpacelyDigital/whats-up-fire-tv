@@ -412,7 +412,8 @@ export const outage={...CLEAR};
 const UNCHECKED={url:'',none:false,checked:-Infinity};
 let coverageOf={...UNCHECKED};
 export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};}; // tests
-// config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
+// config: CONFIG plus the saved place {latitude, longitude} and radiusMiles; paused: started while
+// the app is hidden (a restart just before Home), so nothing is asked until resume().
 export function startLive(show,config){
   // An update the display chokes on (a damaged saved value) is logged; the polling goes on.
   const onUpdate=(s,ok)=>{try{show(s,ok);}catch(e){console.error('feed update',e);}};
@@ -471,7 +472,7 @@ export function startLive(show,config){
   // A restart with adsb.fi up asks it at once, as before; on the backup, the outage carries on.
   if(!outage.down)Object.assign(outage,{fails:0,since:0,retryAt:0});
   // busy: a feed request is out; next: when the next poll is due; asked: when the last request went; good: the last data came in
-  let paused=false,busy=false,next=0,asked=-Infinity,good=false,hid=0;
+  let paused=!!config.paused,busy=false,next=0,asked=-Infinity,good=false,hid=0;
   // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
   // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
@@ -557,7 +558,7 @@ export function startLive(show,config){
     }
   }
   onUpdate(states,false);
-  poll();
+  if(!paused)poll();
   return {stop(){stopped=true;clearTimeout(timer);},
     pause(){paused=true;clearTimeout(timer);hid=Date.now();},
     // Back on screen: the next poll when it is due (at once after a hide longer than the interval;
