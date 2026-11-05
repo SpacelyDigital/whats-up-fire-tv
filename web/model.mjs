@@ -102,11 +102,15 @@ const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
 export function saneLog(log){
   if(!plain(log)||typeof log.day!=='string')return null;
   if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
-  const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null;
+  const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null,text=v=>v===undefined||typeof v==='string';
+  // What the stats show is text and numbers only (a type 7 read "Rare 7"; a brand {} "[object Object]").
+  const plane=v=>plain(v)&&(v.d===undefined||Number.isFinite(v.d))&&text(v.t)&&text(v.f)&&
+    (v.o===undefined||plain(v.o)&&Number.isFinite(v.o.mi)&&typeof v.o.city==='string'&&typeof v.o.code==='string');
   return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
-    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v)&&(v.d===undefined||Number.isFinite(v.d)))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
-    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isFinite(n))):{},highest:rec(log.highest),fastest:rec(log.fastest),
-    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plane(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isInteger(n)&&n>=0)):{},highest:rec(log.highest),fastest:rec(log.fastest),
+    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?
+      {...log.cargo,seen:Object.fromEntries(Object.entries(log.cargo.seen).filter(([,b])=>typeof b==='string'))}:{night:null,seen:{}},
     mil:plain(log.mil)?Object.fromEntries(Object.entries(log.mil).filter(([,t])=>typeof t==='string')):{}};
 }
 export function updateLog(log,planes,now){

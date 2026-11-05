@@ -295,3 +295,20 @@ test('saneLog: a type in the military tally that isn\'t text (damaged storage) i
     assert.equal(m.at(-1).log.militaryToday,0);
   }finally{resetLog();}
 });
+test('saneLog: damaged values in a saved logbook are dropped, so its stats never read "Rare 7" or "[object Object]"',async()=>{
+  const {saneLog}=await import('../web/model.mjs');
+  home('America/New_York');
+  const night='2026-11-02',t=H(2026,10,3,2); // 21:00 EST 2 Nov
+  const log=saneLog({day:'2026-11-02',pk:1,seen:[],typesToday:[],highest:null,fastest:null,mil:{},
+    planes:{xa10101:{d:1,t:7,f:'UAL202'},xa20202:{d:0.5,t:{},f:'DAL5'},xa30303:{d:2,t:'B738',f:{}},xa40404:{d:3,t:'A320',f:'DAL7',o:{code:'ATL',city:{},mi:606}},
+      xa50505:{d:4,t:'A321',f:'AAL9',o:{code:'ORD',city:'Chicago',mi:'far'}},xa60606:{d:5,t:'B739',f:'UAL3',o:{code:'DEN',city:'Denver',mi:1000}},xa70707:{d:6,t:'E75L'}},
+    typesAll:{B739:2,E75L:1,A320:-1,A321:1.5,B738:Infinity},cargo:{night,seen:{abc123:{},def456:9,ghi789:'Amazon',jkl012:null}}});
+  assert.deepEqual(Object.keys(log.planes),['xa60606','xa70707']);
+  assert.deepEqual(log.typesAll,{B739:2,E75L:1},'counts are whole numbers, none below 0');
+  assert.deepEqual(log.cargo.seen,{ghi789:'Amazon'});
+  const s=logSummary(log);
+  assert.deepEqual(s.cargoBy,[['Amazon',1]]);
+  assert.equal(typeof s.rarest.name,'string');assert.equal(s.rarest.code,'E75L');
+  assert.deepEqual(s.farthest,{name:'UAL3',value:1000,from:'Denver',code:'DEN'});
+  assert.doesNotThrow(()=>updateLog(log,[P('a80808',{cargo:'UPS'})],t));
+});
