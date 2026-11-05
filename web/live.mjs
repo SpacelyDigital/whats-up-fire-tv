@@ -521,12 +521,12 @@ export function startLive(show,config){
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
     busy=false;
     const reply=status===200?(backup?fromBackup(payload):feedReply(payload)):null,stamp=feedStamp(reply),now=Date.now()/1000;
-    // The TV's clock can be off by seconds, minutes or days: positions are judged against
-    // the feed's own clock (it was just received), and the offset goes to the display. Up to
-    // a week either way is trusted (a TV left with a wrong date). A reply with no usable clock
-    // (none, not a number, or further off) is a failed poll, as a 5xx: none of its positions can
-    // be judged (adsb.lol stands in), and a broken feed can't move the logbook's day far.
-    const body=stamp>0&&Math.abs(stamp-now)<7*86400?reply:null;
+    // The TV's clock can be off by seconds, days or years (a TV left with a wrong date): positions
+    // are judged against the feed's own clock (it was just received), and the offset goes to the
+    // display, however large; adsb.fi stays the feed. A reply with no usable clock (none, not a
+    // number, 0 or below, past any date) is a failed poll, as a 5xx: none of its positions can be
+    // judged (adsb.lol stands in).
+    const body=typeof reply?.now==='number'&&stamp>0&&stamp<=8.64e12?reply:null;
     // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts.
     if(stopped||paused){if(!body&&!backup)fiFailed(status,retryAfter,started);return;}
     if(body){

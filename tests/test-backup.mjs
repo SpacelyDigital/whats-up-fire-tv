@@ -987,10 +987,10 @@ test('feed: a saved route row with no value (damaged storage) doesn\'t keep the 
   }finally{console.error=err;r.restore();}
 });
 
-test('backup: a 200 whose `now` is missing, not a number, 0 or below, or more than a week off counts as a failure (adsb.lol stands in)',async()=>{
-  const DAY_MS=86400000,body=now=>({ac:[FI_PLANE],msg:'No error',total:1,...now===undefined?{}:{now}});
-  for(const [name,fi] of [['missing',{body:body()}],['null',{body:body(null)}],['text',{body:body('2026-11-03T05:00:00Z')}],['zero',{body:body(0)}],
-    ['negative',{body:body(-T0)}],['1972',{body:body(86400000)}],['8 days ahead',{nowShiftMs:8*DAY_MS}],['8 days behind',{nowShiftMs:-8*DAY_MS}],['8 days ahead, in s',{nowShiftMs:8*DAY_MS,seconds:true}]]){
+test('backup: a 200 whose `now` is missing, not a number, 0 or below (or no time at all) counts as a failure (adsb.lol stands in)',async()=>{
+  const body=now=>({ac:[FI_PLANE],msg:'No error',total:1,...now===undefined?{}:{now}});
+  for(const [name,fi] of [['missing',{body:body()}],['null',{body:body(null)}],['text',{body:body('2026-11-03T05:00:00Z')}],['digits',{body:body(String(T0))}],
+    ['true',{body:body(true)}],['zero',{body:body(0)}],['negative',{body:body(-T0)}],['past any date',{body:body(1e300)}]]){
     const r=fresh();
     try{
       r.feeds.fi={mode:'ok',...fi};
@@ -1005,17 +1005,33 @@ test('backup: a 200 whose `now` is missing, not a number, 0 or below, or more th
   // Both feeds so: the outage sentence counts down.
   const r=fresh(),models=[];
   try{
-    r.feeds.fi={mode:'ok',body:body()};r.feeds.lol={mode:'ok',nowShiftMs:-30*DAY_MS};
+    r.feeds.fi={mode:'ok',body:body()};r.feeds.lol={mode:'ok',body:{ac:[LOL_PLANE],msg:'No error',total:1,now:0}};
     const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
     await r.advance(60000);
     assert.match(quietText(models.at(-1),false),/^No live data right now\. Reconnecting in \d+ s\.$/);
     s.stop();
   }finally{r.restore();}
-  // Still good: up to 6 days off, in ms or s.
-  for(const off of [-6*DAY_MS,6*DAY_MS])for(const seconds of [false,true]){
-    const r=fresh();
-    try{r.feeds.fi={mode:'ok',nowShiftMs:off,seconds};const live=r.live();await r.advance(6000);
-      assert.equal(lastData(r)?.source,'adsb.fi',`${off/DAY_MS} days ${seconds?'s':'ms'}`);live.stop();}finally{r.restore();}
+});
+
+test('feed: a TV clock days or years off (the feed\'s `now` more than a week from it) keeps adsb.fi, judged by its own clock, and its planes are drawn',async()=>{
+  const DAY_MS=86400000;
+  for(const [name,off,seconds] of [['8 days ahead',8*DAY_MS],['8 days behind',-8*DAY_MS],['8 days ahead, in s',8*DAY_MS,true],['6 days behind',-6*DAY_MS],
+    ['30 days behind',-30*DAY_MS],['TV clock 10 years behind',3653*DAY_MS],['TV clock 10 years ahead, in s',-3653*DAY_MS,true]]){
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi={mode:'ok',nowShiftMs:off,seconds};
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+      await r.advance(20000);
+      assert.deepEqual(r.at('fi'),[0,5000,10000,15000,20000],`${name}: adsb.fi every 5 s`);
+      assert.deepEqual(r.at('lol'),[],`${name}: nothing sent to adsb.lol`);
+      assert.ok(models.length&&models.every(m=>!m.retryAt),`${name}: no failed poll`);
+      const m=models.at(-1);
+      assert.equal(m.source,'adsb.fi',name);assert.equal(m.fresh,true,`${name}: fresh`);
+      assert.deepEqual(m.planes.map(a=>a.hex),['a1f1f1'],`${name}: its plane drawn`);
+      assert.equal(m.hero?.hex,'a1f1f1',`${name}: on the card`);
+      assert.equal(m.log.today,1,`${name}: in today's logbook (the feed's day)`);
+      s.stop();
+    }finally{r.restore();}
   }
 });
 
