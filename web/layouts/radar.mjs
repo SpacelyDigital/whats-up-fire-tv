@@ -158,7 +158,7 @@ function render(m){
   if(!hero)setText($['empty-sky'],quietText(m,demo));
   if(hero){
     setText($['hero-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.distance_mi??hero.ground)}`));
-    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`SQUAWK ${hero.squawk} · ${hero.emergency}`:'');
+    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`:'');
     setText($.fl,hero.flight);setText($.op,'',airlineAlts(hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':'')));
     const r=hero.route,city=p=>p?.city?` ${p.city}`:'';
     setText($.route,'',r?[`${r.origin}${city(r.from)}  →  ${r.destination}${city(r.to)}`,`${r.origin}${city(r.from)} → ${r.destination}`,`${r.origin} → ${r.destination}`]:['Route not reported']);

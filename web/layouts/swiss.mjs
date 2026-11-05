@@ -45,8 +45,8 @@ function render(m){
   root.classList.toggle('emergency',emergency);
   root.classList.toggle('quiet',!hero);
   if(emergency){
-    setText($.kicker,`Squawk ${hero.squawk||''} · ${hero.emergency[0]+hero.emergency.slice(1).toLowerCase()}`);
-    giant(hero.squawk||'7700');setText($.unit,hero.emergency==='EMERGENCY'?'declared':hero.emergency.toLowerCase());
+    setText($.kicker,`${hero.squawk?`Squawk ${hero.squawk} · `:''}${hero.emergency[0]+hero.emergency.slice(1).toLowerCase()}`);
+    giant(/^7[567]00$/.test(hero.squawk)?hero.squawk:'EMERGENCY');setText($.unit,hero.emergency==='EMERGENCY'?'declared':hero.emergency.toLowerCase());
     setText($.flight,hero.flight);
   }else if(hero){
     const d=metric()?hero.ground*KM:hero.ground;

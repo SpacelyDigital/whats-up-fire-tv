@@ -105,7 +105,7 @@ function render(m){
 
   $.hero.hidden=!hero;$.quiet.hidden=!!hero;
   $.alert.hidden=!hero?.emergency;
-  if(hero?.emergency)$.alert.replaceChildren(el('b','',`Squawk ${hero.squawk}`),el('span','',hero.emergency));
+  if(hero?.emergency)$.alert.replaceChildren(el('b','',hero.squawk?`Squawk ${hero.squawk}`:'Declared'),el('span','',hero.emergency));
   if(!hero)setText($['quiet-t'],quietText(m,demo));
   if(hero){
     setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));

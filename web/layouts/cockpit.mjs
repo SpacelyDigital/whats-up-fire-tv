@@ -170,7 +170,7 @@ function render(m){
 
   setText($.tfc,`TFC ${visible.length}`);
   $.warn.hidden=!hero?.emergency;
-  if(hero?.emergency)setText($['warn-b'],`SQUAWK ${hero.squawk} · ${hero.emergency} · ${hero.flight}`);
+  if(hero?.emergency)setText($['warn-b'],`${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency} · ${hero.flight}`);
   $.nodata.hidden=!!hero;
   root.classList.toggle('quiet',!hero);
   if(!hero){

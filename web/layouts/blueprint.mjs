@@ -152,7 +152,7 @@ function render(m){
   $.dims.replaceChildren(...(hero?dimension(home,toView(VIEW,hero.x,hero.y),fmt.dist(hero.ground).toUpperCase()):[]));
 
   $.stamp.hidden=!hero?.emergency;
-  if(hero?.emergency){setText($['stamp-a'],`SQUAWK ${hero.squawk}`);setText($['stamp-b'],hero.emergency);}
+  if(hero?.emergency){setText($['stamp-a'],hero.squawk?`SQUAWK ${hero.squawk}`:'DECLARED');setText($['stamp-b'],hero.emergency);}
   for(const c of $.cells)c.hidden=!hero;$.note.hidden=!!hero;
   if(!hero)setText($.note,`NOTE 1: ${quietText(m,demo).toUpperCase()}`);
   if(hero){

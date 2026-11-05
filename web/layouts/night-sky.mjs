@@ -107,7 +107,7 @@ function render(m){
     if(p.x<0||p.y<0||p.x>W||p.y>H)continue;
     if(isHero){
       const r=a.route;
-      const l1=a.emergency?`${a.flight} · squawk ${a.squawk} · ${a.emergency.toLowerCase()}`:a.flight;
+      const l1=a.emergency?`${a.flight} · ${a.squawk?`squawk ${a.squawk} · `:''}${a.emergency.toLowerCase()}`:a.flight;
       const l2=[r?`${city(r.from?.city)||r.origin} to ${city(r.to?.city)||r.destination}`:a.operator||a.type||'',fmt.alt(a.altitude_ft)].filter(Boolean).join(', ');
       const w=Math.max(l1.length*9.5,l2.length*7.4)+8,h=40;
       // Near an edge none of the spots may fit: keep it clear of the header and footer.

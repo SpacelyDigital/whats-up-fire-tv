@@ -147,7 +147,7 @@ function render(m){
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));
     const c=hero.cpa;setText($['h-cpa'],!c?'—':c.receding?'leaving':fmt.mmss(c.seconds));
     setText($['h-type'],[hero.operator,hero.type||hero.aircraft_type].filter(Boolean).join(' · '));
-    if(hero.emergency)setText($.m2,`${hero.flight} · SQUAWK ${hero.squawk} · ${hero.emergency}`);
+    if(hero.emergency)setText($.m2,`${hero.flight} · ${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`);
   }
   const L=m.log;
   setText($['s-cargo'],String(L.cargoTonight));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));

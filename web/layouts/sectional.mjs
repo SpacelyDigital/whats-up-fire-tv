@@ -200,7 +200,7 @@ function render(m){
   if(!hero){setText($.quiet,quietText(m,demo));setText($['hero-st'],'');}
   else{
     setText($['hero-st'],'',headingAlts(hero,hero.status).map(s=>s.toUpperCase()));
-    if(hero.emergency)setText($.notam,`NOTAM · ${hero.squawk} ${hero.emergency}`);
+    if(hero.emergency)setText($.notam,`NOTAM · ${hero.squawk?`${hero.squawk} `:''}${hero.emergency}`);
     setText($.fl,hero.flight);setText($.op,hero.operator||(hero.registration?'Private':''));
     const r=hero.route;
     setText($.rt,r?`${r.origin} ${r.from?.city||''} → ${r.destination} ${r.to?.city||''}`.replace(/\s+/g,' '):'Route not reported');
