@@ -542,6 +542,44 @@ test('background: a feed started while the app is hidden asks nothing until it i
   }finally{r.restore();}
 });
 
+// The last picture kept through a failure is re-judged 60 s after the last good reply: not while
+// the app is hidden (nothing is drawn then), but on return, even when no poll is due.
+test('background: the last picture is not re-judged while the app is hidden, and is on return',async()=>{
+  const r=fresh(),models=[],place={...CVG,timeZone:'America/New_York'},push=m=>models.push({...m,at:r.t});
+  try{
+    for(const away of [90000,20000]){
+      resetOutage();store.remove(LEDGER_KEY);r.feeds.fi={mode:'ok'};r.feeds.lol={mode:'ok'};
+      const t0=r.t,s=start(place,CFG,push);
+      await r.advance(6000); // good replies at 0 and 5 s
+      r.feeds.fi={mode:'s404'};r.feeds.lol={mode:'s404'};
+      await r.advance(24000); // adsb.fi 404 at 10 s, adsb.lol 404 at 25 s: the next poll minutes away
+      assert.ok(models.at(-1).fresh,'the last picture stays');
+      s.pause();const n=models.length;
+      await r.advance(away);
+      assert.equal(models.length,n,`nothing drawn while hidden (${away} ms)`);
+      s.resume();await r.advance(100);
+      if(away>40000)assert.ok(models.length>n&&!models.at(-1).fresh,'past 60 s: re-judged on return');
+      else{
+        assert.ok(models.at(-1).fresh,'back within the minute: still the last picture');
+        await r.advance(t0+66000-r.t);
+        assert.ok(!models.at(-1).fresh&&!models.at(-1).planes.length,`re-judged 60 s after the last good reply: ${models.at(-1).at-t0}`);
+      }
+      assert.match(quietText(models.at(-1),false),/^No live data right now\. Reconnecting in \d+ (s|min)\.$/);
+      s.stop();
+    }
+    // A feed restarted while hidden (same place, last picture carried) doesn't re-judge it either.
+    resetOutage();store.remove(LEDGER_KEY);r.feeds.fi={mode:'ok'};r.feeds.lol={mode:'ok'};
+    let s=start(place,CFG,push);await r.advance(6000);
+    r.feeds.fi={mode:'s404'};r.feeds.lol={mode:'s404'};await r.advance(24000);
+    s.pause();s.stop();s=start(place,{...CFG,searchNm:30,paused:true},push,null,s);const n=models.length;
+    await r.advance(120000);
+    assert.equal(models.length,n,'nothing drawn while hidden after a restart');
+    s.resume();await r.advance(100);
+    assert.ok(!models.at(-1).fresh,'re-judged on return');
+    s.stop();
+  }finally{r.restore();}
+});
+
 // Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
 function withStorage(saved,full=false){
   const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
