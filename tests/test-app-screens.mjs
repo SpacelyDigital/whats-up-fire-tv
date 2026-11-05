@@ -29,7 +29,7 @@ test('search entry: at most 40 characters, Space included; Space never leads or 
 });
 
 test('welcome card: the lookup\'s accuracy reads as whole miles or km, at least 1; none, zero, negative or absurd says nothing',()=>{
-  const p=page([fn('showWelcome')],{settings:{distance:'mi'},placeLabel:pl=>pl.name,open(){}});
+  const p=page([fn('showWelcome')],{settings:{distance:'mi'},placeLabel:pl=>pl.name,open(){},$:()=>({}),fitLine(){}});
   const claim=(accuracyKm,unit='mi')=>{p.settings.distance=unit;p.showWelcome({name:'Chicago',accuracyKm});
     const note=p.texts['welcome-note'];assert.match(note,/^A first guess from your internet connection(?: \(the lookup claims within \d+ (?:mi|km)\))?\. Internet locations/,note);
     return /within (\d+ (?:mi|km))/.exec(note)?.[1]??null;};
@@ -424,4 +424,12 @@ test('on-screen keyboard: Left/Right go to the key beside it on the same row and
   assert.equal(s('set-radius','down'),'set-done');assert.equal(s('set-privacy','down'),'set-done');assert.equal(s('set-done','up'),'set-privacy');
   assert.equal(s('set-altitude','left'),'set-radius','no row beside it: the nearest, as before');
   assert.equal(s('set-zone','up'),'set-adjust');assert.equal(s('set-chime','down'),'set-about');
+});
+
+test('welcome card: one line says how to reach Settings later, fitted to one line once the card is shown',()=>{
+  const hint={},seen=[];
+  const p=page([fn('showWelcome')],{settings:{distance:'mi'},placeLabel:pl=>pl.name,$:id=>id==='welcome-hint'?hint:{},open:id=>seen.push(`open ${id}`),fitLine:e=>seen.push(e===hint?`fit ${e._alts[0]}`:'fit')});
+  p.showWelcome({name:'Chicago',accuracyKm:5});
+  assert.deepEqual(seen,['open welcome','fit Press Select any time for Settings.']);
+  assert.ok(hint._alts.every(t=>/Select/.test(t)&&/Settings/.test(t)&&!/…|\.\.\./.test(t)),hint._alts.join(' | '));
 });

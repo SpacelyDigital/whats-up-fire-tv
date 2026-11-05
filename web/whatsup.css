@@ -168,6 +168,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 .doc p.bullet{padding-left:1.1em;text-indent:-1.1em} /* "• " paragraphs: a hanging bullet */
 .doc-qr-box{margin:0;flex:none;text-align:center}.doc-qr-box figcaption{font-size:12px;color:var(--ui-dim);margin-top:4px}
 #privacy .doc-hint,#about .doc-hint{margin:8px 0 0;font-size:13px;color:var(--ui-dim)}
+#welcome .hint{margin:16px 0 0;font-size:13px;color:var(--ui-dim);white-space:nowrap;overflow:hidden}
 #erase .note{font-size:15px;line-height:1.45;max-width:520px}
 /* Screen-reader-only text, and no browser focus ring (the .focus class is the highlight). */
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
