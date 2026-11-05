@@ -106,7 +106,7 @@ test('the street map\'s note stays while it is drawn: the base map landing first
 });
 test('Adjust position from a search result, then Back: the confirm card over the screens that were under it; with no saved place, over a search screen at least',()=>{
   const seen=[];
-  const p=page([fn('endAdjust')],{adj:null,settings:{},lastModel:null,stage:{classList:{remove(){}}},$:()=>({replaceChildren(){}}),syncApp(){},showSettings(){},
+  const p=page([fn('endAdjust')],{adj:null,adjSay:0,clearTimeout(){},settings:{},lastModel:null,stage:{classList:{remove(){}}},$:()=>({replaceChildren(){}}),syncApp(){},showSettings(){},
     open:id=>seen.push(id),openLocate:()=>seen.push('search'),confirmPlace:()=>seen.push('confirm')});
   const back=(under,place=null)=>{seen.length=0;p.settings={place};p.adj={from:'confirm',under:under.map(id=>[{id}]),place:{latitude:41.85,longitude:-87.65}};p.endAdjust();return seen.join();};
   assert.equal(back(['locate']),'locate,confirm','first run, lookup failed');
@@ -121,8 +121,8 @@ test('Adjust position from a search result, then Back: the confirm card over the
 async function adjustPage(globals,more=[]){
   const {dLon}=await import('../web/core.mjs');
   const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)?.[0];assert.ok(region,'startAdjust in app.mjs');
-  return page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('nudge'),...more],{dLon,performance:{now:()=>0},layers:[],layer:null,focused:null,closeAll(){},makeCanvas:()=>({}),
-    $:()=>({replaceChildren(){}}),stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},...globals});
+  return page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,line('let adjSay='),fn('nudge'),...more],{dLon,performance:{now:()=>0},layers:[],layer:null,focused:null,closeAll(){},makeCanvas:()=>({}),
+    $:()=>({replaceChildren(){},focus(){}}),stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},setTimeout:()=>0,clearTimeout(){},...globals});
 }
 test('Adjust position: its street map is built once per place (within ~1 km, as the saved maps) and kept for 30 days, so opening it again sends OpenFreeMap nothing',async()=>{
   const builds=[];let fail=false,now=0;
@@ -633,4 +633,29 @@ test('screen reader: the search screen reads its status once as it changes: "Sea
   p.layers=[p.layer];p.layer={id:'confirm'};
   assert.deepEqual(await search('CHI'),[],'landed under the confirm card: drawn, not read');
   assert.equal(box.children.length,3);
+});
+
+test('screen reader: Adjust position puts focus on its panel (named, its instructions the description), reads a move once the presses stop, one line for a held arrow, nothing after Back; its notes are a live region',async()=>{
+  const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+  assert.match(html,/<div class="adjust-panel" id="adjust-panel" role="dialog" aria-label="Adjust position" aria-describedby="adjust-help" tabindex="-1">/);
+  assert.match(html,/<p id="adjust-help">Move the map with the arrows until the dot sits on your home\./);
+  assert.match(html,/<div class="adjust-note" id="adjust-note" aria-live="polite"><\/div>/);
+  assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.adjust-panel:focus[^{]*\{outline:none\}/,'no browser focus ring on the panel');
+  const {dLon}=await import('../web/core.mjs');
+  const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)[0];
+  const texts={},writes=[],timers=[],focused=[];
+  const p=page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('drawAdjust'),line('let adjSay='),fn('nudge'),fn('endAdjust')],{dLon,performance:{now:()=>0},layers:[],closeAll(){},makeCanvas:()=>({}),
+    $:id=>({replaceChildren(){},focus(){focused.push(id);},get textContent(){return texts[id]??'';}}),stage:{classList:{add(){},remove(){}}},syncApp(){},buildMap:async()=>({}),
+    adjMap:()=>[],paintMap(){},maps:{},svg:()=>({}),compass:()=>'E',placeLabel:()=>'',lastModel:null,settings:{},choosePlace(){},
+    setText:(id,v)=>{texts[id]=String(v??'');if(id==='sr-live')writes.push(texts[id]);},setTimeout:(f,ms)=>{const h={f,ms};timers.push(h);return h;},clearTimeout:h=>{const i=timers.indexOf(h);if(i>=0)timers.splice(i,1);}});
+  const fire=()=>{const t=timers.splice(0);for(const h of t)h.f();return t.length;};
+  await p.startAdjust({latitude:41.85,longitude:-87.65});
+  assert.deepEqual(focused,['adjust-panel'],'DOM focus on the panel, never on <body>');assert.equal(texts['adjust-moved'],'Not moved yet');
+  p.nudge('right');assert.equal(writes.length,0,'not at once: the presses may go on');assert.equal(fire(),1);
+  assert.deepEqual(writes,['Moved 50 m E']);
+  for(let i=0;i<10;i++)p.nudge('right',i>0);
+  assert.equal(timers.length,1,'a held arrow: one line, once it is released');assert.ok(timers[0].ms<=500,`${timers[0].ms} ms`);fire();
+  assert.equal(writes.length,2);assert.match(writes[1],/^Moved 800 m E$/);
+  p.nudge('up');p.endAdjust();fire();
+  assert.equal(writes.length,2,'Back: the pending line is dropped');
 });

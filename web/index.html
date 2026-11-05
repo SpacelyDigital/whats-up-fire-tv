@@ -28,7 +28,7 @@
   <div class="adjust-view" id="adjust-view">
     <div class="adjust-map" id="adjust-map"></div>
     <svg class="adjust-svg" viewBox="0 0 540 540" aria-hidden="true"><g id="adjust-marks"></g></svg>
-    <div class="adjust-note" id="adjust-note"></div>
+    <div class="adjust-note" id="adjust-note" aria-live="polite"></div>
     <div class="adjust-credit">© OpenFreeMap © OpenMapTiles<br>© OpenStreetMap contributors</div>
   </div>
 
@@ -139,10 +139,10 @@
     </div>
   </div>
 
-  <div class="adjust-panel" id="adjust-panel" role="dialog" aria-label="Adjust position">
+  <div class="adjust-panel" id="adjust-panel" role="dialog" aria-label="Adjust position" aria-describedby="adjust-help" tabindex="-1">
     <div class="title">Adjust position</div>
     <div class="adjust-where" id="adjust-where"></div>
-    <p>Move the map with the arrows until the dot sits on your home. Each press is about 50 m; hold to go faster.</p>
+    <p id="adjust-help">Move the map with the arrows until the dot sits on your home. Each press is about 50 m; hold to go faster.</p>
     <div class="adjust-moved" id="adjust-moved"></div>
     <p class="keys-help"><kbd>OK</kbd> save &nbsp; <kbd>Back</kbd> cancel</p>
     <p class="note small">Your exact position stays on this device. Aircraft and maps are fetched for the area rounded to a few miles.</p>

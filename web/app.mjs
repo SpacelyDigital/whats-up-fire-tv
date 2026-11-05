@@ -819,7 +819,7 @@ async function startAdjust(place,{from=''}={}){
   // note: the street map's own (loading, unavailable), shown again when the dot comes back inside the limit.
   adj={place,from,under,latitude:place.latitude,longitude:place.longitude,map:null,note:'Loading street map',held:0,canvas:makeCanvas(540,540)};
   $('adjust-map').replaceChildren(adj.canvas);
-  stage.classList.add('adjusting');
+  stage.classList.add('adjusting');$('adjust-panel').focus({preventScroll:true}); // VoiceView reads the panel: its name and how to move
   drawAdjust();syncApp();
   setText('adjust-note',adj.note);
   try{
@@ -847,6 +847,8 @@ function drawAdjust(){
 // 0.5 mi, the view shows ADJ_RANGE around the dot): at most ADJ_MAX_M from where it started;
 // farther is a job for Location. A held arrow speeds up to 4x.
 const ADJ_MAX_M=800;
+// The move is read out (VoiceView) once the presses stop: one line for a held arrow, not one per repeat.
+let adjSay=0;
 function nudge(dir,held){
   adj.held=held?adj.held+1:0;
   const step=STEP_M*(held?Math.min(4,1+adj.held/3):1),cos=Math.cos(adj.place.latitude*Math.PI/180);
@@ -857,9 +859,10 @@ function nudge(dir,held){
   adj.latitude=adj.place.latitude+dy/111320;adj.longitude=adj.place.longitude+dx/(111320*cos);
   setText('adjust-note',limit?'As far as fine-tuning goes. To move farther, change Location.':adj.note);
   drawAdjust();
+  clearTimeout(adjSay);adjSay=setTimeout(()=>{if(adj)setText('sr-live',$('adjust-moved').textContent);},400);
 }
 function endAdjust(save=false){
-  const a=adj;adj=null;stage.classList.remove('adjusting');setText('adjust-note','');$('adjust-map').replaceChildren();
+  const a=adj;adj=null;clearTimeout(adjSay);stage.classList.remove('adjusting');setText('adjust-note','');$('adjust-map').replaceChildren();
   if(save){
     const moved=Math.abs(a.latitude-a.place.latitude)+Math.abs(a.longitude-a.place.longitude)>1e-7;
     // Longitude stays within ±180 (nudging across the date line), or the next launch drops it.

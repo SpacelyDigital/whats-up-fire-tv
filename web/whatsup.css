@@ -172,4 +172,4 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 #erase .note{font-size:15px;line-height:1.45;max-width:520px}
 /* Screen-reader-only text, and no browser focus ring (the .focus class is the highlight). */
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-button:focus,button:focus-visible,.pick-body:focus{outline:none}
+button:focus,button:focus-visible,.pick-body:focus,.adjust-panel:focus{outline:none}
