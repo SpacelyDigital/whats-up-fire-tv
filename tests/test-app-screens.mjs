@@ -343,3 +343,19 @@ test('Settings: a Map radius step kept with OK, then another row\'s edit cancell
   p.select(PLACES);key('ArrowRight');run(100);key('Escape');
   assert.equal(done(),'feed');assert.equal(settings.placeNames,'cities');
 });
+
+test('a held Play/Pause or Menu key acts once, as a held OK does: its repeats are ignored, so Settings no longer opens and closes over and over; a held Back or letter still repeats',()=>{
+  const region=/^const DIRS=[\s\S]*?^\}\);$/m.exec(APP)?.[0];assert.ok(region,'the keydown handler in app.mjs');
+  let handler;const seen=[];
+  const p=page([region],{document:{addEventListener:(t,f)=>{if(t==='keydown')handler=f;}},busyNow:false,layer:null,adj:null,editing:null,heldOk:null,
+    openSettings:()=>{seen.push('open');p.layer={id:'settings'};},back:()=>{seen.push('back');p.layer=null;},typeKey:k=>seen.push(k),
+    $:()=>({}),move(){},select(){},stepMap(){},stepPlanes(){}});
+  const hold=(key,keyCode,n=12)=>{seen.length=0;for(let i=0;i<=n;i++)handler({key,keyCode,repeat:i>0,preventDefault(){}});return seen.join();};
+  assert.equal(hold('MediaPlayPause',179),'open','held on the dashboard: Settings opens once');
+  assert.equal(hold('MediaPlayPause',179),'back','held in Settings: it closes once');
+  assert.equal(hold('Unidentified',179),'open','Play/Pause by its key code');
+  p.layer=null;
+  for(const [key,code] of [['ContextMenu',93],['Menu',82],['Unidentified',82],['Enter',13]]){p.layer=null;assert.equal(hold(key,code),'open',`${key} (${code}) held`);}
+  p.layer={id:'settings'};assert.equal(hold('Escape',27,3),'back,back,back,back','a held Back repeats as before');
+  p.layer={id:'locate'};assert.equal(hold('r',82,3),'R,R,R,R','a held R on the search screen types R each repeat');
+});

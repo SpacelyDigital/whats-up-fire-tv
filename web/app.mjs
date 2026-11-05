@@ -863,8 +863,9 @@ document.addEventListener('keydown',e=>{
     return;
   }
   const k=e.key,dir=DIRS[k];
-  // A held OK repeats: it would open and close the picker, or run through screens.
-  if(e.repeat&&(k==='Enter'||k===' ')){e.preventDefault();return;}
+  // A held OK, Play/Pause or Menu (82, not the letter R) repeats: it would open and close the picker or
+  // Settings, or run through screens.
+  if(e.repeat&&(k==='Enter'||k===' '||k==='MediaPlayPause'||e.keyCode===179||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4){e.preventDefault();return back();}
   // Play/Pause toggles Settings: Vega never passes the remote's Menu (≡) key to the page.
   if(k==='MediaPlayPause'||e.keyCode===179){
