@@ -335,6 +335,24 @@ test('backup: no 250 NM coverage check on adsb.lol, and no "no coverage" claim f
   }finally{r.restore();}
 });
 
+test('coverage: the 250 NM probe goes at most once every 2 h for a place, across feed restarts (map radius, alert radius or zone)',async()=>{
+  const r=fresh(),probes=()=>r.calls.filter(c=>/\/dist\/250$/.test(c.url)).length;
+  try{
+    r.feeds.fi={mode:'ok',body:{ac:[],now:T0,msg:'No error'}}; // quiet skies, and no receivers in the widest area either
+    let live=r.live();
+    await r.advance(3000);
+    assert.equal(probes(),1);
+    for(const [searchNm,radiusMiles] of [[20,3],[30,3],[30,5],[15,1]]){live.stop();live=r.live({...CFG,searchNm,radiusMiles});await r.advance(3000);}
+    assert.equal(probes(),1,'no probe on a restart within 2 h');
+    assert.equal(r.updates.filter(u=>u.ok).at(-1).coverage.none,true,'its answer carries over');
+    await r.advance(2*3600000);
+    assert.equal(probes(),2,'asked again after 2 h');
+    live.stop();live=r.live({...CFG,latitude:39.5,longitude:-84.2});await r.advance(3000);
+    assert.equal(probes(),3,'a new place is asked once');
+    live.stop();
+  }finally{r.restore();}
+});
+
 test('backup: a restarted feed (new place or radius) stays on adsb.lol while adsb.fi is down',async()=>{
   const r=fresh();
   try{

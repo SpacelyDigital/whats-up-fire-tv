@@ -405,7 +405,10 @@ const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
 const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
 export const outage={...CLEAR};
-export const resetOutage=()=>Object.assign(outage,CLEAR); // tests
+// Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
+const UNCHECKED={url:'',none:false,checked:-Infinity};
+let coverageOf={...UNCHECKED};
+export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};}; // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
 export function startLive(show,config){
   // An update the display chokes on (a damaged saved value) is logged; the polling goes on.
@@ -441,14 +444,15 @@ export function startLive(show,config){
     }catch{/* Routes stay as they were; retried next poll. */}
     finally{enriching=false;}
   }
-  // Receiver coverage: when the feed has nothing around home, ask (at most every 2 h) for
-  // the widest area adsb.fi serves; nothing there either means no feeders, not quiet skies.
-  let coverage={none:false,checked:-Infinity};
+  // Receiver coverage: when the feed has nothing around home, ask (at most every 2 h, a restart
+  // for a new radius or zone included) for the widest area adsb.fi serves; nothing there either
+  // means no feeders, not quiet skies.
+  const probe=feedUrlFor(home,MAX_NM),coverage=coverageOf.url===probe?coverageOf:(coverageOf={...UNCHECKED,url:probe});
   async function checkCoverage(nowMs){
     if(nowMs-coverage.checked<7200000)return;
     coverage.checked=nowMs;
-    const url=feedUrlFor(home,MAX_NM);if(!url)return;
-    const {status,payload}=await getJson(url,8000);
+    if(!probe)return;
+    const {status,payload}=await getJson(probe,8000);
     if(status===200&&payload&&typeof payload==='object')coverage.none=!(Array.isArray(payload.ac)&&payload.ac.length);
   }
   // Back-off (adsb.fi etiquette; adsb.lol's errors too): network errors and 5xx double the wait
