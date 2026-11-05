@@ -38,3 +38,23 @@ test('welcome card: the lookup\'s accuracy reads as whole miles or km, at least 
   }
   for(const acc of [null,undefined,0,-1,-5,NaN,Infinity,-Infinity,1e21,5000])for(const unit of ['mi','km'])assert.equal(claim(acc,unit),null,`${acc} (${unit})`);
 });
+
+test('choosing a place: a move of a few hundred metres across the date line keeps today\'s logbook and \'Recently above\', and the map is drawn where it was built',async()=>{
+  const {dLon}=await import('../web/core.mjs'),{mapShift}=await import('../web/kit.mjs');
+  const calls=[];
+  const p=page([fn('choosePlace')],{dLon,settings:{},saveSettings(){},useSettings(){},closeAll(){},mapsChanged(){},refreshLayout(){},refineZone:async()=>null,
+    applyPlace:(pl,o)=>{calls.push(o?.fresh?'fresh':'apply');},restartFeed:()=>{calls.push('feed');}});
+  const move=(from,[latitude,longitude])=>{calls.length=0;p.settings={place:from&&{latitude:from[0],longitude:from[1]}};p.choosePlace({latitude,longitude});return calls.join();};
+  // An Adjust position save: endAdjust brings the longitude back within ±180.
+  for(const [from,to] of [[[0,180],[0,-179.99955]],[[0,179.999],[0,-179.99381]],[[0,-179.999],[0,179.99381]],[[-16.8,179.999],[-16.8,-179.996]],[[41.85003,-87.65005],[41.85003,-87.6404]]])
+    assert.equal(move(from,to),'apply',`${from} -> ${to}: same home, moved`);
+  assert.equal(move([0,180],[0,-180]),'feed','the same point');
+  for(const [from,to] of [[[0,179.99],[0,-179.95]],[[0,-179.99],[0,179.9]],[[41.85,-87.65],[41.9,-87.65]]])assert.equal(move(from,to),'fresh',`${from} -> ${to}: a new home`);
+  assert.equal(move(null,[0,180]),'fresh','the first place');
+  // A map built at 180 drawn for -179.99955 (50 m east): 0.03 mi to the west, not round the world.
+  const [x,y]=mapShift({latitude:0,longitude:180},{latitude:0,longitude:-179.99955});
+  assert.ok(Math.abs(x+.0311)<.001&&y===0,`shift ${x},${y}`);
+  assert.deepEqual(mapShift({latitude:0,longitude:-179.99955},{latitude:0,longitude:180}).map(v=>Math.round(v*1000)),[31,0],'and the other way');
+  const [cx]=mapShift({latitude:41.85,longitude:-87.65},{latitude:41.85,longitude:-87.64});
+  assert.ok(Math.abs(cx+.515)<.001,`away from the date line as before: ${cx}`);
+});

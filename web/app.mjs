@@ -5,7 +5,7 @@
 // on the dashboard Up/Down change the map radius and Left/Right step through the planes.
 import {CONFIG} from './config.js';
 import {PROFILE} from './profile.mjs';
-import {chimeGate} from './core.mjs';
+import {chimeGate,dLon} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
@@ -280,7 +280,7 @@ async function applyPlace(place,{fresh=false}={}){
   if(fresh){store.remove(HISTORY_KEY);resetLog();}
   const range=mapMiles();
   // Keep maps already in memory when they still fit this place and radius.
-  const same=m=>m&&Math.abs(m.latitude-place.latitude)<.01&&Math.abs(m.longitude-place.longitude)<.01;
+  const same=m=>m&&Math.abs(m.latitude-place.latitude)<.01&&Math.abs(dLon(m.longitude,place.longitude))<.01;
   const keepBase=same(maps.base)&&maps.base.range===range,keepDetail=same(maps.detail)&&detailFits(maps.detail,detailSpec(range));
   // No saved map for this radius yet: an older one, or the map already on screen (another
   // radius, same place: it's in miles, so it still draws), shows while the new one is built.
@@ -336,7 +336,7 @@ function choosePlace(place){
   // Chosen before its time zone came back: look it up once more for the saved place.
   if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place)adoptRefined(p);}).catch(()=>{});
   const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
-  const miles=old?Math.hypot((place.longitude-old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity;
+  const miles=old?Math.hypot(dLon(place.longitude,old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity; // the short way round, across the date line too
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
   closeAll();
   if(miles>2)return applyPlace(place,{fresh:true});

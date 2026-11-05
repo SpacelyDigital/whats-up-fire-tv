@@ -20,7 +20,7 @@
 // browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
 // {index, count} (headingAlts words the card's heading).
 import {PROFILE} from './profile.mjs';
-import {number,zoneOutline,snapped,GRID_PAD_MI} from './core.mjs';
+import {number,zoneOutline,snapped,GRID_PAD_MI,dLon} from './core.mjs';
 export {snapped,GRID_PAD_MI};
 import {SILHOUETTES,silhouetteFamily} from './silhouettes.mjs';
 import {photoFor,qrFor,qrColours,modelPhoto} from './photos.mjs';
@@ -273,7 +273,7 @@ export function makeCanvas(w,h,cls){
 export function mapShift(m,home=S.place){
   if(!m||!home)return [0,0];
   const cos=Math.cos(home.latitude*Math.PI/180);
-  return [(m.longitude-home.longitude)*69.172*cos,(m.latitude-home.latitude)*69];
+  return [dLon(m.longitude,home.longitude)*69.172*cos,(m.latitude-home.latitude)*69];
 }
 // view: {cx,cy (home, in canvas CSS px), ppm (px per mile at the 10-mile view), clip?: {r} circle or
 //   {x,y,w,h} rect, rotate?: deg (heading up), center?: place, fixed?: true = ignore the map radius}.
