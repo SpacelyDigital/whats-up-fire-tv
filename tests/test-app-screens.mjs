@@ -395,3 +395,33 @@ test('Settings > Fine-tune: Back (cancel) and OK (save) both return to Settings 
   assert.equal(await run(null,false),'closeAll','Back, opened over the dashboard');
   assert.equal(await run(null,true),'closeAll,saved 41.85','OK, opened over the dashboard');
 });
+
+test('on-screen keyboard: Left/Right go to the key beside it on the same row and Up/Down to the row above or below, the wide keys too (Right on Clear is Search, Up on Search is Space); Settings moves as before',()=>{
+  // Stage px as laid out (7 columns of 50 px, 5 px apart, rows 36 px tall, 41 px apart), results to the right.
+  const box=(id,x,y,w,h,cls='')=>({id,classList:{contains:c=>c===cls},getBoundingClientRect:()=>({left:x,top:y,width:w,height:h,right:x+w,bottom:y+h})});
+  const rows=['ABCDEFG','HIJKLMN','OPQRSTU','VWXYZ,-','1234567','890'];
+  const keys=[...rows.flatMap((r,i)=>[...r].map((k,c)=>box(k,61+55*c,190+41*i,50,36))),
+    box('space',226,395,105,36),box('del',336,395,105,36),box('clear',61,436,160,36),box('search',226,436,215,36),
+    box('result0',463,190,370,46),box('result1',463,242,370,46),box('result2',463,294,370,46)];
+  const run=items=>{const p=page([fn('move')],{focusables:()=>items,focused:null,setFocus:el=>{p.focused=el;}});
+    return (from,dir)=>{p.focused=items.find(e=>e.id===from);p.move(dir);return p.focused.id;};};
+  const go=run(keys);
+  assert.equal(go('clear','right'),'search');assert.equal(go('search','left'),'clear');
+  assert.equal(go('search','up'),'space');assert.equal(go('clear','up'),'9');
+  for(const k of ['space','del'])assert.equal(go(k,'down'),'search',k);
+  assert.equal(go('0','down'),'clear');assert.equal(go('8','down'),'clear');
+  assert.equal(go('space','left'),'0');assert.equal(go('0','right'),'space');assert.equal(go('space','right'),'del');assert.equal(go('del','left'),'space');
+  for(const r of rows)for(let c=0;c+1<r.length;c++){assert.equal(go(r[c],'right'),r[c+1]);assert.equal(go(r[c+1],'left'),r[c]);}
+  for(let i=0;i+1<rows.length;i++)for(let c=0;c<rows[i+1].length;c++){assert.equal(go(rows[i][c],'down'),rows[i+1][c]);assert.equal(go(rows[i+1][c],'up'),rows[i][c]);}
+  assert.equal(go('G','right'),'result0');assert.equal(go('result0','left'),'G');assert.equal(go('result1','left'),'N');
+  assert.equal(go('result0','down'),'result1');assert.equal(go('result2','up'),'result1');
+  // Settings: two columns of rows (the left one shorter) and Done centred below.
+  const col=(x,ids)=>ids.map((id,i)=>box(id,x,80+33*i,400,30));
+  const set=[...col(48,['set-location','set-adjust','set-zone','set-radius']),...col(470,['set-layout','set-map','set-places','set-distance','set-altitude','set-awake','set-chime','set-about','set-privacy']),
+    box('set-done',370,390,220,30,'done')];
+  const s=run(set);
+  assert.equal(s('set-adjust','right'),'set-map');assert.equal(s('set-map','left'),'set-adjust');
+  assert.equal(s('set-radius','down'),'set-done');assert.equal(s('set-privacy','down'),'set-done');assert.equal(s('set-done','up'),'set-privacy');
+  assert.equal(s('set-altitude','left'),'set-radius','no row beside it: the nearest, as before');
+  assert.equal(s('set-zone','up'),'set-adjust');assert.equal(s('set-chime','down'),'set-about');
+});

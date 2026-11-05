@@ -453,7 +453,10 @@ function move(dir){
     const b=el.getBoundingClientRect(),bx=b.left+b.width/2,by=b.top+b.height/2,dx=bx-ax,dy=by-ay;
     const main={left:-dx,right:dx,up:-dy,down:dy}[dir],side=dir==='left'||dir==='right'?Math.abs(dy):Math.abs(dx);
     if(main<=4)continue;
-    const s=main+side*2.5;
+    // One in line with it (the same row, or column) comes first, the nearest edge first: by centres alone the
+    // wide keys (Clear, Search) went to a key a row up rather than the one beside them.
+    const inLine=sideways?b.top<a.bottom&&b.bottom>a.top:b.left<a.right&&b.right>a.left;
+    const s=inLine?Math.max(0,{left:a.left-b.right,right:b.left-a.right,up:a.top-b.bottom,down:b.top-a.bottom}[dir])+side/100:1e6+main+side*2.5;
     if(s<score){score=s;best=el;}
   }
   if(best)setFocus(best);
