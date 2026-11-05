@@ -1202,6 +1202,19 @@ test('feed: an aircraft listed twice in one reply counts once, from its newest p
   }finally{r.restore();}
 });
 
+test('feed: a squawk sent as text is shown without control, bidi-override or line-break characters, and at most 4 long, so a declared emergency\'s notice can\'t be reordered or broken',async()=>{
+  for(const [squawk,shown] of [['\u202E1200\n\u0007','1200'],['12\u2028\u202D00','1200'],['\u2066'+'Z'.repeat(60),'ZZZZ'],['7700','7700'],['','']]){
+    const r=fresh(),models=[];
+    try{
+      r.feeds.fi={mode:'ok',get body(){return {ac:[plane('a50001','UAL101',{squawk,emergency:'general'})],now:Date.now()};}};
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+      await r.advance(1000);
+      const h=models.at(-1).hero;
+      assert.deepEqual([h.squawk,h.emergency],[shown,'EMERGENCY'],JSON.stringify(squawk));
+      s.stop();
+    }finally{r.restore();}
+  }
+});
 test('feed: a squawk sent as a number reads as its four digits (7700 is an emergency)',async()=>{
   for(const [squawk,shown,emergency] of [[7700,'7700','EMERGENCY'],[7500,'7500','HIJACK'],[7600,'7600','RADIO FAILURE'],[1200,'1200',''],[17,'0017',''],
     ['7700','7700','EMERGENCY'],[7700.5,'',''],[-7700,'',''],[17700,'',''],[NaN,'','']]){

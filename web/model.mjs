@@ -5,7 +5,7 @@
 // &still=1: the planes hold where they start, for checks that step through them in order).
 import {IDS,airspace,recentSightings,number,inZone,ABOVE_MI,designator} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
-import {startLive,haversine,store} from './live.mjs';
+import {startLive,haversine,store,text} from './live.mjs';
 import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
 
 // Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
@@ -217,7 +217,7 @@ function pruneSamples(now){for(const [k,l] of samples)if(now-l[l.length-1].t>120
 export const isMilitary=raw=>(Number(raw?.dbFlags)&1)===1;
 // A type's short name, as the app writes it elsewhere: "C-17 Globemaster III" -> "C-17".
 export const shortType=code=>{const n=typeName(code),w=n.split(' ')[0];return /\d/.test(w)?w:code||'';};
-const squawkOf=r=>typeof r.squawk==='string'?r.squawk:Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
+const squawkOf=r=>typeof r.squawk==='string'?text(r.squawk,4):Number.isInteger(r.squawk)&&r.squawk>=0&&r.squawk<=7777?String(r.squawk).padStart(4,'0'):''; // a number: its 4 digits
 // Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
 // fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
 const DECLARED={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'},own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
