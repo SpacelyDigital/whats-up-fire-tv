@@ -289,6 +289,16 @@ test('street maps: never more than three are saved (the policy says up to three)
     assert.ok(store.set('whatsup.qa.big','x'.repeat(2*A)));
     assert.ok(!has(25)&&!has(10)&&savedMap(home,25)&&!savedMap(home,10));
     assert.deepEqual(slots(),[]);
+    // Keys only the unreleased builds of 5 November wrote (a whatsup.detail.recent list, one street map per wider size):
+    // never read, but dropped with the slots when a save finds storage full, so a stick that ran one is not left full.
+    const DEAD={'whatsup.detail.recent':'["r25","r15"]','whatsup.detail.v1.r25':'x'.repeat(2.5*A)},dead=()=>Object.keys(DEAD).filter(k=>data.has(k));
+    fresh();for(const [k,v] of Object.entries(DEAD))data.set(k,v);
+    assert.ok(saveDetail(detail(10,A)),'the dead keys made room for the 10 mi street map');
+    assert.ok(has(10)&&savedMap(home,10)&&savedMap(home,25)&&!dead().length,`base maps kept, dead keys gone: ${dead()}`);
+    assert.deepEqual(slots(),['whatsup.detail.v1.r10']);
+    fresh();for(const [k,v] of Object.entries(DEAD))data.set(k,v);
+    assert.ok(store.set('whatsup.qa.big','x'.repeat(A)),'another save: the dead keys make room through onFull');
+    assert.ok(!dead().length&&savedMap(home,25),`dead keys gone, the newest base map kept: ${dead()}`);
   }finally{
     delete globalThis.localStorage;
     for(const k of ['whatsup.qa.big','whatsup.map.recent','whatsup.map.v2','whatsup.map.v2.r25'])store.remove(k);

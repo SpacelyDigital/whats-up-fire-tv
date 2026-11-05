@@ -270,7 +270,10 @@ export function saveMap(m){
 // Any other save that finds storage full (logbook, settings) frees the saved maps but the
 // newest base map.
 store.onFull=()=>evictMaps({keepBase:recentMaps()[0]??null});
-const dropDetail=keep=>{for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY])if(k!==keep)try{localStorage.removeItem(k);}catch{/* none */}};
+// Written only by unreleased builds of 5 November 2026 (a list of street maps, one map per wider size), never read:
+// dropped with the slots, so a device that ran one of them is not left with storage full until Erase all data.
+const DEAD_KEYS=['whatsup.detail.recent',...[15,25,50,100,150,250].map(r=>`${DETAIL_KEY}.r${r}`)];
+const dropDetail=keep=>{for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY,...DEAD_KEYS])if(k!==keep)try{localStorage.removeItem(k);}catch{/* none */}};
 export function evictMaps({keepBase=null,keepDetail=null}={}){
   dropDetail(keepDetail);
   for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
