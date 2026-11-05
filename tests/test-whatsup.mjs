@@ -386,6 +386,10 @@ test('styles: a very long one-word place name wraps on the welcome and confirm c
 // (variants layer their sheets in app.mjs's VARIANTS order), var(--x) comes from the last layout block
 // (.L-<id>{…}) or :root that sets it, and an alpha colour is laid over the opaque one under it.
 const SHEETS={'atlas-dark':['atlas','atlas-dark'],'atlas-satellite':['atlas','atlas-dark','atlas-satellite']};
+test('styles: the cascade the contrast tests layer (SHEETS) is app.mjs\'s VARIANTS, so a changed cascade fails here instead of being checked as it was',async()=>{
+  const vm=await import('node:vm'),app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');
+  assert.deepEqual(JSON.parse(vm.runInNewContext(/^const VARIANTS=.*$/m.exec(app)[0]+'JSON.stringify(VARIANTS)')),SHEETS);
+});
 const layoutCss=id=>readFileSync(new URL(`../web/layouts/${id}.css`,import.meta.url),'utf8');
 const block=(css,sel)=>new RegExp(`(?:^|\\})\\s*${sel.replace(/[.()]/g,'\\$&')}\\{([^}]*)\\}`,'m').exec(css)?.[1]||'';
 const prop=(blk,name)=>[...blk.matchAll(new RegExp(`(?:^|;)\\s*${name}:([^;]+)`,'g'))].pop()?.[1].trim()||'';
