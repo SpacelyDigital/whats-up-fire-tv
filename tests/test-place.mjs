@@ -40,6 +40,14 @@ test('city search: bad coordinates and unknown time zones are dropped or default
   assert.equal(found.length,1);
   assert.equal(found[0].timeZone,'UTC');
 });
+test('search: a null or malformed entry in a reply is skipped, the other results are still shown',async()=>{
+  stub([meteo(null,42,'x',[],CHICAGO)]);
+  assert.deepEqual((await searchPlaces('Chicago')).map(placeLabel),['Chicago, IL'],'Open-Meteo');
+  stub([[/census/,[200,{result:{addressMatches:[null,'x',{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',addressComponents:{city:'CINCINNATI',state:'OH'},coordinates:{x:-84.67,y:39.06}}]}}]]]);
+  assert.deepEqual((await searchAddress('801 Plum St Cincinnati OH',{census:true})).map(p=>p.street),['801 Plum St'],'Census');
+  stub([[/nominatim/,[200,[null,7,{lat:'51.5034',lon:'-0.1276',name:'10',address:{house_number:'10',road:'Downing Street',city:'London',country:'United Kingdom',country_code:'gb'}}]]]]);
+  assert.deepEqual((await searchAddress('10 Downing Street, Westminster',{nominatim:true})).map(p=>p.street),['10 Downing Street'],'Nominatim');
+});
 test('address detection: house number then words; ZIPs and cities are not addresses',()=>{
   assert.ok(looksLikeAddress('123 Main St Cincinnati OH'));
   assert.ok(looksLikeAddress('10 Downing Street'));

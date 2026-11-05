@@ -28,6 +28,8 @@ const SHORT_COUNTRY={GB:'UK',US:'USA',AE:'UAE'};
 const STATE_NAME=Object.fromEntries(Object.entries(US).map(([name,code])=>[code,name]));
 // Service text: control and invisible characters (bidi overrides, zero-width) dropped, capped.
 const clean=(v,n=60)=>text(v,n);
+// A reply's results: a null or malformed entry is skipped (it failed the whole search).
+const entries=a=>a.filter(v=>v&&typeof v==='object');
 
 // "Cincinnati, OH", "Toronto, ON", "London, UK", "Lyon, France".
 export function placeLabel(p){
@@ -106,7 +108,7 @@ export async function searchPlaces(query){
 async function searchNames(q){
   const {status,payload}=await getJson(SEARCH_URL(q),6000);
   if(status!==200||!Array.isArray(payload?.results))return status===200?[]:null;
-  return payload.results.slice(0,10).map(r=>makePlace({name:r.name,admin:r.admin1,country:r.country,countryCode:r.country_code,
+  return entries(payload.results).slice(0,10).map(r=>makePlace({name:r.name,admin:r.admin1,country:r.country,countryCode:r.country_code,
     latitude:r.latitude,longitude:r.longitude,timeZone:r.timezone,elevationM:r.elevation,source:'search'})).filter(Boolean)
     // Same name in the same region (a city and its prefecture): keep the first, biggest.
     .filter((p,i,all)=>all.findIndex(q=>placeLabel(q)===placeLabel(p)&&q.admin===p.admin)===i);
@@ -171,7 +173,7 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
     const matches=status===200&&Array.isArray(payload?.result?.addressMatches)?payload.result.addressMatches:[];
     if(status!==200)failed=true;
     const found=[];
-    for(const m of matches.slice(0,4)){
+    for(const m of entries(matches).slice(0,4)){
       const a=m.addressComponents||{},full=clean(m.matchedAddress,120);
       const street=title(full.split(',')[0]||'');
       const p=guessZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
@@ -187,7 +189,7 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
   const {status,payload}=await getJson(NOMINATIM_URL(q),10000);
   if(status!==200||!Array.isArray(payload))return status!==200?null:[];
   const found=[];
-  for(const r of payload.slice(0,4)){
+  for(const r of entries(payload).slice(0,4)){
     const a=r.address||{};
     const street=[a.house_number,a.road].filter(Boolean).join(' ')||clean(r.name);
     const p=guessZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
