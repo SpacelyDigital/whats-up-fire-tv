@@ -1293,9 +1293,9 @@ test('feed: a squawk sent as text is shown only as four octal digits, cleaned of
     }finally{r.restore();}
   }
 });
-test('feed: a squawk sent as a number reads as its four digits (7700 is an emergency)',async()=>{
-  for(const [squawk,shown,emergency] of [[7700,'7700','EMERGENCY'],[7500,'7500','HIJACK'],[7600,'7600','RADIO FAILURE'],[1200,'1200',''],[17,'0017',''],
-    ['7700','7700','EMERGENCY'],[7700.5,'',''],[-7700,'',''],[17700,'',''],[NaN,'','']]){
+test('feed: a squawk sent as a number reads as its four digits when they are octal (7700 is an emergency, 12 is 0012); 1289 or 8 is no squawk (8 and 9 never occur), as the text branch has it',async()=>{
+  for(const [squawk,shown,emergency] of [[7700,'7700','EMERGENCY'],[7500,'7500','HIJACK'],[7600,'7600','RADIO FAILURE'],[1200,'1200',''],[17,'0017',''],[12,'0012',''],
+    ['7700','7700','EMERGENCY'],[7700.5,'',''],[-7700,'',''],[17700,'',''],[NaN,'',''],[1289,'',''],[8,'','']]){
     const r=fresh(),models=[];
     try{
       r.feeds.fi={mode:'ok',get body(){return {ac:[plane('a50001','UAL101',{squawk,emergency:'none'})],now:Date.now()};}};
