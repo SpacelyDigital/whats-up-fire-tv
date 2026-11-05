@@ -23,14 +23,17 @@ const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageSca
 addEventListener('resize',fit);fit();
 // The margin around an inset stage shows the layout's own background (its --edge colour where
 // that background is a gradient; Adjust position's own background while it is open), shaded
-// like the stage while screens with a shade are open over it.
+// like the stage while screens with a shade are open over it. Checked after every draw (Swiss
+// turns red for an emergency); body is only written when the colour changes.
 const clear=c=>!c||c==='transparent'||/^rgba\(.*,\s*0\)$/.test(c);
+let edgePainted='';
 function paintEdge(){
   if(!(PROFILE.stageScale<1))return;
   const cs=getComputedStyle(stage),own=cs.getPropertyValue('--edge').trim(),bg=getComputedStyle($('layout')).backgroundColor;
   const edge=stage.classList.contains('adjusting')?cs.backgroundColor:own||(clear(bg)?cs.backgroundColor:bg);
   const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o)).filter(c=>c.display!=='none').map(c=>c.backgroundColor).filter(c=>!clear(c));
-  document.body.style.background=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
+  const v=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
+  if(v!==edgePainted)document.body.style.background=edgePainted=v;
 }
 
 // --- Bridge to the Vega app: it handles the remote's Back button and asks us first.
@@ -148,13 +151,14 @@ async function useLayout(id){
   unloadExcept(id);
   root.replaceChildren();pruneFitted();root.className='layout';
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));stage.dataset.layout=id;
-  active={id,mod};paintEdge();
+  active={id,mod};
   if(mod.map!=='detail')maps.detail=null; // free it; it reloads from storage when needed
   try{
     mod.mount(root,ctx);
     mod.setMap?.({...maps});
     if(lastModel&&!adj)mod.render(shown(lastModel));
   }catch(e){console.error(`layout ${id}`,e);}
+  paintEdge();
   if(mod.map==='detail')ensureDetail();
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
   refitScreens(); // screens open over the switch now have this layout's fonts
@@ -164,6 +168,7 @@ function draw(m){
   if(!active||adj)return;
   m=shown(m);
   try{active.mod.render(m);}catch(e){console.error(`render ${active.id}`,e);}
+  paintEdge();
   // A photo credit is fitted when its photo loads; when the card's other lines take room from
   // it later, it is fitted again here (fuzz seed 7008: cut by 3 px).
   for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
