@@ -8,6 +8,11 @@
 //  - Always forbidden: /Users/ paths, "bureau" (other than the (U.S.) Census Bureau), "obscura",
 //    "overhead" (other than the credited MIT project URL), and "What's Up" in text the app
 //    shows (code comments are not shown, but are kept out too).
+//  - A package meant for the store (WHATSUP_PROFILE=store, as release.sh is run for it; a
+//    -store.vpkg name; or a page built with the store profile) must be the store profile's
+//    release build: window.__whatsupRelease set (no URL hooks) and the final policy
+//    (web/privacy-store.txt) both shown and as privacy.txt. Any other package is personal:
+//    the same gaps are only warned about, so the TV's own builds still pass.
 import {execFileSync} from 'node:child_process';
 import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync} from 'node:fs';
 import {join,relative} from 'node:path';
@@ -50,13 +55,24 @@ for(const f of files.filter(f=>/^assets\/.*\.(html|js|txt)$/.test(f))){
   const t=readFileSync(join(dir,f),'utf8').replace(/<title>[^<]*<\/title>/,'');
   const m=/What['’]s Up/.exec(t);if(m)problems.push(`${f}: shows "${t.slice(Math.max(0,m.index-40),m.index+20)}"`);
 }
-// Store build: the privacy policy may not ship with its placeholders ([date], [month year],
-// [web address]): any "[" fails.
 const mainJs=files.includes('assets/whatsup.js')?readFileSync(join(dir,'assets/whatsup.js'),'utf8'):'';
-if(/window\.__whatsupProfile="store"/.test(mainJs)){
-  const policy=files.includes('assets/privacy.txt')?readFileSync(join(dir,'assets/privacy.txt'),'utf8'):'';
-  if(!policy)problems.push('store build: no assets/privacy.txt');
-  const at=policy.indexOf('[');if(at>=0)problems.push(`store build: privacy.txt still has a placeholder: "${policy.slice(at,at+20)}"`);
+const profile=(/window\.__whatsupProfile="(\w+)"/.exec(mainJs)||[])[1]||'unknown',release=/^window\.__whatsupRelease=true;$/m.test(mainJs);
+const policy=files.includes('assets/privacy.txt')?readFileSync(join(dir,'assets/privacy.txt'),'utf8'):'';
+let shown=null;try{shown=JSON.parse(mainJs.split('\n').find(l=>l.startsWith('window.__whatsupDocs=')).slice(21,-1)).privacy;}catch{/* none */}
+const placeholder=t=>/placeholder/i.test(t||'')?' (the placeholder)':'';
+if(process.env.WHATSUP_PROFILE==='store'||/-store\.vpkg$/.test(pkg)||profile==='store'){
+  if(profile!=='store')problems.push(`store package: the page is the ${profile} build (placeholder policy, full-screen stage)`);
+  if(!release)problems.push('store package: not a release build (no window.__whatsupRelease: the ?demo, ?q, ?screen... URL hooks are live)');
+  // The final policy, byte for byte, where the app shows it and as privacy.txt; its placeholders
+  // ([date], [month year], [web address]) never ship: any "[" fails.
+  const final=readFileSync(new URL('../web/privacy-store.txt',import.meta.url),'utf8');
+  if(!policy)problems.push('store package: no assets/privacy.txt');
+  else if(policy!==final)problems.push(`store package: assets/privacy.txt is not web/privacy-store.txt${placeholder(policy)}`);
+  if(shown!==final)problems.push(`store package: the policy the page shows (whatsup.js) is not web/privacy-store.txt${placeholder(shown)}`);
+  const at=policy.indexOf('[');if(at>=0)problems.push(`store package: privacy.txt still has a placeholder: "${policy.slice(at,at+20)}"`);
+}else{
+  if(!release)console.warn('package check warning: personal package, not a release build: the URL hooks are live');
+  if(placeholder(shown||policy))console.warn('package check warning: personal package: its privacy text is the placeholder (not for the store)');
 }
 if(problems.length){console.error(`package check FAILED (${problems.length}):\n  `+problems.slice(0,40).join('\n  '));process.exit(1);}
 console.log(`package check passed: ${files.length} files, all expected; ${local.length} forbidden strings and the fixed rules absent`);
