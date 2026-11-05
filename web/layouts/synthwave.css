@@ -70,11 +70,11 @@
 .L-synthwave .q2{font:600 14px var(--orb);color:#ffe9fb;margin-top:8px;text-shadow:0 0 6px #000}
 @keyframes sw-flicker{0%,18%,22%,60%,100%{opacity:1}20%,61%{opacity:.55}}
 
-/* Emergency: red sky, MAYDAY in neon (in the middle 400px, as QUIET SKIES: clear of the date) */
+/* Emergency: red sky, MAYDAY in neon (in the middle 380px: 9px clear of the longest date) */
 .L-synthwave .emergency .sky{background:linear-gradient(#1a0008 0,#4a0414 40%,#a3081f 75%,#ff3b2f 100%)}
 .L-synthwave .emergency .sun{background:linear-gradient(#ffd0c0,#ff4a3d 50%,#a3081f);box-shadow:0 0 80px rgba(255,40,40,.9)}
 .L-synthwave .emergency .hcard{display:none}
-.L-synthwave .m1{font:900 64px var(--orb);color:#fff;letter-spacing:.14em;white-space:nowrap;margin:0 100px;text-shadow:0 0 10px #ff2a2a,0 0 30px #ff2a2a,0 0 60px #ff2a2a;animation:sw-may 1s steps(2) infinite}
+.L-synthwave .m1{font:900 64px var(--orb);color:#fff;letter-spacing:.14em;white-space:nowrap;margin:0 110px;text-shadow:0 0 10px #ff2a2a,0 0 30px #ff2a2a,0 0 60px #ff2a2a;animation:sw-may 1s steps(2) infinite}
 .L-synthwave .m2{font:800 16px var(--orb);color:#fff;background:rgba(120,0,10,.75);display:inline-block;padding:4px 12px;border-radius:6px;margin-top:6px;border:1.5px solid #ff4a3d}
 @keyframes sw-may{50%{opacity:.45}}
 .L-synthwave .emergency .jet.hero{stroke:#ff3b30;fill:rgba(255,59,48,.7);filter:drop-shadow(0 0 10px #ff3b30)}
