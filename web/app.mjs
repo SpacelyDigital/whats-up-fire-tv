@@ -753,6 +753,7 @@ function select(el){
     case 'about-back':return close();
     case 'pick-prev':return stepPick(-1);
     case 'pick-next':return stepPick(1);
+    case 'ip-retry':return findHome();
     case 'search-retry':entry=lastQuery||entry;setText('entry-text',entry);setFocus($('keys').querySelector('[data-key="search"]'));return runSearch(true);
     default:if(el.dataset.adjust!==undefined)adjustSetting(el,1);
   }
@@ -1033,15 +1034,31 @@ async function boot(){
     if(screen==='locate'){showSettings();open('settings');openLocate();for(const c of (query.get('typed')||'').toUpperCase())typeKey(c===' '?'space':c);runSearch(true);setFocus($('keys').children[2]);}
     return;
   }
-  const damaged=placeDamaged();
-  setText('layout-note','Finding your location');
-  locating=true;const place=await locateByIp().finally(()=>{locating=false;});
-  setText('layout-note','');
-  if(!place)return openLocate('We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.');
+  return findHome();
+}
+// The IP guess (first launch), or the search screen. When nothing answered the lookup (no connection, a
+// timeout, a captive portal's page) it says so and offers Try again, which asks again from there.
+const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.';
+async function findHome(){
+  const retry=layer?.id==='locate'?$('ip-retry'):null;
+  if(locating)return;
+  const damaged=placeDamaged(),wait=retry&&Object.assign(document.createElement('div'),{className:'msg busy',textContent:'Finding your location'});
+  if(retry)retry.before(wait);else setText('layout-note','Finding your location');
+  locating=true;const {place,offline}=await locateByIp().finally(()=>{locating=false;});
+  if(retry)wait.remove();else setText('layout-note','');
+  if(retry&&!retry.isConnected||settings.place)return; // a search answered meanwhile, or a place was chosen
+  if(!place){
+    const help=offline?NO_NET:'We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.';
+    if(retry){setText('entry-help',help);if(!offline){retry.remove();keepFocus();}return;}
+    openLocate(help);
+    if(offline){const b=Object.assign(document.createElement('button'),{id:'ip-retry',className:'retry',textContent:'Try again'});b.dataset.focus='';$('results').append(b);setFocus(b);}
+    return;
+  }
   // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
   // that can't be read keeps 'Recently above' and the logbook until a confirmed place replaces it.
   settings={...settings,place,confirmed:false};useSettings(settings);
   applyPlace(place,{fresh:!damaged});
+  if(retry)closeAll();
   showWelcome(place);
   setTimeout(()=>{if(layer?.id==='welcome')close();},60000);
 }

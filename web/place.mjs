@@ -87,12 +87,13 @@ export const placeDamaged=()=>{const p=store.get(KEY)?.place;return !!p&&!makePl
 // saved place stays until a place is confirmed, so the next launch still keeps the logbook.
 export const saveSettings=s=>store.set(KEY,s.confirmed&&s.place?s:{...s,place:placeDamaged()?store.get(KEY).place:null});
 
-// Approximate place from the IP address. Null when the lookup fails.
+// Approximate place from the IP address: {place}, null when the lookup fails, and offline when nothing
+// answered it (no connection, a timeout, a captive portal's redirect or page) rather than GeoJS.
 export async function locateByIp(){
   const {status,payload:p}=await getJson(IP_URL,6000);
-  if(status!==200||!p)return null;
-  return makePlace({name:p.city,admin:p.region,country:p.country,countryCode:p.country_code,
-    latitude:p.latitude,longitude:p.longitude,timeZone:p.timezone,source:'ip',accuracyKm:p.accuracy});
+  if(status!==200||!p)return {place:null,offline:['connection_error','blocked','invalid'].includes(status)};
+  return {place:makePlace({name:p.city,admin:p.region,country:p.country,countryCode:p.country_code,
+    latitude:p.latitude,longitude:p.longitude,timeZone:p.timezone,source:'ip',accuracyKm:p.accuracy}),offline:false};
 }
 
 // ZIP/postcode or place name -> up to 6 places, biggest first. Open-Meteo matches names

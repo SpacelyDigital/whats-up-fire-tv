@@ -100,11 +100,20 @@ test('address search: a non-U.S. address never reaches Census; store profile nev
 });
 test('IP location: GeoJS reply becomes an unconfirmed guess with its accuracy',async()=>{
   stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'39.05',longitude:'-84.65',timezone:'America/New_York',accuracy:20}]]]);
-  const p=await locateByIp();
+  const {place:p,offline}=await locateByIp();
   assert.equal(placeLabel(p),'Cincinnati, OH');
-  assert.equal(p.accuracyKm,20);
+  assert.equal(p.accuracyKm,20);assert.equal(offline,false);
   stub([]);
-  assert.equal(await locateByIp(),null);
+  assert.equal((await locateByIp()).place,null);
+});
+test('IP location: a lookup nothing answered (no connection, a timeout, a captive portal\'s page) is offline; one GeoJS answered without a place is not',async()=>{
+  stub([]);assert.deepEqual(await locateByIp(),{place:null,offline:true},'no connection');
+  stub([[/geojs/,[200,'<!DOCTYPE html><html><head><title>Guest Wi-Fi</title></head><body>Welcome to Hotel Wi-Fi</body></html>']]]);
+  assert.deepEqual(await locateByIp(),{place:null,offline:true},'a portal\'s page');
+  for(const [status,body,tag] of [[503,'','GeoJS down'],[429,'','GeoJS busy'],[200,{city:'Nowhere'},'no coordinates'],[200,'null','null']]){
+    globalThis.fetch=async()=>({status,headers:{get:()=>null},text:async()=>typeof body==='string'?body:JSON.stringify(body)});
+    assert.deepEqual(await locateByIp(),{place:null,offline:false},tag);
+  }
 });
 test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°), saved or from a service',async()=>{
   const CHI={name:'Chicago',admin:'Illinois',country:'United States',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'};
@@ -118,9 +127,9 @@ test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°)
   stub([meteo(...[null,'',' ',false].map((v,i)=>({...CHICAGO,name:`Bad${i}`,latitude:v})),{...CHICAGO,name:'Badlon',longitude:null},{...CHICAGO,latitude:'41.85',longitude:'-87.65'})]);
   assert.deepEqual((await searchPlaces('Chicago')).map(p=>[p.name,p.latitude,p.longitude]),[['Chicago',41.85,-87.65]],'only the readable one');
   stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'',longitude:'-84.6444',timezone:'America/New_York',accuracy:null}]]]);
-  assert.equal(await locateByIp(),null,'an IP guess with no latitude is no guess');
+  assert.equal((await locateByIp()).place,null,'an IP guess with no latitude is no guess');
   stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'39.05',longitude:'-84.65',timezone:'America/New_York',accuracy:null}]]]);
-  assert.equal((await locateByIp()).accuracyKm,null,'no accuracy is unknown, not 0 km');
+  assert.equal((await locateByIp()).place.accuracyKm,null,'no accuracy is unknown, not 0 km');
 });
 test('settings: bad saved values fall back to safe defaults',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({radiusMiles:99,distance:'parsecs',altitude:'m',layout:'<script>'}),setItem(){},removeItem(){}};

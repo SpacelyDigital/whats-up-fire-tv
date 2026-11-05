@@ -241,8 +241,8 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   const GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'},CHI={name:'Chicago',latitude:41.85,longitude:-87.65};
   const run=async({place=null,damaged=false,found=GUESS}={})=>{
     const seen=[];
-    const p=page([fn('boot')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
-      hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged:()=>damaged,locating:false,locateByIp:async()=>found,setTimeout(){},layer:null,
+    const p=page([fn('boot'),fn('findHome')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+      hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged:()=>damaged,locating:false,locateByIp:async()=>({place:found,offline:false}),setTimeout(){},layer:null,
       settings:{place,confirmed:true,layout:'radar'},showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),
       applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
     await p.boot();
@@ -263,8 +263,8 @@ test('launch: a saved place with a null, empty, blank or false coordinate can\'t
       const place={...CHI,[k]:v},tag=`${k} ${JSON.stringify(v)}`;saved['whatsup.settings.v1']=JSON.stringify({place,confirmed:true,layout:'radar'});
       const seen=[],settings=loadSettings();
       assert.equal(settings.place,null,`${tag}: no place`);assert.equal(placeDamaged(),true,`${tag}: damaged`);
-      const p=page([fn('boot')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
-        hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged,locating:false,locateByIp:async()=>GUESS,setTimeout(){},layer:null,settings,
+      const p=page([fn('boot'),fn('findHome')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+        hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged,locating:false,locateByIp:async()=>({place:GUESS,offline:false}),setTimeout(){},layer:null,settings,
         showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
       await p.boot();
       assert.deepEqual(seen,[['apply',41.878,false],['welcome','Chicago']],`${tag}: kept on the IP guess`);
@@ -432,4 +432,47 @@ test('welcome card: one line says how to reach Settings later, fitted to one lin
   p.showWelcome({name:'Chicago',accuracyKm:5});
   assert.deepEqual(seen,['open welcome','fit Press Select any time for Settings.']);
   assert.ok(hint._alts.every(t=>/Select/.test(t)&&/Settings/.test(t)&&!/…|\.\.\./.test(t)),hint._alts.join(' | '));
+});
+
+test('first run with no network (nothing answered the IP lookup): the search screen says so and offers Try again, which asks again; a lookup that answered without a place keeps its wording',async()=>{
+  const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.';
+  const NO_PLACE='We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.',GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'};
+  const fresh=()=>{
+    const seen=[],asks=[];let focus=null;
+    const node=(props={})=>({...props,dataset:{},parent:null,get isConnected(){return !!this.parent;},
+      remove(){if(this.parent){this.parent.kids.splice(this.parent.kids.indexOf(this),1);this.parent=null;}},
+      before(x){const k=this.parent.kids;x.parent=this.parent;k.splice(k.indexOf(this),0,x);}});
+    const results={kids:[],append(...xs){for(const x of xs){x.parent=results;results.kids.push(x);}},replaceChildren(...xs){for(const k of results.kids)k.parent=null;results.kids=[];results.append(...xs);}};
+    const p=page([line('const NO_NET='),fn('findHome')],{settings:{place:null,layout:'radar'},layer:null,locating:false,placeDamaged:()=>false,useSettings(){},setTimeout(){},close(){},
+      $:id=>id==='results'?results:id==='ip-retry'?results.kids.find(k=>k.id==='ip-retry')||null:node(),document:{createElement:tag=>node({tag})},
+      locateByIp:()=>new Promise(r=>asks.push(r)),openLocate:help=>{seen.push(['search',help]);p.layer={id:'locate'};p.texts['entry-help']=help;results.replaceChildren();},
+      setFocus:el=>{focus=el;},keepFocus:()=>{focus='first key';},closeAll:()=>{seen.push(['closeAll']);p.layer=null;},showWelcome:pl=>seen.push(['welcome',pl.name]),
+      applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
+    const shown=()=>results.kids.map(k=>k.textContent);
+    // The lookup in flight answers `reply`.
+    const answer=async(run,reply)=>{asks.shift()(reply);await run;};
+    return {p,seen,asks,shown,answer,results,node,focus:()=>focus};
+  };
+  // Launch, offline: the search screen says so, Try again focused.
+  let t=fresh();await t.answer(t.p.findHome(),{place:null,offline:true});
+  assert.deepEqual(t.seen,[['search',NO_NET]]);assert.deepEqual(t.shown(),['Try again']);assert.equal(t.focus()?.id,'ip-retry');
+  // Try again: 'Finding your location' while it asks (a second OK asks nothing more); offline again: as it was.
+  let run=t.p.findHome();assert.deepEqual(t.shown(),['Finding your location','Try again']);
+  await t.p.findHome();assert.equal(t.asks.length,1,'one lookup at a time');
+  await t.answer(run,{place:null,offline:true});
+  assert.deepEqual(t.shown(),['Try again']);assert.equal(t.focus()?.id,'ip-retry');assert.equal(t.p.texts['entry-help'],NO_NET);
+  // Try again, now answered without a place: the usual wording, no Try again.
+  await t.answer(t.p.findHome(),{place:null,offline:false});
+  assert.deepEqual(t.shown(),[]);assert.equal(t.p.texts['entry-help'],NO_PLACE);assert.equal(t.focus(),'first key');
+  // Try again finds the place: the welcome card, over the dashboard (not over the search screen).
+  t=fresh();await t.answer(t.p.findHome(),{place:null,offline:true});t.seen.length=0;
+  await t.answer(t.p.findHome(),{place:GUESS,offline:false});
+  assert.deepEqual(t.seen,[['apply',41.878,true],['closeAll'],['welcome','Chicago']]);assert.equal(t.p.settings.place,GUESS);assert.equal(t.p.settings.confirmed,false);
+  // A search answered meanwhile (the results replaced Try again): the late guess is dropped.
+  t=fresh();await t.answer(t.p.findHome(),{place:null,offline:true});t.seen.length=0;
+  run=t.p.findHome();t.results.replaceChildren(t.node({textContent:'Denver, CO'}));await t.answer(run,{place:GUESS,offline:false});
+  assert.deepEqual(t.seen,[]);assert.deepEqual(t.shown(),['Denver, CO']);assert.equal(t.p.settings.place,null);
+  // Launch, GeoJS answered without a place: the usual wording, no Try again.
+  t=fresh();await t.answer(t.p.findHome(),{place:null,offline:false});
+  assert.deepEqual(t.seen,[['search',NO_PLACE]]);assert.deepEqual(t.shown(),[]);
 });
