@@ -330,8 +330,9 @@ export class Enricher {
   constructor(ledger,request){
     this.ledger=ledger;this.request=request;this.status='idle';
     // Lookups are paced on performance.now(), which a TV clock step doesn't move. A pause saved by
-    // the feed before (a restart, the last launch) carries over, never longer than it was set for.
-    const row=ledger.rows.get('cooldown:adsblol'),left=Math.min(900,Number(row?.value)||900,(row?.expires??0)-Date.now()/1000);
+    // the feed before (a restart, the last launch) carries over, never longer than it was set for
+    // (its seconds; the build before saved true, so its row holds to its expiry, up to 15 min).
+    const row=ledger.rows.get('cooldown:adsblol'),left=Math.min(900,typeof row?.value==='number'?row.value:900,(row?.expires??0)-Date.now()/1000);
     this.next=left>0?performance.now()+left*1000:0;
   }
   publish(a,route,now){

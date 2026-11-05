@@ -222,3 +222,14 @@ test('outage: the TV clock stepped back 10 min with both feeds still down doesn\
     s.stop();
   }finally{r.restore();}
 });
+
+test('route lookups: a pause saved by the build before (value true, not seconds) holds for what is left of it',async()=>{
+  const real=performance.now;let p=1000;performance.now=()=>p;
+  try{
+    const now=Date.now()/1000,asked=[];
+    const e=new Enricher(new Ledger({'cooldown:adsblol':{expires:now+800,value:true}}),async url=>{asked.push(url);return {status:404,payload:null};});
+    const a={hex:'a00001',callsign:'UAL101',registration:'',latitude:39.06,longitude:-84.65,observed:now,live:true,inside:true,miles:1};
+    p+=5000;await e.tick([a],now);assert.equal(asked.length,0,'still paused 5 s on');
+    p+=796000;await e.tick([a],now);assert.equal(asked.length,1,'asked once it is over');
+  }finally{performance.now=real;}
+});
