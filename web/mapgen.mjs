@@ -337,6 +337,8 @@ function decode(s){
   return out;
 }
 const DETAIL_LAYERS=['water','shore','waterways','roads','landuse','parks','aero','buildings'];
+// A line or ring as encoder writes it: whole-number pairs. Anything else decodes to NaN and draws as nothing.
+const DELTAS=/^-?\d+,-?\d+(?:,-?\d+,-?\d+)*$/;
 // Saved form -> drawable form (p: line, r: ring, both Int16Array in 1/per mi; per defaults to 1000).
 export function decodeDetail(m){
   if(!m)return null;
@@ -432,8 +434,8 @@ export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
     const same=m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(eastOf(m.longitude,home.longitude))<.01&&
       (stale||freshMap(m));
-    // Every layer as buildDetail writes it (what decodeDetail reads): a damaged one is dropped and built again.
-    if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'))&&Array.isArray(m.places)&&m.places.every(label('name')))){
+    // Every layer as buildDetail writes it (what decodeDetail reads), its lines whole-number pairs: a damaged one is dropped and built again.
+    if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'&&DELTAS.test(f.p||f.r)))&&Array.isArray(m.places)&&m.places.every(label('name')))){
       localStorage.removeItem(detailKey(spec));return null;
     }
     return same?m:null;

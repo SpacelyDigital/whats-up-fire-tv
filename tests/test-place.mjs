@@ -254,6 +254,29 @@ test('saved maps: a street map with a damaged layer (missing, not a list, a feat
   }
   delete globalThis.localStorage;
 });
+test('saved maps: a street map whose lines don\'t decode to whole-number pairs (\'1,,2,x\', \'a,b,c\', an empty string, an odd count: NaN geometry, drawn as nothing for 30 days) is dropped, so it is built again; an intact one is still used',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  for(const mi of [5,10,25]){
+    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
+    const detail={v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
+      water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[{p:'-5,-5,10,0'}],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'},{c:'motorway',p:'-9000,0,18000,0,-3,-2'}],landuse:[],parks:[],aero:[],
+      buildings:[{r:'1,1,2,0,0,2,-2,0'}],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
+    saveDetail(detail);
+    const m=savedDetail(home,spec);
+    assert.ok(m&&decodeDetail(m).roads[1].p instanceof Int16Array,`${mi} mi: an intact one is used`);
+    for(const [what,patch] of [['a road of \'1,,2,x\'',{roads:[{c:'minor',p:'1,,2,x'}]}],['a building of \'a,b,c\'',{buildings:[{r:'a,b,c'}]}],['an empty line',{roads:[{c:'minor',p:''}]}],
+      ['an empty ring',{water:[{r:''}]}],['a lone number',{shore:[{p:'5'}]}],['an odd count',{waterways:[{c:'river',p:'0,0,5'}]}],['a decimal',{roads:[{c:'minor',p:'0,0,1.5,2'}]}],
+      ['a sign alone',{roads:[{c:'minor',p:'0,0,-,2'}]}],['NaN written out',{aero:[{c:'runway',p:'0,0,NaN,1'}]}],['a line as a list',{roads:[{c:'minor',p:['0,0,1,1']}]}]]){
+      saveDetail({...detail,...patch});
+      assert.equal(savedDetail(home,spec),null,`${mi} mi: ${what}`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`${mi} mi: ${what}: not shown while a new one is built either`);
+      assert.equal(data.get(key),undefined,`${mi} mi: ${what}: discarded`);
+    }
+  }
+  delete globalThis.localStorage;
+});
 test('street maps: never more than three are saved (the policy says up to three), under whatsup.detail.v1 (2-5 mi), .r10 (10 mi) and .wide (the wider size used last), with no list of them',async()=>{
   const {store}=await import('../web/live.mjs');
   const data=new Map(),home={latitude:41.85,longitude:-87.65};let quota=Infinity;
