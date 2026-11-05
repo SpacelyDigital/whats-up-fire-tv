@@ -4,6 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {startLive,resetOutage,store,LEDGER_KEY,HISTORY_KEY,Ledger,Enricher,getBytes} from '../web/live.mjs';
+import {start,resetLog} from '../web/model.mjs';
+import {fmt} from '../web/kit.mjs';
 
 const T0=Date.parse('2026-11-05T15:00:00Z'),CVG={latitude:39.05,longitude:-84.65};
 const CFG={...CVG,radiusMiles:3,pollSeconds:5,searchNm:15};
@@ -117,4 +119,20 @@ test('route cache: after the TV clock steps back an hour, expired rows still go 
   L.put('x:soon',1,back+30,back+10);for(let i=0;i<700;i++)L.put('lol:C'+i,{},back+86400,back+10);
   L.put('lol:D',{},back+86500,back+100);
   assert.ok(L.rows.size<=800&&!L.rows.has('x:soon'),`a minute after the step: ${L.rows.size} rows, expired row ${L.rows.has('x:soon')?'kept':'gone'}`);
+});
+
+test('recently above: sightings are timed on the feed\'s clock, so a TV clock behind or ahead of it neither hides them nor misstates their ages',async()=>{
+  for(const off of [0,-30000,-60000,-600000,-86400000,60000,3600000]){
+    const r=fresh();resetLog();const models=[],F=T0/1000;
+    try{
+      r.step(off);r.feeds.fi.ac=[]; // quiet skies: only the saved sightings
+      store.set(HISTORY_KEY,[{hex:'a0a0a1',callsign:'UAL1234',registration:'N1234U',aircraft_type:'B738',last_seen:F-30},
+        {hex:'a0a0a2',callsign:'DAL5678',registration:'N5678D',aircraft_type:'A321',last_seen:F-300}]);
+      const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+      await r.advance(1000);
+      const m=models.filter(x=>x.fresh).at(-1);
+      assert.deepEqual(m?.recent.map(a=>`${a.flight} ${fmt.ago(a.last_seen,m.now)}`),['UAL1234 now','DAL5678 5m'],`the TV clock ${off/1000} s off the feed's`);
+      s.stop();
+    }finally{r.restore();}
+  }
 });

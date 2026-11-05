@@ -285,8 +285,10 @@ function liveSource(config,onModel){
     // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
     // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
     if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,now);}
-    const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
-      route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
+    // 'Recently above': the sightings are stamped by the feed's clock, as positions are, and judged by it;
+    // the layouts age them against the TV's (m.now), so the stamps shown are moved onto it.
+    const recent=recentSightings(states,planes.filter(a=>a.inside),feedNow).map(a=>({...a,type:typeName(a.aircraft_type),
+      route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase(),last_seen:a.last_seen-(states.skew||0)}));
     // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
     // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
     const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn,source:states.source||''};
