@@ -100,43 +100,46 @@ const registry={};
 window.__whatsupLayout=(id,mod)=>{registry[id]=mod;};
 function addCss(id,done){
   if(document.querySelector(`link[data-layout="${id}"]`))return done();
-  const css=Object.assign(document.createElement('link'),{rel:'stylesheet',href:`layouts/${id}.css`,onload:done,onerror:done});
+  const end=()=>{css._ended=true;done();},css=Object.assign(document.createElement('link'),{rel:'stylesheet',href:`layouts/${id}.css`,onload:end,onerror:end});
   css.dataset.layout=id;document.head.append(css);
 }
 function loadLayout(id){
   const code=codeOf(id);
   return new Promise((resolve,reject)=>{
-    const sheets=sheetsOf(id);let waiting=sheets.length+1;
-    const done=()=>{if(--waiting)return;registry[code]?resolve(registry[code]):reject(new Error(`layout ${id} failed to load`));};
+    // The code as it landed: an abandoned preview's may be let go (unloadExcept) before its stylesheets end.
+    const sheets=sheetsOf(id);let waiting=sheets.length+1,mod=registry[code];
+    const done=()=>{if(--waiting)return;mod?resolve(mod):reject(new Error(`layout ${id} failed to load`));};
     for(const sheet of sheets)addCss(sheet,done);
-    if(registry[code])done();
+    if(mod)done();
     else if(bundled){
       const s=Object.assign(document.createElement('script'),{src:`layouts/${code}.js`});
-      s.onload=s.onerror=()=>{s.remove();done();};document.head.append(s);
-    }else import(`./layouts/${code}.mjs`).then(m=>{registry[code]=m.default;done();},e=>{console.error(e);done();});
+      s.onload=s.onerror=()=>{s.remove();mod=registry[code];done();};document.head.append(s);
+    }else import(`./layouts/${code}.mjs`).then(m=>{mod=registry[code]=m.default;done();},e=>{console.error(e);done();});
   });
 }
-// Keep only the active layout's code and stylesheets so only it costs memory.
+// Keep only the active layout's code and stylesheets (and those of the switch in flight) so only it
+// costs memory. A stylesheet still loading stays until it ends (removed, it never would), and goes then.
 function unloadExcept(id){
-  const keep=new Set(sheetsOf(id));
+  const keep=new Set([...sheetsOf(id),...sheetsOf(wanted)]);
   for(const k of Object.keys(registry))if(!keep.has(k))delete registry[k];
-  for(const l of document.querySelectorAll('link[data-layout]'))if(!keep.has(l.dataset.layout))l.remove();
+  for(const l of document.querySelectorAll('link[data-layout]'))if(!keep.has(l.dataset.layout)&&l._ended)l.remove();
 }
 
-let active=null,layoutToken=0;
+let active=null,layoutToken=0,wanted=null;
 const root=$('layout');
 const ctx={settings:()=>settings,place:()=>settings.place,layout:()=>active?.id,demo};
 async function useLayout(id){
-  id=validLayout(id);
+  id=validLayout(id);wanted=id;
   // Already showing it: still cancel any switch in flight (Back in the picker while a
-  // preview loads must not let that preview land after the revert).
-  if(active?.id===id){++layoutToken;if(!busyNow)$('busy').classList.remove('on');return;}
+  // preview loads must not let that preview land after the revert), and drop what it loaded.
+  if(active?.id===id){++layoutToken;unloadExcept(id);if(!busyNow)$('busy').classList.remove('on');return;}
   const token=++layoutToken;
   $('busy').classList.add('on'); // a layout switch can take a moment on the stick
   const done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===layoutToken&&!busyNow)$('busy').classList.remove('on');}));
   let mod;
-  try{mod=await loadLayout(id);}catch(e){console.error(e.message);if(token===layoutToken&&!active&&id!==LAYOUTS[0][0])useLayout(LAYOUTS[0][0]);return;}
-  if(token!==layoutToken)return;
+  try{mod=await loadLayout(id);}catch(e){console.error(e.message);if(token===layoutToken&&!active&&id!==LAYOUTS[0][0])useLayout(LAYOUTS[0][0]);}
+  if(token!==layoutToken)return unloadExcept(active?.id); // overtaken: what it loaded goes, unless the newer switch needs it
+  if(!mod)return;
   const old=active;
   if(old){
     try{old.mod.unmount?.();}catch(e){console.error('unmount',e);}
