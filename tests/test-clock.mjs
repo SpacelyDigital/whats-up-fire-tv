@@ -107,3 +107,14 @@ test('map tiles: a 429\'s pause runs on performance.now(): the TV clock stepped 
     p+=31000;d-=3600000;assert.equal((await getBytes(TILE))?.length,8,'asked again a minute after the 429');assert.equal(calls,2);
   }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;}
 });
+
+test('route cache: after the TV clock steps back an hour, expired rows still go and the 800-lookup cap still holds',()=>{
+  const now=T0/1000,L=new Ledger();
+  for(let i=0;i<900;i++)L.put('lol:A'+i,{},now+86400,now);
+  L.put('lol:B',{},now+86461,now+61);assert.equal(L.rows.size,800,'the cap, a minute on');
+  const back=now+61-3600;
+  L.put('lol:S',{},back+86400,back);assert.equal(L.rows.size,800,'pruned at the step');
+  L.put('x:soon',1,back+30,back+10);for(let i=0;i<700;i++)L.put('lol:C'+i,{},back+86400,back+10);
+  L.put('lol:D',{},back+86500,back+100);
+  assert.ok(L.rows.size<=800&&!L.rows.has('x:soon'),`a minute after the step: ${L.rows.size} rows, expired row ${L.rows.has('x:soon')?'kept':'gone'}`);
+});

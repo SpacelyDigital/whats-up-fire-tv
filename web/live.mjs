@@ -300,8 +300,9 @@ export class Ledger {
   get(k,now){const row=this.rows.get(k);return row&&row.expires>now?row.value:undefined;}
   put(k,value,expires,now){
     this.rows.set(k,{expires,value});this.dirty=true;
-    // Expired rows go at most once a minute (a busy feed puts hundreds of rows a poll).
-    if(!(now-this.pruned<60)){
+    // Expired rows go at most once a minute (a busy feed puts hundreds of rows a poll), and at once
+    // when the TV clock has stepped back past the last time (else nothing went until it caught up).
+    if(!(now-this.pruned<60)||now<this.pruned){
       this.pruned=now;for(const [key,row] of this.rows)if(!row||!(row.expires>now))this.rows.delete(key);
       // Route lookups are kept a day; past LOL_MAX the ones expiring soonest go.
       const lol=[...this.rows].filter(([key])=>key.startsWith('lol:'));
