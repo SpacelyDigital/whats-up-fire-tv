@@ -136,7 +136,11 @@ function render(m){
   const brands=n=>L.cargoBy.slice(0,n).map(([b,n])=>`${n} ${b}`).join(' · '); // count first, like Military
   $['cargo-by']._alts=L.cargoBy.length?[...new Set([brands(2),brands(1)])]:[L.night?'none yet':'from 6 pm'];
   setText($.mil,L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
-  for(const row of [[$.seen,$.cargo,$.mil],[$['seen-by'],$['cargo-by'],$['mil-by']]]){
+  // The numbers are fitted again only when one changes, their font arrives or the tally comes back (an emergency
+  // hides it): every half-pixel step of the fit forces a layout, 21 of them for 3,000, on every draw of a browse.
+  const nums=[$.seen,$.cargo,$.mil],key=$.seen.getClientRects().length?nums.map(e=>e.textContent).join('\u0001')+document.fonts?.check('1em Michroma'):null;
+  const rows=[[$['seen-by'],$['cargo-by'],$['mil-by']]];if(key&&key!==$.numKey)rows.unshift(nums);$.numKey=key;
+  for(const row of rows){
     for(const e of row){e.textContent=(e._alts||[e.textContent])[0];fitLine(e);}
     const size=Math.min(...row.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of row)e.style.fontSize=`${size}px`;
   }
