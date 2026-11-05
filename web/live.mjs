@@ -463,7 +463,8 @@ export function startLive(show,config){
   };
   // A restart with adsb.fi up asks it at once, as before; on the backup, the outage carries on.
   if(!outage.down)Object.assign(outage,{fails:0,since:0,retryAt:0});
-  let paused=false,gen=0,good=false; // gen: a poll started before a pause/resume is dropped; good: the last data came in
+  // busy: a feed request is out; next: when the next poll is due; asked: when the last request went; good: the last data came in
+  let paused=false,busy=false,next=0,asked=-Infinity,good=false;
   // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
   // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
@@ -488,20 +489,22 @@ export function startLive(show,config){
     const allowed=outage.down?Math.min(fiAt(),backupAt()):outage.fails?Math.min(outage.retryAt,outage.since+FAILOVER_MS):0;
     const at=outage.fails&&!outage.down?allowed:Math.max(now+1000,started+config.pollSeconds*1000,allowed);
     clearTimeout(timer);timer=setTimeout(poll,Math.max(0,at-now));
-    return at;
+    return next=at;
   }
   // No data this poll: the display keeps its last picture a while, then counts down to `at`.
   const failed=at=>{good=false;states={...states,retryAt:at};onUpdate(states,false);};
   async function poll(){
-    if(stopped||paused)return;
-    const my=gen,started=performance.now(),feed=pick(started);
+    if(stopped||paused||busy)return;
+    const started=performance.now(),feed=pick(started);
     if(!feed){schedule(started);return;}
     const backup=feed!=='adsb.fi';
     const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
     if(backup)outage.lastBackupAt=started;else outage.lastAsked=started;
+    busy=true;asked=started;
     // Wide areas are big replies: more time to arrive (4 s up to 25 NM, 12 s at 250).
     const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
-    if(stopped||paused||my!==gen)return;
+    busy=false;
+    if(stopped||paused)return; // a reply that lands while hidden is dropped
     const reply=status===200?(backup?fromBackup(payload):feedReply(payload)):null,stamp=feedStamp(reply),now=Date.now()/1000;
     // The TV's clock can be off by seconds, minutes or days: positions are judged against
     // the feed's own clock (it was just received), and the offset goes to the display. Up to
@@ -515,7 +518,7 @@ export function startLive(show,config){
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
       // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
       // tell "no receivers here" either.
-      if(ac.length)coverage.none=false;else if(!backup)await checkCoverage(performance.now());
+      if(ac.length)coverage.none=false;else if(!backup){busy=true;await checkCoverage(performance.now());busy=false;}
       if(stopped)return;
       if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0,backupStep:0});
       good=true;
@@ -549,7 +552,8 @@ export function startLive(show,config){
   onUpdate(states,false);
   poll();
   return {stop(){stopped=true;clearTimeout(timer);},
-    pause(){paused=true;gen++;clearTimeout(timer);},
-    // Back on screen: poll now, unless the service asked to wait (back-off kept).
-    resume(){if(!paused)return;paused=false;gen++;clearTimeout(timer);timer=setTimeout(poll,Math.max(0,(states.retryAt||0)-performance.now()));}};
+    pause(){paused=true;clearTimeout(timer);},
+    // Back on screen: the next poll when it is due (at once after a hide longer than the interval;
+    // a back-off kept), never within a second of the last request, nor while one is out (it carries on).
+    resume(){if(!paused)return;paused=false;clearTimeout(timer);const t=performance.now();if(!busy)timer=setTimeout(poll,Math.max(0,next-t,asked+1000-t));}};
 }

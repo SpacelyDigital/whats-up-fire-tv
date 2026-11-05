@@ -162,3 +162,27 @@ test('photos: the 1.5 s between lookups is timed by performance.now(), so the TV
     assert.ok(waits.every(ms=>ms<=3000),`no wait beyond the lookup's own 3 s timeout: ${waits}`);
   }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;globalThis.setTimeout=real.set;}
 });
+
+test('hidden and shown: a poll at most once a second and never while one is out; at once after a minute away',async()=>{
+  const r=fresh();
+  try{
+    const live=r.live();await r.advance(16000);
+    // Ten quick flaps (an overlay flickering): no burst of polls.
+    const n=r.feed().length;
+    for(let i=0;i<10;i++){live.pause();await r.advance(120);live.resume();await r.advance(120);}
+    await r.advance(2500);
+    const flaps=r.feed().slice(n).map(c=>c.t);
+    assert.ok(flaps.length<=2&&gapsOf(flaps).every(g=>g>=1000),`${flaps.length} polls in 5 s, ${gapsOf(flaps)} ms apart`);
+    // A slow reply: hidden and shown while it is out, nothing more is sent, and it is shown when it lands.
+    await r.advance(10000);r.feeds.fi.ms=3000;const m=r.feed().length;
+    await r.advance(10000,()=>r.feed().length>m);
+    live.pause();await r.advance(300);live.resume();await r.advance(1500);
+    assert.equal(r.feed().length,m+1,'one request out at a time');
+    await r.advance(1300);assert.ok(r.updates.at(-1).ok&&r.updates.at(-1).t===r.feed()[m].done,'its reply shown');
+    r.feeds.fi.ms=200;
+    // Back after a minute: at once.
+    await r.advance(10000);live.pause();await r.advance(60000);const k=r.feed().length;live.resume();await r.advance(10);
+    assert.equal(r.feed().length,k+1,'back after a minute: polled at once');
+    live.stop();
+  }finally{r.restore();}
+});
