@@ -339,6 +339,33 @@ test('saved maps: base and street maps saved as format 4 (older builds kept a ma
     assert.equal(savedDetail(home,spec)?.built,detail.built,'the street map built now');
   }finally{delete globalThis.localStorage;}
 });
+test('saved maps: at launch the ones this build never reads go (the first build\'s whatsup.map.v1, older formats, a 10-mile street map left in .wide: up to 3.3 MB); its own maps and everything else stay',async()=>{
+  const {dropOldMaps}=await import('../web/mapgen.mjs');
+  // localStorage as the page sees it: the stored keys are own properties (Object.keys lists them).
+  const ls=globalThis.localStorage=Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},setItem(k,v){this[k]=String(v);},removeItem(k){delete this[k];}});
+  try{
+    const {readFileSync}=await import('node:fs');
+    const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+    const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+    const tile=new Uint8Array(readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url)));
+    const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),getBytes:async()=>tile};
+    const home={latitude:39.10,longitude:-84.41},spec=detailSpec(10),MVT={VectorTile,Pbf};
+    const base=await buildMap(home,10,{net,MVT}),detail=await buildDetail(home,{...spec,net,MVT});
+    saveMap(base);saveDetail(detail);saveMap({...base,range:5});
+    const j=JSON.stringify,kept={'whatsup.settings.v1':'{}','whatsup.consent':'{"v":3}','whatsup.map.recent':'[5,10]','whatsup.logbook.v1':'{}','whatsup.ledger.v1':'{}','other.app':'{"v":1}'};
+    Object.assign(ls,kept,{
+      'whatsup.map.v1':j({v:1,...home,range:10,zoom:10,built:Date.now(),water:[]}), // c80f98b
+      'whatsup.detail.v1':j({v:1,...home,range:6.5,buildingRange:1.3,built:Date.now(),water:[]}), // dd5f3b7
+      'whatsup.detail.v1.wide':j({...detail,v:4}), // 73d51fe: its 10-mile street map
+      'whatsup.map.v2.r15':j({...base,v:2,range:15}),'whatsup.map.v2.r25':j({...base,v:4,range:25}),'whatsup.map.v2.r50':'{"v":'});
+    dropOldMaps();
+    assert.deepEqual(Object.keys(ls).sort(),[...Object.keys(kept),'whatsup.map.v2','whatsup.map.v2.r5','whatsup.detail.v1.r10'].sort());
+    for(const k of Object.keys(kept))assert.equal(ls[k],kept[k],k);
+    assert.equal(savedMap(home,10)?.built,base.built,'this build\'s base maps');
+    assert.equal(savedMap(home,5)?.range,5);
+    assert.equal(savedDetail(home,spec)?.built,detail.built,'and street map');
+  }finally{delete globalThis.localStorage;}
+});
 test('keep screen awake: off unless turned on (a saved ON is kept)',()=>{
   for(const [saved,want] of [[undefined,false],[true,true],[false,false],['no',false]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({keepAwake:saved}),setItem(){},removeItem(){}};

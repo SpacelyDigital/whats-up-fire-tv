@@ -9,7 +9,7 @@ import {chimeGate,dLon} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
-import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
+import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
@@ -999,6 +999,7 @@ addEventListener('pagehide',()=>flushLog());
 
 // --- Boot
 async function boot(){
+  dropOldMaps(); // what an older build saved that this one never reads
   buildKeys();
   fitText($('kofi-a'),$('kofi-b'),$('welcome-hint')); // the tip lines (and the welcome card's hint) re-fit when a layout's font arrives (P3-2)
   tellAwake();

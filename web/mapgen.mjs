@@ -281,6 +281,18 @@ export function evictMaps({keepBase=null,keepDetail=null}={}){
   for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
   store.set(RECENT_KEY,keepBase?[keepBase]:[]);
 }
+// At launch the saved maps this build never reads go, instead of taking the TV's storage until Erase
+// (up to 3.3 MB): the first build's whatsup.map.v1, and base and street maps of an older format, such
+// as the 10-mile street map older builds kept in .wide. Only the start of each is read ({"v":N, as
+// buildMap and buildDetail write it), not megabytes of street map.
+export function dropOldMaps(){
+  try{
+    for(const k of Object.keys(localStorage)){
+      const v=k===KEY||k.startsWith(`${KEY}.r`)?VERSION:k===DETAIL_KEY||k.startsWith(`${DETAIL_KEY}.`)?DETAIL_VERSION:0;
+      if(k==='whatsup.map.v1'||v&&!localStorage.getItem(k)?.startsWith(`{"v":${v},`))store.remove(k);
+    }
+  }catch{/* no storage */}
+}
 
 // --- Detail map. Coordinates in thousandths of a mile (~5 ft). Each line or ring is
 // saved as a delta-encoded string ("x,y,dx,dy,...") and decoded into an Int16Array,

@@ -241,7 +241,7 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   const GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'},CHI={name:'Chicago',latitude:41.85,longitude:-87.65};
   const run=async({place=null,damaged=false,found=GUESS}={})=>{
     const seen=[];
-    const p=page([fn('boot'),fn('findHome')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+    const p=page([fn('boot'),fn('findHome')],{dropOldMaps(){},buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
       hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged:()=>damaged,locating:false,locateByIp:async()=>({place:found,offline:false}),setTimeout(){},layer:null,
       settings:{place,confirmed:true,layout:'radar'},showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),
       applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
@@ -254,6 +254,16 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   assert.deepEqual((await run({damaged:true,found:null})).seen,[['search']],'the lookup failed: the search screen');
 });
 
+test('launch: the saved maps an older build left and this one never reads are dropped first, with a saved place or without',async()=>{
+  for(const place of [{name:'Chicago',latitude:41.85,longitude:-87.65},null]){
+    const seen=[];
+    const p=page([fn('boot')],{dropOldMaps:()=>seen.push('drop'),buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,
+      useSettings(){},hasConsent:()=>true,useLayout:()=>seen.push('layout'),refineZone:async()=>null,settings:{place,confirmed:true,layout:'radar'},applyPlace:()=>seen.push('apply'),findHome:()=>seen.push('find')});
+    await p.boot();
+    assert.deepEqual(seen,['drop','layout',place?'apply':'find'],place?'a saved place':'none');
+  }
+});
+
 test('launch: a saved place with a null, empty, blank or false coordinate can\'t be read either, so \'Recently above\' and the logbook wait for a confirmed place (home is never put at 0°)',async()=>{
   const {loadSettings,saveSettings,placeDamaged}=await import('../web/place.mjs');
   const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'};
@@ -263,7 +273,7 @@ test('launch: a saved place with a null, empty, blank or false coordinate can\'t
       const place={...CHI,[k]:v},tag=`${k} ${JSON.stringify(v)}`;saved['whatsup.settings.v1']=JSON.stringify({place,confirmed:true,layout:'radar'});
       const seen=[],settings=loadSettings();
       assert.equal(settings.place,null,`${tag}: no place`);assert.equal(placeDamaged(),true,`${tag}: damaged`);
-      const p=page([fn('boot'),fn('findHome')],{buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+      const p=page([fn('boot'),fn('findHome')],{dropOldMaps(){},buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
         hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged,locating:false,locateByIp:async()=>({place:GUESS,offline:false}),setTimeout(){},layer:null,settings,
         showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
       await p.boot();
