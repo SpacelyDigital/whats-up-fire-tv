@@ -112,6 +112,8 @@ export const setText=(e,v,alts)=>{
 // that fits, shrunk if need be), so a long name never runs out of its box or ends in "…".
 const fitted=new Set();
 export const fit=(...es)=>{for(const e of es.flat())if(e){e._fit=true;fitted.add(e);}};
+// The old layout's slots go with it (a switch among the Atlas layouts loads no font: no 'loadingdone').
+export const pruneFitted=()=>{for(const e of fitted)if(!e.isConnected)fitted.delete(e);};
 // Web fonts arrive after the first fit (wider than the fallback): fit them all again then.
 globalThis.document?.fonts?.addEventListener?.('loadingdone',()=>{
   for(const e of fitted){if(!e.isConnected){fitted.delete(e);continue;}if(e._alts)fitLine(e);}

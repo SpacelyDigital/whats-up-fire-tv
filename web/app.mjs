@@ -10,7 +10,7 @@ import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE} from './mapgen.mjs';
-import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText} from './kit.mjs';
+import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
@@ -146,7 +146,7 @@ async function useLayout(id){
     stage.classList.remove(...sheetsOf(old.id).map(s=>`L-${s}`));
   }
   unloadExcept(id);
-  root.replaceChildren();root.className='layout';
+  root.replaceChildren();pruneFitted();root.className='layout';
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));stage.dataset.layout=id;
   active={id,mod};paintEdge();
   if(mod.map!=='detail')maps.detail=null; // free it; it reloads from storage when needed
