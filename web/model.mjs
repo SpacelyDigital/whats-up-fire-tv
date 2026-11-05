@@ -268,19 +268,20 @@ export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):
 // carries on from that one's last reply: the planes stay until the next reply, an outage's countdown too.
 function liveSource(config,onModel,was){
   const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
-  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0;
+  const routes=new RouteLookup();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0;
   const update=(states,ok)=>{
     clearTimeout(stale);
-    if(ok)lastOk=performance.now();
+    if(ok){lastOk=performance.now();okAt=Date.now();}
     if(ok||states.retryAt)known=0; // this feed's own reply or failure from now on
-    const now=Date.now(),t=performance.now(),retryAt=due=states.retryAt||known,wait=retryIn(retryAt);
+    const now=Date.now(),age=Math.max(performance.now()-lastOk,now-okAt),retryAt=due=states.retryAt||known,wait=retryIn(retryAt);
     // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
     // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s", at 60 s
-    // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds). Its age
-    // is timed on performance.now(), as the polls are: a TV clock stepped back can't make it young again.
-    if(!ok&&lastGood&&t-lastOk<60000){stale=setTimeout(()=>update(states,false),lastOk+60000-t);return onModel({...lastGood,now,retryIn:wait});}
+    // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds). It is old
+    // when either clock says so: a TV clock stepped back can't make it young again, nor can a standby
+    // that performance.now() doesn't count.
+    if(!ok&&lastGood&&age<60000){stale=setTimeout(()=>update(states,false),60000-age);return onModel({...lastGood,now,retryIn:wait});}
     const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
-    const {fresh,all}=airspace(states,feedNow,t-lastOk<15000);
+    const {fresh,all}=airspace(states,feedNow,age<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
     const raw=new Map((states[IDS.feed]?.attributes?.ac||[]).filter(r=>r&&typeof r==='object').map(r=>[String(r.hex).toLowerCase(),r])); // one bad entry must not drop the update
     // A 250-mile map over a busy region can hold 500+ aircraft: draw the nearest MAX_PLANES
@@ -305,7 +306,7 @@ function liveSource(config,onModel,was){
     onModel(model);
   };
   const live=startLive(update,config);
-  return {...live,stop(){clearTimeout(stale);live.stop();},get carry(){return {where,lastOk,lastGood,retryAt:due};}};
+  return {...live,stop(){clearTimeout(stale);live.stop();},get carry(){return {where,lastOk,okAt,lastGood,retryAt:due};}};
 }
 
 // --- Demo: plausible flights around home, moving in real time. Local airports

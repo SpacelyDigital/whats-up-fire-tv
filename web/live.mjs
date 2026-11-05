@@ -471,7 +471,7 @@ export function startLive(show,config){
   // A restart with adsb.fi up asks it at once, as before; on the backup, the outage carries on.
   if(!outage.down)Object.assign(outage,{fails:0,since:0,retryAt:0});
   // busy: a feed request is out; next: when the next poll is due; asked: when the last request went; good: the last data came in
-  let paused=false,busy=false,next=0,asked=-Infinity,good=false;
+  let paused=false,busy=false,next=0,asked=-Infinity,good=false,hid=0;
   // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
   const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
   // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
@@ -559,8 +559,11 @@ export function startLive(show,config){
   onUpdate(states,false);
   poll();
   return {stop(){stopped=true;clearTimeout(timer);},
-    pause(){paused=true;clearTimeout(timer);},
+    pause(){paused=true;clearTimeout(timer);hid=Date.now();},
     // Back on screen: the next poll when it is due (at once after a hide longer than the interval;
     // a back-off kept), never within a second of the last request, nor while one is out (it carries on).
-    resume(){if(!paused)return;paused=false;clearTimeout(timer);const t=performance.now();if(!busy)timer=setTimeout(poll,Math.max(0,next-t,asked+1000-t));}};
+    // The TV clock times the hide too: a standby may not move performance.now() (one early poll at most
+    // if the clock was put forward meanwhile).
+    resume(){if(!paused)return;paused=false;clearTimeout(timer);const t=performance.now(),away=Date.now()-hid;
+      if(!busy)timer=setTimeout(poll,Math.max(0,away>config.pollSeconds*1000?0:next-t,asked+1000-t));}};
 }

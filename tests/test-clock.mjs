@@ -233,3 +233,21 @@ test('route lookups: a pause saved by the build before (value true, not seconds)
     p+=796000;await e.tick([a],now);assert.equal(asked.length,1,'asked once it is over');
   }finally{performance.now=real;}
 });
+
+// A standby that performance.now() and the timers don't count (Chromium on Linux) reads here as
+// the TV clock put forward while the page's own time stands still.
+test('standby: back on screen after an hour the feed polls at once, and a failed poll then doesn\'t show the old picture as live',async()=>{
+  const r=fresh();resetLog();const models=[];
+  try{
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({t:r.t,m}));
+    await r.advance(16000);const n=r.feed().length;
+    await r.advance(10000,()=>r.feed().length>n);await r.advance(300);
+    s.pause();r.step(3600000);const k=r.feed().length;s.resume();
+    await r.advance(1000);assert.equal(r.feed().length,k+1,'polled at once (a second after the last request)');
+    s.pause();await r.advance(300);r.step(3600000);r.feeds.fi.mode='offline';r.feeds.lol.mode='offline';const at=r.t;s.resume();
+    await r.advance(3000);
+    const shown=models.filter(x=>x.t>at);
+    assert.ok(shown.length&&shown.every(x=>!x.m.fresh&&!x.m.planes.length),`after the wake: ${shown.map(x=>`+${x.t-at} ms ${x.m.fresh?'live':'stale'} ${x.m.planes.length}`)}`);
+    s.stop();
+  }finally{r.restore();}
+});
