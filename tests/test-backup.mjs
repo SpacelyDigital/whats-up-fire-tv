@@ -695,6 +695,27 @@ test('outage: a poll skipped in a known outage counts down to the next one (a ne
   }finally{r.restore();}
 });
 
+// adsb.fi down, adsb.lol delivering: a new place (or Adjust position) whose first poll falls inside
+// adsb.lol's 10 s spacing waits on "Connecting to the live feed" until its turn, not on the outage line.
+test('outage: a new place while adsb.lol stands in waits out its spacing on "Connecting", never the outage line',async()=>{
+  const r=fresh(),models=[],place={...CVG,timeZone:'America/New_York'},push=m=>models.push({...m,at:r.t});let s=null;
+  try{
+    r.feeds.fi={mode:'s503'};
+    s=start(place,CFG,push);await r.advance(30000);
+    assert.equal(models.at(-1).source,'adsb.lol');
+    await r.advance(r.at('lol').at(-1)+2000-r.t); // 2 s after an adsb.lol request: its next turn 8 s away
+    s.stop();const k=models.length;s=start({...place,latitude:39.5,longitude:-84.2},CFG,push,null,s);
+    await r.advance(1500);
+    const texts=models.slice(k).map(m=>quietText(m,false));
+    assert.ok(texts.length&&texts.every(x=>x==='Connecting to the live feed'),`new place: ${texts}`);
+    await r.advance(12000);
+    const m=models.at(-1);
+    assert.ok(m.fresh&&m.source==='adsb.lol'&&m.planes.length===1,`then adsb.lol's planes: ${quietText(m,false)}`);
+    assert.ok(!models.slice(k).some(m=>/No live data/.test(quietText(m,false))),'never the outage line');
+    s.stop();
+  }finally{r.restore();}
+});
+
 // Storage as the page sees it: `saved` holds what is stored; setItem throws when `full`.
 function withStorage(saved,full=false){
   const had=Object.getOwnPropertyDescriptor(globalThis,'localStorage');

@@ -512,9 +512,10 @@ export function startLive(show,config){
   async function poll(){
     if(stopped||paused||busy)return;
     const started=performance.now(),feed=pick(started);
-    // Neither may be asked yet: without data on screen, the outage line counts down to the next poll
-    // (a new feed's first, or one whose last time has passed).
-    if(!feed){const at=schedule(started);if(!good&&states.retryAt!==at)failed(at);return;}
+    // Neither may be asked yet: without data on screen, the outage line counts down to the next poll (a new
+    // feed's first, or one whose last time has passed), unless that is just adsb.lol's turn coming round
+    // while it is delivering (adsb.fi down, adsb.lol neither paused nor failing): "Connecting" stays.
+    if(!feed){const at=schedule(started);if(!good&&states.retryAt!==at&&(!outage.down||outage.backupFails||outage.backupRetryAt>started))failed(at);return;}
     const backup=feed!=='adsb.fi';
     const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
     if(backup)outage.lastBackupAt=started;else outage.lastAsked=started;
