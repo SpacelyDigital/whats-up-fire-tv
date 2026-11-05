@@ -118,10 +118,10 @@ test('Adjust position from a search result, then Back: the confirm card over the
 });
 
 // Adjust position from `let adj=null;` to the end of startAdjust, and nudge; drawing is a stub.
-async function adjustPage(globals){
+async function adjustPage(globals,more=[]){
   const {dLon}=await import('../web/core.mjs');
   const region=/^let adj=null;$[\s\S]*?^async function startAdjust\([\s\S]*?\n\}/m.exec(APP)?.[0];assert.ok(region,'startAdjust in app.mjs');
-  return page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('nudge')],{dLon,performance:{now:()=>0},layers:[],closeAll(){},makeCanvas:()=>({}),
+  return page([line('const ADJ_RANGE='),line('const ADJ_MAX_M='),region,fn('nudge'),...more],{dLon,performance:{now:()=>0},layers:[],layer:null,focused:null,closeAll(){},makeCanvas:()=>({}),
     $:()=>({replaceChildren(){}}),stage:{classList:{add(){}}},drawAdjust(){},syncApp(){},...globals});
 }
 test('Adjust position: its street map is built once per place (within ~1 km, as the saved maps) and kept for 30 days, so opening it again sends OpenFreeMap nothing',async()=>{
@@ -382,4 +382,16 @@ test('a search typed and then left within 0.8 s (Back, a result picked, Home) is
   assert.equal(await typed(()=>p.closeAll()),'','a result picked (every screen closes)');
   assert.equal(await typed(()=>p.window.__whatsupActive(false)),'','the app sent to the background');
   assert.equal(await typed(()=>{p.layers.push(p.layer);p.layer=screen('confirm');}),'','the timer fires under another screen');
+});
+
+test('Settings > Fine-tune: Back (cancel) and OK (save) both return to Settings with Fine-tune focused; opened with no screen open, both end on the dashboard',async()=>{
+  const seen=[],place={latitude:41.85,longitude:-87.65};
+  const p=await adjustPage({buildMap:async()=>({}),layer:null,focused:null,lastModel:null,settings:{place},stage:{classList:{add(){},remove(){}}},
+    closeAll:()=>{seen.push('closeAll');p.layer=null;p.focused=null;},showSettings:()=>seen.push('values'),open:(id,first)=>seen.push(`${id}:${first}`),
+    choosePlace:pl=>seen.push(`saved ${pl.latitude}`),openLocate(){},confirmPlace(){}},[fn('endAdjust')]);
+  const run=async(from,save)=>{seen.length=0;p.layer=from&&{id:from};p.focused=from&&{id:'set-adjust'};await p.startAdjust(place);p.endAdjust(save);return seen.join();};
+  assert.equal(await run('settings',false),'closeAll,values,settings:set-adjust','Back');
+  assert.equal(await run('settings',true),'closeAll,saved 41.85,values,settings:set-adjust','OK');
+  assert.equal(await run(null,false),'closeAll','Back, opened over the dashboard');
+  assert.equal(await run(null,true),'closeAll,saved 41.85','OK, opened over the dashboard');
 });

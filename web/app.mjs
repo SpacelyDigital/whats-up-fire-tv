@@ -794,10 +794,11 @@ function adjStreets(place){
   return map;
 }
 // from: 'confirm' when opened on a search result (Back returns to it, not to an empty
-// dashboard on a first run): the screens under it, and their focus, come back too.
+// dashboard on a first run): the screens under it, and their focus, come back too. Opened from
+// Settings (Fine-tune), Back and OK both return to Settings, on that row.
 async function startAdjust(place,{from=''}={}){
   if(!place)return;
-  const under=from==='confirm'?layers.map(l=>[l,l._last]):[];
+  const under=[...layers.map(l=>[l,l._last]),...(layer&&from!=='confirm'?[[layer,focused]]:[])];
   closeAll();
   // note: the street map's own (loading, unavailable), shown again when the dot comes back inside the limit.
   adj={place,from,under,latitude:place.latitude,longitude:place.longitude,map:null,note:'Loading street map',held:0,canvas:makeCanvas(540,540)};
@@ -855,6 +856,7 @@ function endAdjust(save=false){
     confirmPlace(a.place);
     for(const [l,last] of a.under)l._last=last;
   }
+  if(a.from!=='confirm')for(const [l,last] of a.under){if(l.id==='settings')showSettings();open(l.id,last?.id);}
   if(lastModel)draw(lastModel);syncApp();
 }
 
