@@ -277,7 +277,7 @@ test('an outage: with no model for minutes the dashboard is drawn again at each 
   let t=Date.parse('2026-11-06T05:59:35Z'),ticks=0;const timers=new Set(),drawn=[];
   // The feed's tick() (model.mjs) runs the model again: the time, the day's tallies and the countdown move on together.
   const feed={resume(){},pause(){},tick(){ticks++;p.render({...p.lastModel,now:t});}};
-  const p=page([line('let clockTimer='),fn('keepTime'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,Date:{now:()=>t},
+  const p=page([line('let clockTimer='),fn('keepTime'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,searchTimer:null,Date:{now:()=>t},
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);},
     draw:m=>drawn.push(m.now),listen(){},countDown(){},credited:'',sourceFlashAt:0,SOURCE_FLASH_MS:0,flashCredits(){},performance:{now:()=>0},
     feed,flushLog(){}});
@@ -367,7 +367,7 @@ test('a search typed and then left within 0.8 s (Back, a result picked, Home) is
     {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:el,document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
       focusables:()=>[],syncApp(){},showSettings(){},refitSettings(){},endPick(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,
       PROFILE:{},placeLabel:()=>'',searchPlaces:async q=>{asked.push(q);return [];},searchAddress:async()=>[],lastQuery:'',settings:{place:{}},layer:null,layers:[],
-      window:{},feed:null,flushLog(){},onScreen:true});
+      window:{},feed:null,flushLog(){},keepTime(){},onScreen:true});
   const screen=id=>({id,hidden:false,style:{},contains:()=>false});
   const typed=async(leave,stack=['settings','locate'])=>{
     timers.clear();asked.length=0;vm.runInContext('entry=""',p);p.layers=stack.slice(0,-1).map(screen);p.layer=screen(stack.at(-1));
