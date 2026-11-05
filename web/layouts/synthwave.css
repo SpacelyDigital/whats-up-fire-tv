@@ -65,12 +65,13 @@
 .L-synthwave .s-status{font:700 12px var(--orb);color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;align-self:center}
 .L-synthwave .s-status.off{color:var(--hot)}
 
+/* QUIET SKIES and the takeover headline: one line in the middle 380px of the sky, 9px clear of the longest date */
 .L-synthwave .quiet,.L-synthwave .mayday{position:absolute;left:180px;right:180px;top:84px;text-align:center;pointer-events:none}
-.L-synthwave .q1{font:900 46px var(--orb);color:#fff;letter-spacing:.12em;text-shadow:0 0 8px var(--cyan),0 0 26px var(--cyan),0 0 50px var(--pink);animation:sw-flicker 5s infinite}
+.L-synthwave .q1{font:900 46px var(--orb);color:#fff;letter-spacing:.12em;white-space:nowrap;margin:0 110px;text-shadow:0 0 8px var(--cyan),0 0 26px var(--cyan),0 0 50px var(--pink);animation:sw-flicker 5s infinite}
 .L-synthwave .q2{font:600 14px var(--orb);color:#ffe9fb;margin-top:8px;text-shadow:0 0 6px #000}
 @keyframes sw-flicker{0%,18%,22%,60%,100%{opacity:1}20%,61%{opacity:.55}}
 
-/* Emergency: red sky, MAYDAY in neon (in the middle 380px: 9px clear of the longest date) */
+/* Emergency: red sky, MAYDAY in neon */
 .L-synthwave .emergency .sky{background:linear-gradient(#1a0008 0,#4a0414 40%,#a3081f 75%,#ff3b2f 100%)}
 .L-synthwave .emergency .sun{background:linear-gradient(#ffd0c0,#ff4a3d 50%,#a3081f);box-shadow:0 0 80px rgba(255,40,40,.9)}
 .L-synthwave .emergency .hcard{display:none}

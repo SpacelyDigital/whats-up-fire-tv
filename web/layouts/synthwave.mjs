@@ -62,10 +62,10 @@ function ui(){
   $.svg=svg('svg',{class:'fly',viewBox:'0 0 960 540','aria-hidden':'true'});
   for(const id of ['marks','stalks','jets','tags'])$.svg.append($[id]=svg('g'));
   root.querySelector('.world').after($.svg);
-  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m1','m2','quiet','q2',
+  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m1','m2','quiet','q1','q2',
     's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city,$['h-label'],$.m1);
+  fit($.city,$['h-label'],$.m1,$.q1);
 }
 
 function drawMap(){
@@ -139,7 +139,7 @@ function render(m){
 
   $.hcard.hidden=!hero;$.quiet.hidden=!!hero;$.mayday.hidden=!hero?.emergency;
   showPhotoIn($.pic,hero);
-  if(!hero)setText($.q2,quietText(m,demo));
+  if(!hero){setText($.q1,'QUIET SKIES');setText($.q2,quietText(m,demo));}
   else{
     setText($['h-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     setText($['h-fl'],hero.flight);$['h-fl'].classList.toggle('long',hero.flight.length>8);
