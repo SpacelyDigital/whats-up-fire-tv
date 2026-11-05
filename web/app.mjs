@@ -933,8 +933,8 @@ function showWelcome(place){
   const a=Number(place.accuracyKm),acc=a>0&&a<=2000?a:0;
   setText('welcome-note',`A first guess from your internet connection${acc?` (the lookup claims within ${settings.distance==='km'?`${Math.round(acc)||1} km`:`${Math.round(acc*.621)||1} mi`})`:''}. `+
     'Internet locations are often off by 10 miles or more, so enter your ZIP or street address for a sky that matches your window.');
-  // Settings (location, privacy and erase, keep screen awake) is one press away on the dashboard: said once, here.
-  const hint=$('welcome-hint');hint._alts=['Press Select any time for Settings.','Select ▸ Settings'];
+  // Settings (location, privacy and erase, keep screen awake) is one press away on the dashboard, not here (Select on Change opens the search): said once.
+  const hint=$('welcome-hint');hint._alts=['On the main screen, press Select for Settings.','Main screen: Select opens Settings.'];
   open('welcome','welcome-change');fitLine(hint);
 }
 

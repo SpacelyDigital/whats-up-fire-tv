@@ -440,8 +440,8 @@ test('welcome card: one line says how to reach Settings later, fitted to one lin
   const hint={},seen=[];
   const p=page([fn('showWelcome')],{settings:{distance:'mi'},placeLabel:pl=>pl.name,$:id=>id==='welcome-hint'?hint:{},open:id=>seen.push(`open ${id}`),fitLine:e=>seen.push(e===hint?`fit ${e._alts[0]}`:'fit')});
   p.showWelcome({name:'Chicago',accuracyKm:5});
-  assert.deepEqual(seen,['open welcome','fit Press Select any time for Settings.']);
-  assert.ok(hint._alts.every(t=>/Select/.test(t)&&/Settings/.test(t)&&!/…|\.\.\./.test(t)),hint._alts.join(' | '));
+  assert.deepEqual(seen,['open welcome','fit On the main screen, press Select for Settings.']);
+  assert.ok(hint._alts.every(t=>/[Mm]ain screen/.test(t)&&/Select/.test(t)&&/Settings/.test(t)&&!/…|\.\.\./.test(t)),hint._alts.join(' | '));
 });
 
 test('first run with no network (nothing answered the IP lookup): the search screen says so and offers Try again, which asks again; a lookup that answered without a place keeps its wording',async()=>{
