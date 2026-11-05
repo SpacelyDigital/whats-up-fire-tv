@@ -254,7 +254,7 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   const GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'},CHI={name:'Chicago',latitude:41.85,longitude:-87.65};
   const run=async({place=null,damaged=false,found=GUESS}={})=>{
     const seen=[];
-    const p=page([fn('boot'),fn('findHome')],{dropOldMaps(){},buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+    const p=page([line('const NO_NET='),fn('boot'),fn('findHome')],{dropOldMaps(){},buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
       hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged:()=>damaged,locating:false,locateByIp:async()=>({place:found,offline:false}),setTimeout(){},layer:null,
       settings:{place,confirmed:true,layout:'radar'},showWelcome:pl=>seen.push(['welcome',pl.name]),openLocate:()=>seen.push(['search']),
       applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
@@ -402,7 +402,7 @@ test('a search typed and then left within 0.8 s (Back, a result picked, Home) is
   const timers=new Map();let nextId=0;const asked=[];
   const el=()=>({replaceChildren(){},querySelector:()=>el(),append(){},textContent:'',dataset:{},style:{}});
   const p=page([line('let entry='),line('const stopSearch='),line('const SEARCH_LIMIT_MS='),fn('typeKey'),fn('runSearch'),fn('close'),line('function closeAll\\('),line('window.__whatsupActive=')],
-    {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:el,document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
+    {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:id=>id==='ip-retry'?null:el(),document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
       focusables:()=>[],syncApp(){},showSettings(){},refitSettings(){},endPick(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,
       PROFILE:{},placeLabel:()=>'',searchPlaces:async q=>{asked.push(q);return [];},searchAddress:async()=>[],lastQuery:'',settings:{place:{}},layer:null,layers:[],
       window:{},feed:null,flushLog(){},countDown(){},keepTime(){},onScreen:true});
@@ -472,28 +472,33 @@ test('welcome card: one line says how to reach Settings later, fitted to one lin
   assert.ok(hint._alts.every(t=>/[Mm]ain screen/.test(t)&&/Select/.test(t)&&/Settings/.test(t)&&!/…|\.\.\./.test(t)),hint._alts.join(' | '));
 });
 
-test('first run with no network (nothing answered the IP lookup): the search screen says so and offers Try again, which asks again; a lookup that answered without a place keeps its wording',async()=>{
+test('first run with no network (nothing answered the IP lookup): the search screen says so and offers Try again under its help line (outside the results a search replaces), which asks again; a lookup that answered without a place keeps its wording',async()=>{
   const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.';
   const NO_PLACE='We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.',GUESS={name:'Chicago',latitude:41.878,longitude:-87.63,source:'ip'};
   const fresh=()=>{
     const seen=[],asks=[];let focus=null;
     const node=(props={})=>({...props,dataset:{},parent:null,get isConnected(){return !!this.parent;},
       remove(){if(this.parent){this.parent.kids.splice(this.parent.kids.indexOf(this),1);this.parent=null;}},
-      before(x){const k=this.parent.kids;x.parent=this.parent;k.splice(k.indexOf(this),0,x);}});
-    const results={kids:[],append(...xs){for(const x of xs){x.parent=results;results.kids.push(x);}},replaceChildren(...xs){for(const k of results.kids)k.parent=null;results.kids=[];results.append(...xs);}};
+      before(x){const k=this.parent.kids;x.parent=this.parent;k.splice(k.indexOf(this),0,x);},after(x){const k=this.parent.kids;x.parent=this.parent;k.splice(k.indexOf(this)+1,0,x);}});
+    const list=()=>{const l={kids:[],append(...xs){for(const x of xs){x.parent=l;l.kids.push(x);}},replaceChildren(...xs){for(const k of l.kids)k.parent=null;l.kids=[];l.append(...xs);}};return l;};
+    // The card: the help line and what follows it (the IP lookup's Try again, 'Finding your location'); the results box apart.
+    const card=list(),help=node({id:'entry-help'}),results=list();card.append(help);
     const p=page([line('const NO_NET='),fn('findHome')],{settings:{place:null,layout:'radar'},layer:null,locating:false,placeDamaged:()=>false,useSettings(){},setTimeout(){},close(){},
-      $:id=>id==='results'?results:id==='ip-retry'?results.kids.find(k=>k.id==='ip-retry')||null:node(),document:{createElement:tag=>node({tag})},
+      $:id=>id==='results'?results:id==='entry-help'?help:id==='ip-retry'?card.kids.find(k=>k.id==='ip-retry')||null:node(),document:{createElement:tag=>node({tag})},
       locateByIp:()=>new Promise(r=>asks.push(r)),openLocate:help=>{seen.push(['search',help]);p.layer={id:'locate'};p.texts['entry-help']=help;results.replaceChildren();},
       setFocus:el=>{focus=el;},keepFocus:()=>{focus='first key';},closeAll:()=>{seen.push(['closeAll']);p.layer=null;},showWelcome:pl=>seen.push(['welcome',pl.name]),
       applyPlace:(pl,o)=>seen.push(['apply',pl.latitude,o?.fresh??false])});
-    const shown=()=>results.kids.map(k=>k.textContent);
-    // The lookup in flight answers `reply`.
+    // What is on the screen: under the help line, then in the results box.
+    const shown=()=>[...card.kids.filter(k=>k!==help),...results.kids].map(k=>k.textContent),underHelp=()=>card.kids.slice(1).map(k=>k.id||k.textContent);
+    // The lookup in flight answers `reply`; a search answering meanwhile fills the results and takes the IP lookup's Try again away (runSearch).
     const answer=async(run,reply)=>{asks.shift()(reply);await run;};
-    return {p,seen,asks,shown,answer,results,node,focus:()=>focus};
+    const searched=text=>{results.replaceChildren(node({textContent:text}));card.kids.find(k=>k.id==='ip-retry')?.remove();};
+    return {p,seen,asks,shown,underHelp,answer,searched,results,node,focus:()=>focus};
   };
   // Launch, offline: the search screen says so, Try again focused.
   let t=fresh();await t.answer(t.p.findHome(),{place:null,offline:true});
   assert.deepEqual(t.seen,[['search',NO_NET]]);assert.deepEqual(t.shown(),['Try again']);assert.equal(t.focus()?.id,'ip-retry');
+  assert.deepEqual(t.underHelp(),['ip-retry'],'under the help line, not in the results box');
   // Try again: 'Finding your location' while it asks (a second OK asks nothing more); offline again: as it was.
   let run=t.p.findHome();assert.deepEqual(t.shown(),['Finding your location','Try again']);
   await t.p.findHome();assert.equal(t.asks.length,1,'one lookup at a time');
@@ -508,28 +513,47 @@ test('first run with no network (nothing answered the IP lookup): the search scr
   assert.deepEqual(t.seen,[['apply',41.878,true],['closeAll'],['welcome','Chicago']]);assert.equal(t.p.settings.place,GUESS);assert.equal(t.p.settings.confirmed,false);
   // A search answered meanwhile (the results replaced Try again): the late guess is dropped.
   t=fresh();await t.answer(t.p.findHome(),{place:null,offline:true});t.seen.length=0;
-  run=t.p.findHome();t.results.replaceChildren(t.node({textContent:'Denver, CO'}));await t.answer(run,{place:GUESS,offline:false});
+  run=t.p.findHome();t.searched('Denver, CO');await t.answer(run,{place:GUESS,offline:false});
   assert.deepEqual(t.seen,[]);assert.deepEqual(t.shown(),['Denver, CO']);assert.equal(t.p.settings.place,null);
   // Launch, GeoJS answered without a place: the usual wording, no Try again.
   t=fresh();await t.answer(t.p.findHome(),{place:null,offline:false});
   assert.deepEqual(t.seen,[['search',NO_PLACE]]);assert.deepEqual(t.shown(),[]);
 });
 
-test('search screen, first run offline: Search with fewer than 2 characters typed keeps the IP lookup\'s Try again under its message (the help line still names it); a search that answers replaces it',async()=>{
-  const el=(props={})=>({className:'',...props,dataset:{},kids:[],append(...xs){this.kids.push(...xs);},replaceChildren(...xs){this.kids=xs;},querySelectorAll:()=>[]});
-  const results=el({id:'results'}),ip=el({id:'ip-retry',textContent:'Try again'});results.kids=[ip];
-  const shown=()=>results.kids.map(k=>k.id||k.textContent||k.tag);
-  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),fn('runSearch')],{layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
-    $:id=>id==='results'?results:id==='ip-retry'?(results.kids.includes(ip)?ip:null):id==='keys'?{querySelector:()=>({})}:el({id}),
+test('search screen, first run offline: Search with fewer than 2 characters typed leaves the IP lookup\'s Try again under the help line that names it (outside the results it replaces); a search that answers (a place found, or the geocoder failing with the search\'s own Try again) takes the button and that help line away together, so after a failed search, Clear and an empty Search never leave the message alone under a line still saying to choose Try again',async()=>{
+  const el=(props={})=>({className:'',...props,dataset:{},kids:[],parent:null,querySelectorAll:()=>[],
+    append(...xs){for(const x of xs){x.remove?.();x.parent=this;this.kids.push(x);}},replaceChildren(...xs){for(const k of this.kids)k.parent=null;this.kids=[];this.append(...xs);},
+    remove(){if(this.parent){this.parent.kids.splice(this.parent.kids.indexOf(this),1);this.parent=null;}}});
+  const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.';
+  const NO_PLACE='We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.';
+  const results=el({id:'results'}),card=el(),help=el({id:'entry-help'}),ip=el({id:'ip-retry',className:'retry',textContent:'Try again'});
+  const offline=()=>{card.replaceChildren(help,ip);results.replaceChildren();p.texts['entry-help']=NO_NET;}; // a first run, the lookup refused: findHome's screen
+  let geocoder=async()=>[{name:'Denver',admin:'Colorado',country:'United States',source:'search'}];
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),line('const NO_NET='),fn('runSearch')],{layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
+    $:id=>id==='results'?results:id==='ip-retry'?(ip.parent?ip:null):id==='keys'?{querySelector:()=>({})}:el({id}),
     document:{createElement:tag=>el({tag})},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
-    searchPlaces:async()=>[{name:'Denver',admin:'Colorado',country:'United States',source:'search'}],searchAddress:async()=>[],placeLabel:pl=>pl.name});
-  const search=async typed=>{vm.runInContext(`entry=${JSON.stringify(typed)}`,p);await p.runSearch(true);return shown();};
-  const FIRST='Type a ZIP or postal code, a city, or a street address first.';
-  assert.deepEqual(await search(''),[FIRST,'ip-retry'],'nothing typed');
-  assert.deepEqual(await search('D'),[FIRST,'ip-retry'],'one character');
-  assert.deepEqual(await search('DENVER'),['button'],'a search that answers: its results alone');
+    searchPlaces:q=>geocoder(q),searchAddress:async()=>[],placeLabel:pl=>pl.name});
+  // The screen after a search: the results box, the Try again buttons (the IP lookup's under the help line, the search's own in the
+  // results) and the help line, in agreement: it never names a Try again that is off screen, and the IP lookup's goes with the no-network line.
+  const screen=()=>{const buttons=[...card.kids,...results.kids].filter(k=>k.className==='retry').map(k=>k.id),help=p.texts['entry-help'];
+    assert.ok(!/Try again/.test(help)||buttons.length,`the help line (${help}) names a Try again that is on screen (${buttons})`);
+    assert.equal(buttons.includes('ip-retry'),help===NO_NET,`the IP lookup's Try again goes with the no-network help line (${help}; ${buttons})`);
+    return {results:results.kids.map(k=>k.id||k.textContent||k.tag),buttons,help};};
+  const search=async typed=>{vm.runInContext(`entry=${JSON.stringify(typed)}`,p);await p.runSearch(true);return screen();};
+  const FIRST='Type a ZIP or postal code, a city, or a street address first.',FAILED='Search is unavailable. Check the connection.';
+  offline();
+  assert.deepEqual(await search(''),{results:[FIRST],buttons:['ip-retry'],help:NO_NET},'nothing typed');
+  assert.deepEqual(await search('D'),{results:[FIRST],buttons:['ip-retry'],help:NO_NET},'one character');
+  assert.deepEqual(card.kids,[help,ip],'the IP lookup\'s Try again stays under the help line');
+  // A real search that fails: the search's own Try again, the IP lookup's gone with the help line that named it; then Clear and Search with nothing typed.
+  geocoder=async()=>null;
+  assert.deepEqual(await search('DE'),{results:[FAILED,'search-retry'],buttons:['search-retry'],help:NO_PLACE},'a search that fails');
+  assert.deepEqual(await search(''),{results:[FIRST],buttons:[],help:NO_PLACE},'Clear, then Search with nothing typed');
+  // A search that answers: its results alone, the IP lookup's Try again and its help line gone.
+  offline();geocoder=async()=>[{name:'Denver',admin:'Colorado',country:'United States',source:'search'}];
+  assert.deepEqual(await search('DENVER'),{results:['button'],buttons:[],help:NO_PLACE},'a search that answers');
   assert.equal(results.kids[0]._place?.name,'Denver');
-  assert.deepEqual(await search(''),[FIRST],'later (no IP lookup to try again): the message alone');
+  assert.deepEqual(await search(''),{results:[FIRST],buttons:[],help:NO_PLACE},'later: the message alone');
 });
 
 test('screen reader: the plane on the card is read again, with its distance, as it enters the alert zone and as it leaves; Approaching and Nearest trading places on it, a zone change while browsing, or a poll with nothing new are not',()=>{

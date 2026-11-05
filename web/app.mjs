@@ -699,12 +699,7 @@ async function runSearch(explicit=false){
     if(layer?.id==='locate'&&(explicit||!nodes[0]?.className.includes('busy')))setText('sr-live',nodes[0]?.className.startsWith('msg')?nodes[0].textContent:nodes.length?`${nodes.length} place${nodes.length===1?'':'s'} found`:'');};
   const msg=(text,cls='msg')=>Object.assign(document.createElement('div'),{className:cls,textContent:text});
   const retry=()=>{const b=document.createElement('button');b.dataset.focus='';b.id='search-retry';b.className='retry';b.textContent='Try again';return b;};
-  if(q.length<2){
-    const ip=$('ip-retry'); // the IP lookup's Try again (first run offline) stays under the message: the help line names it
-    if(explicit)show(msg('Type a ZIP or postal code, a city, or a street address first.'));else show();
-    if(ip)box.append(ip);
-    return;
-  }
+  if(q.length<2)return explicit?show(msg('Type a ZIP or postal code, a city, or a street address first.')):show();
   const address=looksLikeAddress(q);
   if(address&&!explicit)return show(msg('Street address: press Search when done.'));
   // Street addresses go to the U.S. Census geocoder only when they look like a U.S. address,
@@ -721,6 +716,9 @@ async function runSearch(explicit=false){
   const found=await Promise.race([work,new Promise(r=>setTimeout(()=>r('timeout'),SEARCH_LIMIT_MS))]);
   if(seq!==searchSeq||layer?.id!=='locate'&&!layers.some(l=>l.id==='locate'))return;
   lastQuery=q;
+  // The geocoder answered (or failed, with the search's own Try again below): the IP lookup's Try again (a first run
+  // offline, under the help line) goes, with the no-network help line that named it.
+  const ip=$('ip-retry');if(ip){ip.remove();setText('entry-help',NO_PLACE);}
   if(found==='timeout'||!found){
     show(msg(found?'The search is taking too long.':'Search is unavailable. Check the connection.'),retry());
     if(explicit&&layer?.id==='locate')setFocus($('search-retry'));
@@ -742,7 +740,7 @@ let lastQuery='';
 function openLocate(help){
   searchSeq++;clearTimeout(searchTimer); // a search from an earlier visit must not fill this one
   $('results-src').textContent='';
-  entry='';setText('entry-text','');$('results').replaceChildren();
+  entry='';setText('entry-text','');$('results').replaceChildren();$('ip-retry')?.remove(); // a first run's Try again, left when its lookup found the place
   setText('entry-help',help||'Type a ZIP or postal code, a city, or your street address, then Search.');
   open('locate');
   {const src=$('search-src');src._alts=PROFILE.searchAlts;src.textContent=src._alts[0];fitLine(src);}
@@ -1069,8 +1067,9 @@ async function boot(){
   return findHome();
 }
 // The IP guess (first launch), or the search screen. When nothing answered the lookup (no connection, a
-// timeout, a captive portal's page) it says so and offers Try again, which asks again from there.
-const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.';
+// timeout, a captive portal's page) it says so and offers Try again under the help line (outside the results a
+// search replaces), which asks again from there.
+const NO_NET='No internet connection. Check the TV’s network settings, then choose Try again. You can also type a ZIP or city now.',NO_PLACE='We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.';
 async function findHome(){
   const retry=layer?.id==='locate'?$('ip-retry'):null;
   if(locating)return;
@@ -1080,10 +1079,10 @@ async function findHome(){
   if(retry)wait.remove();else setText('layout-note','');
   if(retry&&!retry.isConnected||settings.place)return; // a search answered meanwhile, or a place was chosen
   if(!place){
-    const help=offline?NO_NET:'We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.';
+    const help=offline?NO_NET:NO_PLACE;
     if(retry){setText('entry-help',help);if(!offline){retry.remove();keepFocus();}return;}
     openLocate(help);
-    if(offline){const b=Object.assign(document.createElement('button'),{id:'ip-retry',className:'retry',textContent:'Try again'});b.dataset.focus='';$('results').append(b);setFocus(b);}
+    if(offline){const b=Object.assign(document.createElement('button'),{id:'ip-retry',className:'retry',textContent:'Try again'});b.dataset.focus='';$('entry-help').after(b);setFocus(b);}
     return;
   }
   // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
