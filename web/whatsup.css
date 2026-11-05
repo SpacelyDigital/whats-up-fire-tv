@@ -1,4 +1,4 @@
-/* What's Up: a 960x540 stage scaled to the screen. Sizes are stage pixels (x2 on a
+/* App stylesheet: a 960x540 stage scaled to the screen. Sizes are stage pixels (x2 on a
    1080p TV); body text is 14px+ for a 10 ft read. Each layout brings its own
    stylesheet (layouts/<id>.css, scoped to .L-<id>) and may restyle the shared
    screens below through the --ui-* variables. */

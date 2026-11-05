@@ -51,7 +51,7 @@ for(const f of files){
   }
 }
 // "What's Up" may only be the page title (not shown on a TV) and the store-facing manifest.
-for(const f of files.filter(f=>/^assets\/.*\.(html|js|txt)$/.test(f))){
+for(const f of files.filter(f=>/^assets\/.*\.(html|js|css|txt)$/.test(f))){
   const t=readFileSync(join(dir,f),'utf8').replace(/<title>[^<]*<\/title>/,'');
   const m=/What['’]s Up/.exec(t);if(m)problems.push(`${f}: shows "${t.slice(Math.max(0,m.index-40),m.index+20)}"`);
 }

@@ -49,3 +49,8 @@ test('release guard: personal packages still pass, warned about what keeps them 
   const rel=guard(pack('personal-rel.vpkg',{release:true}));
   assert.equal(rel.code,0,rel.out);assert.doesNotMatch(rel.out,/URL hooks/);
 });
+
+test('release guard: a stylesheet naming the app fails (comments too)',()=>{
+  const f=pack('css-store.vpkg',{profile:'store',release:true,edit:d=>{const p=join(d,'assets/layouts/swiss.css');writeFileSync(p,`/* What's Up */\n${readFileSync(p,'utf8')}`);}});
+  const r=guard(f,{WHATSUP_PROFILE:'store'});assert.equal(r.code,1,r.out);assert.match(r.out,/assets\/layouts\/swiss\.css: shows/);
+});
