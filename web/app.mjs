@@ -173,8 +173,8 @@ function mapsChanged(){
 // --- Detail map (streets, landuse, buildings) for the layouts that draw it.
 // A build stops as soon as it's no longer wanted (another radius or place: detailToken);
 // a failed one is tried again after 30 s, 60 s... up to 5 min, and an older saved map for
-// this place and radius is shown meanwhile.
-let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null;
+// this place and radius is shown meanwhile. Its notes give way to the base map's (baseNote).
+let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null,baseNote='';
 async function ensureDetail(){
   const place=settings.place;
   if(!place||maps.detail&&!maps.detail.stale||detailBusy)return;
@@ -182,20 +182,20 @@ async function ensureDetail(){
   if(saved){maps.detail=decodeDetail(saved);detailTries=0;return mapsChanged();}
   if(!maps.detail){const old=savedDetail(place,spec,{stale:true});if(old){maps.detail={...decodeDetail(old),stale:true};mapsChanged();}}
   const token=++detailToken;detailBusy=true;clearTimeout(detailRetry);
-  setText('layout-note',mapMiles()<=15?'Drawing the street map':'Filling in map detail');
+  setText('layout-note',baseNote||(mapMiles()<=15?'Drawing the street map':'Filling in map detail'));
   try{
     const built=await buildDetail(place,{...spec,alive:()=>token===detailToken&&settings.place===place});
     if(token!==detailToken||settings.place!==place)return;
     saveDetail(built);detailTries=0;
     if(active?.mod.map==='detail'){maps.detail=decodeDetail(built);mapsChanged();}
-    setText('layout-note','');
+    setText('layout-note',baseNote);
   }catch(e){
     if(e?.message===STALE)return;
     console.error('detail map',e?.message||e);
     if(token!==detailToken)return;
-    setText('layout-note','Street map unavailable, trying again soon');
+    setText('layout-note',baseNote||'Street map unavailable, trying again soon');
     const wait=Math.min(300000,30000*2**detailTries++);
-    detailRetry=setTimeout(()=>{if(token===detailToken){setText('layout-note','');detailBusy=false;if(active?.mod.map==='detail')ensureDetail();}},wait);
+    detailRetry=setTimeout(()=>{if(token===detailToken){setText('layout-note',baseNote);detailBusy=false;if(active?.mod.map==='detail')ensureDetail();}},wait);
   }finally{if(token===detailToken)detailBusy=false;}
 }
 
@@ -259,7 +259,7 @@ function restartFeed(){
   feed=start(settings.place,feedConfig(),render,maps.base?.airports);
 }
 async function applyPlace(place,{fresh=false}={}){
-  const token=++placeToken;chime=null; // a new feed starts quiet
+  const token=++placeToken;chime=null;baseNote=''; // a new feed starts quiet; the map's note is this build's
   feed?.stop();feed=null;
   if(fresh){store.remove(HISTORY_KEY);resetLog();}
   const range=mapMiles();
@@ -280,12 +280,12 @@ async function applyPlace(place,{fresh=false}={}){
     try{
       const m=await buildMap(place,range,{alive:()=>token===placeToken});
       if(token!==placeToken)return;
-      maps.base=m;saveMap(m);mapsChanged();setText('layout-note','');flashCredits();
+      maps.base=m;saveMap(m);mapsChanged();baseNote='';setText('layout-note','');flashCredits();
       break;
     }catch(e){
       if(e?.message===STALE||token!==placeToken)return;
       console.error('map',e?.message||e);
-      setText('layout-note',attempt?'Map unavailable, retrying':'Map unavailable');
+      baseNote=attempt?'Map unavailable, retrying':'Map unavailable';setText('layout-note',baseNote);
       if(demo)startFeed();
       await new Promise(r=>setTimeout(r,Math.min(300000,30000*(attempt+1))));
     }
