@@ -276,6 +276,18 @@ test('street maps: each size from 15 mi up has its own slot and the two used las
     assert.ok(saveDetail(detail(50,A)));
     assert.ok(has(25)&&has(50)&&!has(2)&&!has(10),'two wider maps kept, the street and 10 mi maps evicted');
     assert.ok(savedMap(home,25)&&savedMap(home,50),'base maps kept');
+    // Storage full for the 2-5 or 10 mi map with two wider maps kept: the wider one used less recently makes room; the
+    // other and the base maps stay (all went, so stepping 10 -> 15 -> 25 -> 15 -> 10 mi built more than with one slot).
+    for(const [mi,last,other] of [[10,25,50],[2,50,25]]){
+      fresh();saveDetail(detail(25,A));saveDetail(detail(50,A));has(last);
+      assert.ok(saveDetail(detail(mi,2*A)));
+      assert.ok(has(mi)&&has(last)&&!has(other),`${mi} mi: the wider map used last is kept`);
+      assert.ok(savedMap(home,25)&&savedMap(home,50),`${mi} mi: base maps kept`);
+    }
+    // Too big even beside one: the other slots and base maps make room, as before.
+    fresh();saveDetail(detail(25,A));saveDetail(detail(50,A));
+    assert.ok(saveDetail(detail(10,3*A)));
+    assert.ok(has(10)&&!has(25)&&!has(50));
     // Two wider maps too big to sit side by side: the other one goes (as with one slot), the 10 mi map stays.
     fresh();saveDetail(detail(10,A));saveDetail(detail(25,1.5*A));
     assert.ok(saveDetail(detail(50,2.4*A)));

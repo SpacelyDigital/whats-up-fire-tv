@@ -403,7 +403,8 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
 // 5 mi), the 10-mile map (the default radius gets its own) and each wider radius, of which
 // the two used last are kept, so going back and forth between two wider sizes downloads nothing.
 // Storage full: a wider map makes room first from the street and 10-mile maps, then from the
-// other wider one; then the other slots and base maps are evicted and it is tried once more.
+// other wider one, and a street or 10-mile map from the wider one used less recently; then the
+// other slots and base maps are evicted and it is tried once more.
 const detailKey=spec=>spec.key==='street'?DETAIL_KEY:`${DETAIL_KEY}.${spec.key}`;
 const WIDE=DETAIL_SPECS.filter(([max])=>max>10).map(([max])=>`r${max}`),WIDE_RECENT='whatsup.detail.recent',KEEP_WIDE=2;
 const recentWide=()=>{const r=store.get(WIDE_RECENT);return Array.isArray(r)?r.filter(k=>WIDE.includes(k)):[];};
@@ -440,6 +441,7 @@ export function saveDetail(m){
     keepWide([m.key]);
     if(put()){for(const [k,v] of held)try{localStorage.setItem(k,v);}catch{/* no room */}return true;}
   }catch{/* storage unusable */}
+  else{const r=recentWide();if(r.length>1){keepWide(r.slice(0,1));if(put())return true;}} // a 2-5 or 10 mi map
   evictMaps({keepDetail:key,keepBase:recentMaps()[0]??null});
   if(put())return true;
   console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;
