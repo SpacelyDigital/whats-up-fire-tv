@@ -527,3 +527,24 @@ test('screen reader: the plane on the card is read again, with its distance, as 
   say({...TST('Plane 1 of 3',1.2,true),browse},{...TST('Plane 1 of 3',3.1),browse});assert.equal(writes.length,4,'while browsing the zone edge is not read');
   assert.deepEqual(say(TST('Nearest',3.3)).slice(4),['Nearest, TST101, Boeing 737-800, 3.3 mi'],'Back: the card is automatic again');
 });
+
+test('screen reader: with no plane on the card the sky\'s state is read once as it changes (connecting, quiet skies, no coverage, an outage without its countdown), a plane again when one comes; the map\'s notes are live too',async()=>{
+  const {quietText}=await import('../web/kit.mjs');
+  const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
+  const live=(demo=false)=>page([line('let spoken='),fn('announce')],{layer:null,adj:null,$:id=>id==='sr-live'?sr:null,fmt:{dist:d=>`${d} mi`},quietText,demo});
+  const p=live(),sky=m=>{p.announce({live:true,planes:[],hero:null,...m});return writes.slice();};
+  const ENY={hex:'a1b2c3',status:'Nearest',flight:'ENY4198',type:'Embraer 170',ground:8.2};
+  assert.deepEqual(sky({fresh:false,connecting:true}),['Connecting to the live feed']);
+  sky({fresh:false,connecting:true});assert.equal(writes.length,1,'not again at the next check');
+  sky({fresh:true,hero:ENY});assert.equal(sr.textContent,'Nearest, ENY4198, Embraer 170, 8.2 mi');
+  sky({fresh:true});assert.equal(sr.textContent,'Quiet skies. Nothing within range right now.');
+  sky({fresh:false,retryIn:25,retryAt:1});assert.equal(sr.textContent,'No live data right now. Reconnecting.','an outage, without the seconds');
+  for(const s of [24,23,4,0])sky({fresh:false,retryIn:s,retryAt:1});assert.equal(writes.length,4,'the countdown is not read');
+  sky({fresh:true,hero:ENY});assert.deepEqual(writes.slice(4),['Nearest, ENY4198, Embraer 170, 8.2 mi'],'live again: the plane on the card');
+  sky({fresh:true,noCoverage:true});assert.equal(sr.textContent,'No receiver coverage here. The aircraft feed has no receivers near this location.');
+  sky({fresh:true,noCoverage:true});sky({fresh:true,noCoverage:true,planes:[]});assert.equal(writes.length,6);
+  assert.deepEqual(sky({fresh:false,retryIn:120,retryAt:1}).slice(6),['No live data right now. Reconnecting.'],'minutes away: the same sentence');
+  writes.length=0;live(true).announce({live:false,fresh:true,planes:[],hero:null});assert.deepEqual(writes,['Quiet skies. Nothing within range right now.'],'the demo\'s empty sky');
+  // 'Finding your location', 'Map unavailable', 'Drawing the street map': the note is a live region (written only on a change).
+  assert.match(readFileSync(new URL('../web/index.html',import.meta.url),'utf8'),/<div class="layout-note" id="layout-note" aria-live="polite"><\/div>/);
+});
