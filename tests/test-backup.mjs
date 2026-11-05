@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {startLive,fromBackup,feedStamp,outage,resetOutage,store,LEDGER_KEY,HISTORY_KEY,BACKUP_PAUSE_S} from '../web/live.mjs';
-import {start,resetLog} from '../web/model.mjs';
+import {start,resetLog,retryIn} from '../web/model.mjs';
 import {quietText} from '../web/kit.mjs';
 import {IDS,chimeGate} from '../web/core.mjs';
 
@@ -634,6 +634,46 @@ test('restart: adsb.fi is never asked within a second of the last request (a ste
     const fi=r.at('fi',t);
     assert.ok(gapsOf(fi).every(g=>g>=1000),`shown again: ${gapsOf(fi)}`);
     live.stop();
+  }finally{r.restore();}
+});
+
+// A poll with neither feed allowed yet (both in their back-offs) still tells the screen when the
+// next one goes: a new feed starts on the outage line with its countdown, not "Connecting", and a
+// carried or captured time that has passed is replaced by this feed's own next poll.
+test('outage: a poll skipped in a known outage counts down to the next one (a new place, a restart over a check, the 60 s re-judge)',async()=>{
+  const counting=m=>/^No live data right now\. Reconnecting in \d+ (s|min)\.$/.test(quietText(m,false))&&retryIn(m.retryAt)>0;
+  const place={...CVG,timeZone:'America/New_York'},near={...place,latitude:39.07};
+  let r=fresh(),models=[],s=null;const push=m=>models.push({...m,at:r.t});
+  try{
+    s=start(place,CFG,push);await r.advance(6000);
+    r.feeds.fi={mode:'s503'};r.feeds.lol={mode:'s403'};
+    await r.advance(90000); // both known down: adsb.fi checked again at 135 s, adsb.lol paused 15 min
+    // Adjust position (or a new place nearby): its first poll can't ask either feed.
+    s.stop();const k=models.length;s=start(near,CFG,push,null,s);
+    await r.advance(1100);
+    const m=models.at(-1);
+    assert.ok(models.length>k+1&&!m.connecting&&counting(m),`new place: ${quietText(m,false)} (${retryIn(m.retryAt)} s)`);
+    assert.equal(r.feedCalls().filter(c=>c.t-T0>96000).length,0,'nothing asked for it');
+    // A same-place restart while the adsb.fi check is out: the carried time (that check) has passed.
+    r.feeds.fi={mode:'timeout'};await r.advance(135500-r.t);
+    assert.deepEqual(r.at('fi',130000),[135000],'the check is out');
+    s.stop();s=start(near,{...CFG,radiusMiles:5},push,null,s);
+    await r.advance(1100);
+    assert.ok(counting(models.at(-1)),`restart over a check: ${quietText(models.at(-1),false)} (${retryIn(models.at(-1).retryAt)} s)`);
+    s.stop();
+  }finally{r.restore();}
+  // adsb.lol paused (600 s), adsb.fi good twice then a 429 (Retry-After 120 s): the poll at the 15 s
+  // mark can ask neither, and the re-judge 60 s after the last good reply must still count down.
+  r=fresh();models=[];
+  try{
+    outage.backupRetryAt=600000;
+    s=start(place,CFG,push);await r.advance(6000);
+    r.feeds.fi={mode:'s429',retryAfter:120};
+    await r.advance(60000); // 429 at 10 s; skipped at 25 s; re-judged at 65 s
+    const m=models.at(-1);
+    assert.ok(!m.fresh&&counting(m),`re-judged: ${quietText(m,false)} (${retryIn(m.retryAt)} s)`);
+    assert.equal(m.retryAt,130000,'the next adsb.fi check, after its Retry-After');
+    s.stop();
   }finally{r.restore();}
 });
 

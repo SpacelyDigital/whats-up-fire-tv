@@ -508,7 +508,9 @@ export function startLive(show,config){
   async function poll(){
     if(stopped||paused||busy)return;
     const started=performance.now(),feed=pick(started);
-    if(!feed){schedule(started);return;}
+    // Neither may be asked yet: without data on screen, the outage line counts down to the next poll
+    // (a new feed's first, or one whose last time has passed).
+    if(!feed){const at=schedule(started);if(!good&&states.retryAt!==at)failed(at);return;}
     const backup=feed!=='adsb.fi';
     const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
     if(backup)outage.lastBackupAt=started;else outage.lastAsked=started;
