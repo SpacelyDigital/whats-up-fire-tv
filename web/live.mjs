@@ -45,10 +45,12 @@ const pending=new Map();let nextRequest=Math.floor(Math.random()*1e9);
 if(typeof window!=='undefined')window.__whatsupReply=(id,status,text)=>{
   const done=pending.get(id);if(done){pending.delete(id);done(status,text);}
 };
-// OpenFreeMap requests (TileJSON too) share the tile slots below.
+// OpenFreeMap requests (TileJSON too) share the tile slots and the tile pause below.
 export function getJson(url,timeoutMs=8000){
-  if(/^https:\/\/[\w.-]*openfreemap\.org\//.test(url))return tileSlot().then(()=>rawGetJson(url,timeoutMs)).finally(tileFree);
-  return rawGetJson(url,timeoutMs);
+  if(!/^https:\/\/[\w.-]*openfreemap\.org\//.test(url))return rawGetJson(url,timeoutMs);
+  if(performance.now()<tileCooldown)return Promise.resolve({status:'cooldown',payload:null});
+  return tileSlot().then(()=>performance.now()<tileCooldown?{status:'cooldown',payload:null}:
+    rawGetJson(url,timeoutMs).then(r=>{tileStatus(r.status,r.retryAfter);return r;})).finally(tileFree);
 }
 function rawGetJson(url,timeoutMs){
   const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
@@ -73,17 +75,17 @@ function rawGetJson(url,timeoutMs){
 // app's own User-Agent (OpenFreeMap's terms); the page's fetch (CORS) only where there is no
 // bridge (desktop tests). At most TILE_PARALLEL in flight across the whole app, and after a
 // 429, 403 or 5xx every tile request waits out a shared cooldown (1 min, doubling to 10 min);
-// the maps then keep what's saved. Resolves bytes or null.
-// The cooldown runs on performance.now(): a TV clock step can't stretch it.
+// the maps then keep what's saved (longer when the TileJSON's Retry-After asks, up to an hour).
+// Resolves bytes or null. The cooldown runs on performance.now(): a TV clock step can't stretch it.
 const TILE_PARALLEL=4;
 let tileSlots=TILE_PARALLEL,tileCooldown=0,tileStrikes=0;const tileQueue=[];
 const tileSlot=()=>tileSlots>0?(tileSlots--,Promise.resolve()):new Promise(r=>tileQueue.push(r));
 const tileFree=()=>{const next=tileQueue.shift();if(next)next();else tileSlots++;};
 export const tileStats={inFlight:0,peak:0,requests:0,bytes:0};
-function tileStatus(status){
+function tileStatus(status,retryAfter=0){
   if(status===200){tileStrikes=0;return;}
   if(status===429||status===403||(typeof status==='number'&&status>=500)){
-    tileCooldown=performance.now()+Math.min(600000,60000*2**tileStrikes++);
+    tileCooldown=performance.now()+Math.max(Math.min(600000,60000*2**tileStrikes++),Math.min(3600,retryAfter)*1000);
   }
 }
 export async function getBytes(url,timeoutMs=10000){

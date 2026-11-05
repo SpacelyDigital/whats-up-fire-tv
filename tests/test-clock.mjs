@@ -3,7 +3,7 @@
 // Date.now() is the TV's clock, T0 + t + its error, and the cases step that error.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {startLive,resetOutage,store,LEDGER_KEY,HISTORY_KEY,Ledger,Enricher,getBytes} from '../web/live.mjs';
+import {startLive,resetOutage,store,LEDGER_KEY,HISTORY_KEY,Ledger,Enricher,getBytes,getJson} from '../web/live.mjs';
 import {start,resetLog} from '../web/model.mjs';
 import {fmt} from '../web/kit.mjs';
 import {step,LookupGate} from '../web/browse.mjs';
@@ -110,6 +110,24 @@ test('map tiles: a 429\'s pause runs on performance.now(): the TV clock stepped 
     p+=30000;d+=30000;assert.equal(await getBytes(TILE),null,'paused');assert.equal(calls,1);
     p+=31000;d-=3600000;assert.equal((await getBytes(TILE))?.length,8,'asked again a minute after the 429');assert.equal(calls,2);
   }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;}
+});
+
+test('map: a 429 on the TileJSON waits out its Retry-After and the tile pause; neither it nor a tile is asked meanwhile',async()=>{
+  const real={perf:performance.now,fetch:globalThis.fetch};let p=1e7,status=429;const asked=[];
+  performance.now=()=>p;
+  globalThis.fetch=async url=>{asked.push(String(url));return {status,headers:{get:k=>k==='retry-after'?'600':null},
+    text:async()=>JSON.stringify({tiles:['https://tiles.openfreemap.org/planet/x/{z}/{x}/{y}.pbf']}),arrayBuffer:async()=>new ArrayBuffer(8)};};
+  const TILEJSON='https://tiles.openfreemap.org/planet',TILE='https://tiles.openfreemap.org/planet/x/10/271/391.pbf';
+  try{
+    assert.equal((await getJson(TILEJSON)).status,429);status=200;
+    p+=61000; // past the tile pause's first minute, well within the Retry-After
+    assert.notEqual((await getJson(TILEJSON)).status,200,'TileJSON not asked within its Retry-After');
+    assert.equal(await getBytes(TILE),null,'nor a tile');
+    assert.equal(asked.length,1,`asked: ${asked.join(' ')}`);
+    p+=540000; // 601 s after the 429
+    assert.equal((await getJson(TILEJSON)).status,200);assert.equal((await getBytes(TILE))?.length,8);
+    assert.equal(asked.length,3);
+  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;}
 });
 
 test('route cache: after the TV clock steps back an hour, expired rows still go and the 800-lookup cap still holds',()=>{
