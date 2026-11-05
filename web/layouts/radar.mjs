@@ -157,7 +157,7 @@ function render(m){
   $.hero.hidden=!hero;$['empty-sky'].hidden=!!hero;
   if(!hero)setText($['empty-sky'],quietText(m,demo));
   if(hero){
-    setText($['hero-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.distance_mi??hero.ground)}`));
+    setText($['hero-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`:'');
     setText($.fl,hero.flight);setText($.op,'',airlineAlts(hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':'')));
     const r=hero.route,city=p=>p?.city?` ${p.city}`:'';

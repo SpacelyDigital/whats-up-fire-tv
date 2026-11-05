@@ -271,3 +271,16 @@ test('Atlas emergency notice: the real code if there is one, else just the emerg
     assert.deepEqual(notice({squawk,emergency}),{hidden:false,alts:[emergency]},`declared ${emergency}, squawk ${squawk}`);
   assert.deepEqual(notice({squawk:'2214',emergency:''}),{hidden:true,alts:['']},'no emergency');
 });
+test('Radar: the card\'s heading gives the distance its browse heading, VoiceView and the other layouts give for the same plane (12.2 mi, not 12.3 from the spherical distance)',async()=>{
+  const vm=await import('node:vm'),{headingAlts}=await import('../web/kit.mjs');
+  const src=readFileSync(new URL('../web/layouts/radar.mjs',import.meta.url),'utf8');
+  const code=/^\s*setText\(\$\['hero-label'\].*$/m.exec(src)?.[0];assert.ok(code,'the card heading in radar.mjs');
+  const heading=hero=>{let alts;vm.runInNewContext(code,{$:{'hero-label':{}},hero,fmt,headingAlts,setText:(e,v,a)=>{alts=a;}});return alts;};
+  mi();
+  // 12.26 mi due north of Chicago: 12.26 mi on the sphere (distance_mi), 12.243 mi on the flat map that
+  // every other layout, the browse heading and VoiceView (app.mjs announce: fmt.dist(ground)) read.
+  const hero={status:'Nearest',flight:'UAL1226',distance_mi:12.26,ground:12.2434,bearing:0},voice=fmt.dist(hero.ground);
+  assert.deepEqual(heading(hero),[`Nearest · ${voice}`]);assert.equal(voice,'12.2 mi');
+  assert.equal(heading({...hero,status:'Plane 1 of 1',browse:{index:1,count:1}})[0],`Plane 1 of 1 · ${voice} N`);
+  km();assert.deepEqual(heading(hero),[`Nearest · ${fmt.dist(hero.ground)}`]);mi();
+});
