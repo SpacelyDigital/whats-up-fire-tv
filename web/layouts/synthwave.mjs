@@ -62,10 +62,10 @@ function ui(){
   $.svg=svg('svg',{class:'fly',viewBox:'0 0 960 540','aria-hidden':'true'});
   for(const id of ['marks','stalks','jets','tags'])$.svg.append($[id]=svg('g'));
   root.querySelector('.world').after($.svg);
-  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m2','quiet','q2',
+  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m1','m2','quiet','q2',
     's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city,$['h-label']);
+  fit($.city,$['h-label'],$.m1);
 }
 
 function drawMap(){
@@ -147,7 +147,8 @@ function render(m){
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));
     const c=hero.cpa;setText($['h-cpa'],!c?'—':c.receding?'leaving':fmt.mmss(c.seconds));
     setText($['h-type'],[hero.operator,hero.type||hero.aircraft_type].filter(Boolean).join(' · '));
-    if(hero.emergency)setText($.m2,`${hero.flight} · ${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`);
+    // MAYDAY for a 7700 only; 7600, 7500 or a declared emergency say what it is.
+    if(hero.emergency){setText($.m1,hero.squawk==='7700'?'MAYDAY':hero.emergency);setText($.m2,`${hero.flight} · ${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`);}
   }
   const L=m.log;
   setText($['s-cargo'],String(L.cargoTonight));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));
