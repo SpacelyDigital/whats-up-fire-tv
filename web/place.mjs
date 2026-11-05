@@ -121,10 +121,10 @@ async function searchNames(q){
     .filter((p,i,all)=>all.findIndex(q=>placeLabel(q)===placeLabel(p)&&q.admin===p.admin)===i);
 }
 
-// "123 Main St ..." or "10 Downing Street": a house number, then words.
+// "123 Main St ...", "10 Downing Street" or "350 5th Ave ...": a house number, then a word or an ordinal.
 // A postal code: short, with at least one digit (UK "SW1A 2AA", Canada "M5V 3L9", "75008").
 export const looksLikePostcode=q=>{const t=clean(q);return t.length<=10&&/\d/.test(t)&&/^[A-Z0-9][A-Z0-9 -]*$/i.test(t);};
-export const looksLikeAddress=q=>/^\d+[A-Z]?\s+[A-Z]/i.test(clean(q))&&!/^\d{5}(-\d{4})?$/.test(clean(q));
+export const looksLikeAddress=q=>/^\d+[A-Z]?\s+([A-Z]|\d+(st|nd|rd|th)\b)/i.test(clean(q))&&!/^\d{5}(-\d{4})?$/.test(clean(q));
 // A street address the U.S. Census geocoder covers: a house number and street, plus a U.S.
 // state, territory (Puerto Rico, Island Areas) or ZIP. Only such text is ever sent to it.
 const TERRITORIES={'Guam':'GU','U.S. Virgin Islands':'VI','Virgin Islands':'VI','American Samoa':'AS','Northern Mariana Islands':'MP'};

@@ -429,3 +429,15 @@ test('search text from the break-it list: empty, long, right-to-left, markup or 
   seen=stub([meteo({name:'Hebron',admin1:'Kentucky',country:'United States',country_code:'US',latitude:39.07,longitude:-84.7,timezone:'America/New_York'})]);
   assert.equal(placeLabel((await searchPlaces('41048'))[0]),'Hebron, KY');assert.equal(name(seen[0]),'41048');
 });
+test('address detection: a street name that starts with a digit (5th Ave, 42nd St) makes an address too, so "350 5TH AVE NEW YORK NY" goes to the Census geocoder (then Nominatim), never to Open-Meteo while typing; ZIPs and city names as before',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  for(const q of ['350 5TH AVE NEW YORK NY','100 5TH AVE PITTSBURGH PA','350 5th Ave, New York, NY','1 1ST AVE','2 2ND ST','3 3RD ST','21 21ST ST','42 42ND ST','11 11TH AVE','12 12th Street',
+    '221B 3RD ST','350 5TH','2 MAIN ST','2 MAIN ST NASHVILLE TN','10 Downing Street'])assert.ok(looksLikeAddress(q),q);
+  for(const q of ['350 5TH AVE NEW YORK NY','100 5TH AVE PITTSBURGH PA','350 5th Ave, New York, NY','1 1st Ave Seattle WA 98101','900 N 3rd St Baton Rouge LA'])assert.ok(looksLikeUSAddress(q),q);
+  for(const q of ['45202','45202-1234','90210','45202 1234','350 5','350 5T','1 2','Chicago','New York','SW1A 2AA',''])assert.ok(!looksLikeAddress(q),q);
+  assert.ok(!looksLikeUSAddress('350 5th Ave'),'no state or ZIP: not for the Census geocoder');
+  const seen=stub([[/census/,[200,{result:{addressMatches:[{matchedAddress:'350 5TH AVE, NEW YORK, NY, 10118',addressComponents:{city:'NEW YORK',state:'NY'},coordinates:{x:-73.9857,y:40.7484}}]}}]]]);
+  const [p]=await searchAddress('350 5th Ave New York NY',{census:true,nominatim:true});
+  assert.equal(p.street,'350 5th Ave');assert.equal(placeLabel(p),'New York, NY');assert.equal(p.source,'census');
+  assert.deepEqual(seen.map(u=>new URL(u).hostname),['geocoding.geo.census.gov'],'Census alone: no Open-Meteo, no Nominatim');
+});
