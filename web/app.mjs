@@ -983,9 +983,11 @@ function renderDoc(box,text){
     Object.assign(document.createElement('p'),{textContent:p.replace(/\s*\n\s*/g,' '),className:p.startsWith('• ')?'bullet':''})));
 }
 // Up/Down scrolls the page 60% of its height; the paragraphs whose top is in view are read out (VoiceView),
-// on opening too, each view once (the dialog itself is described by its scroll hint).
+// on opening too, each view once (the dialog itself is described by its scroll hint). On opening the region is
+// emptied first: it may still hold this view from the last time the page was open, and an unchanged text isn't read.
 function scrollDoc(d,dir){
   if(dir)d.scrollTop+=(dir==='down'?1:-1)*d.clientHeight*.6;
+  else setText('sr-live','');
   const r=d.getBoundingClientRect();
   setText('sr-live',[...d.children].filter(e=>{const b=e.getBoundingClientRect();return b.top>=r.top-1&&b.top<r.bottom;}).map(e=>e.textContent).join(' '));
 }

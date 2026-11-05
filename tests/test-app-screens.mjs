@@ -607,7 +607,7 @@ test('screen reader: each dialog\'s body is its description, read with its first
   assert.equal(attrs('erase')['aria-describedby'],'erase-body');assert.match(html,/<p class="note" id="erase-body">Erase your location/);
   for(const id of ['privacy','about']){assert.equal(attrs(id)['aria-describedby'],`${id}-hint`);assert.match(html,new RegExp(`<p class="hint doc-hint" id="${id}-hint">Up and Down scroll`));}
   // The page: on opening and after each Up/Down, the paragraphs whose top is in view are read; the same view again reads nothing.
-  const texts={},writes=[],p=page([fn('scrollDoc')],{setText:(id,v)=>{if(texts[id]!==v){texts[id]=v;writes.push(v);}}});
+  const texts={},writes=[],p=page([fn('scrollDoc')],{setText:(id,v)=>{if(texts[id]!==v){texts[id]=v;if(v)writes.push(v);}}}); // writes: what is read (a changed, non-empty text)
   const paras=[['Privacy Policy',30],['Version 3',24],['This is a free app.',72],['The short version',30],['We run no server.',48],['Your home stays on your TV.',48],['They get your location.',96],['Erase deletes everything.',48]];
   let st=0,y=0;const doc={clientHeight:150,get scrollTop(){return st;},set scrollTop(v){st=Math.max(0,Math.min(246,v));},getBoundingClientRect:()=>({top:200,bottom:350}),children:[]};
   for(const [text,h] of paras){const top=y;doc.children.push({textContent:text,getBoundingClientRect:()=>({top:200+top-st,bottom:200+top+h-st})});y+=h;}
@@ -617,6 +617,9 @@ test('screen reader: each dialog\'s body is its description, read with its first
   p.scrollDoc(doc,'down');assert.equal(st,246,'the end');assert.equal(writes.at(-1),'They get your location. Erase deletes everything.');
   p.scrollDoc(doc,'down');assert.equal(writes.length,4,'Down at the end: the same view, nothing read again');
   p.scrollDoc(doc,'up');assert.equal(writes.at(-1),'We run no server. Your home stays on your TV. They get your location.');
+  // Back, then the page again: the region still holds the first view (an unchanged text is skipped), so it is emptied first and the view read again.
+  doc.scrollTop=0;writes.length=0;p.scrollDoc(doc);p.scrollDoc(doc);
+  assert.deepEqual(writes,Array(2).fill('Privacy Policy Version 3 This is a free app. The short version'),'opened twice in a row: the first view is read both times');
 });
 
 test('screen reader: the search screen reads its status once as it changes: "Searching for", how many places were found, "No places match", the error, the hint for an empty entry; a search that lands under the confirm card reads nothing; the entry is a named text box',async()=>{
