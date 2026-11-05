@@ -747,3 +747,18 @@ test('feed: an update that throws (a damaged saved value) is logged and never st
     live.stop();
   }finally{console.error=err;r.restore();}
 });
+
+test('feed: a saved route row with no value (damaged storage) doesn\'t keep the planes or recent sightings off the screen',async()=>{
+  const r=fresh(),models=[],err=console.error;console.error=()=>{};
+  try{
+    const now=T0/1000;
+    store.set(LEDGER_KEY,{'route:a1f1f1:FIX101':{expires:now+6*3600,value:null},'past-route:a10101:LOL202':{expires:now+6*3600,value:null}});
+    store.set(HISTORY_KEY,[{hex:'a10101',callsign:'LOL202',registration:'N1101',aircraft_type:'B738',last_seen:now-600}]);
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push(m));
+    await r.advance(12000);
+    const m=models.at(-1);
+    assert.ok(m?.fresh&&m.planes.length===1,`planes shown: ${models.length} models`);
+    assert.deepEqual(m.recent.map(a=>a.hex),['a10101'],'recent sightings shown');
+    s.stop();
+  }finally{console.error=err;r.restore();}
+});

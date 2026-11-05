@@ -321,3 +321,16 @@ test('place time zone refresh: both paths (pick and launch) go through one helpe
   assert.match(helper,/if\(detailBusy\)\{detailToken\+\+;detailBusy=false;ensureDetail\(\);\}/);
   assert.equal((app.match(/adoptRefined\(p\)/g)||[]).length,3,'defined once, used by choosePlace and at launch');
 });
+test('ledger: a saved route, lookup or sighting row whose value is missing or not an object is dropped; route lookup skips a bad row',async()=>{
+  const {Ledger}=await import('../web/live.mjs');
+  const {RouteLookup}=await import('../web/routes.mjs');
+  const now=Date.now()/1000,row=value=>({expires:now+3600,value});
+  const good={origin:'ORD',destination:'ATL',flight:'UAL202',hex:'a10101',callsign:'UAL202',registration:'N1101',valid_from:now-60,valid_until:now+60,expires:now+3600};
+  const l=new Ledger({'route:a10101:UAL202':row(null),'past-route:a10101:UAL202':row(5),'route:a20202:DAL5':row('x'),'route:a20203:DAL6':row([]),
+    'lol:UAL202':row(null),'sighting:a10101:UAL202':row(7),'route:a30303:UAL3':row(good),'lol:UAL3':row({}),'cooldown:adsblol':row(true),'cooldown:adsblol-positions':row(now+60)});
+  assert.deepEqual(l.routes(now),[good]);
+  assert.deepEqual([...l.rows.keys()].sort(),['cooldown:adsblol','cooldown:adsblol-positions','lol:UAL3','route:a30303:UAL3']);
+  const r=new RouteLookup();r.update([null,7,'x',undefined,good]);
+  assert.deepEqual(r.get({hex:'a10101',callsign:'UAL202',registration:'N1101',position_timestamp:now},now*1000),good);
+  assert.equal(r.get({hex:'a10101',callsign:'UAL202',registration:'N1101',last_seen:now},now*1000),good,'a recent sighting too');
+});
