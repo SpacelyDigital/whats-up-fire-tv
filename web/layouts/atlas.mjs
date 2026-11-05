@@ -141,7 +141,8 @@ function ui(){
   for(const c of ['city','clock','status','date','hero','alert','kicker','fl','op','route','prog','bar','progt','alt','spd','vs','hdg','look','cpa',
     'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','mil-n','mil-by','log','rec'])$[c]=side.querySelector('.at-'+c);
   $.credit._whole=true; // attribution: wraps rather than losing words
-  $.barFill=$.bar.firstChild;fit($.city,$.kicker);
+  $.alert._firm=true; // the emergency notice: "7600 · RADIO FAILURE" rather than smaller type
+  $.barFill=$.bar.firstChild;fit($.city,$.kicker,$.alert);
   root.append(map,side);
 }
 
@@ -317,7 +318,7 @@ function render(m){
   $.hero.hidden=!hero;$.quiet.hidden=!!hero;
   if(!hero)setText($.quiet,quietText(m,demo));
   if(hero){
-    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`${hero.squawk?`Squawk ${hero.squawk} · `:''}${hero.emergency}`:'');
+    $.alert.hidden=!hero.emergency;setText($.alert,'',hero.emergency?(hero.squawk?[`Squawk ${hero.squawk} · ${hero.emergency}`,`${hero.squawk} · ${hero.emergency}`]:[hero.emergency]):['']);
     setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.fl,hero.flight);setText($.op,hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''));
     const r=hero.route;
@@ -359,9 +360,9 @@ function render(m){
   fitAll();
   // Nothing is cut short: long names wrap, and the sections spread down the full
   // column. If a busy hero leaves no room, Recent goes (its space is shared out by
-  // the column), then the type tightens.
+  // the column), then the type tightens, then the photo and the operator line go.
   const side=$.rec.closest('.at-side'),sec=$.rec.parentNode;
-  side.classList.remove('tight','tighter');sec.hidden=false;
+  side.classList.remove('tight','tighter');sec.hidden=false;$.op.hidden=false;
   $.pic.hidden=!(hero&&photo&&picHex===hero.hex);side.classList.toggle('photo',!$.pic.hidden);
   const over=()=>side.scrollHeight>side.clientHeight+1;
   if(over())sec.hidden=true;
@@ -369,6 +370,7 @@ function render(m){
   if(over())side.classList.add('tighter');
   // Still no room: the photo gives way (the silhouette stays) rather than a stat row.
   if(over()&&!$.pic.hidden){$.pic.hidden=true;side.classList.remove('photo');}
+  if(over())$.op.hidden=true; // e.g. an emergency notice over a two-line route
   fitAll();
 }
 // One-line rows (cargo and military, the stats, the type and registration beside the photo,

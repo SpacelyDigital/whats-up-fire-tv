@@ -217,7 +217,8 @@ export function swapText(root,was,now){
   for(let t=walk.nextNode();t;t=walk.nextNode())if(!t.parentNode?._alts&&has(t.data))t.data=swap(t.data);
 }
 // One line, never cut: try each wording (e._alts, longest first) shrinking the type down
-// to 11 px; if none fits, the shortest one goes down to 9 px.
+// to 11 px; if none fits, the shortest one goes down to 9 px. A notice (e._firm) takes a
+// shorter wording before it shrinks.
 // Wider than its box: scrollWidth rounds, so the text's own measured width decides too
 // (a 1.5 px overrun cut the last digit).
 const over=e=>{if(e.scrollWidth>e.clientWidth)return true;const r=document.createRange();r.selectNodeContents(e);
@@ -229,7 +230,7 @@ export function fitLine(e){
   if(!e.isConnected||!e.getClientRects().length){e.textContent=alts[0];e.style.fontSize='';e._key=null;return;}
   e.style.whiteSpace='';e.style.overflowWrap='';
   for(let i=0;i<alts.length;i++){
-    const floor=i===alts.length-1?9:11;
+    const floor=i===alts.length-1?9:e._firm?Infinity:11;
     e.textContent=alts[i];e.style.fontSize='';
     let size=parseFloat(getComputedStyle(e).fontSize);
     while(over(e)&&size>floor){size-=.5;e.style.fontSize=`${size}px`;}
