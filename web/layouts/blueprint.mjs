@@ -175,6 +175,6 @@ export default {
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
   render,
-  refresh(){drawMap();},
+  refresh(){construction();}, // units and the alert zone: the rings, scale and wedge; the map itself shows no distance
   unmount(){root=null;$={};maps={};},
 };

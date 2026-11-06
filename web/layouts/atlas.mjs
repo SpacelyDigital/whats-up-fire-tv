@@ -226,8 +226,10 @@ function drawMap(){
     const t=svg('text',{class:`at-place ${big?'big':''}`,x:b.x+w/2,y:b.y+h-4,'text-anchor':'middle'},name);
     t._box=b;nodes.push(t);
   }
-  $.labels.replaceChildren(...nodes);
-  // Scale bar: a round distance about 60 px long at the current map radius.
+  $.labels.replaceChildren(...nodes);scaleBar();
+}
+// Scale bar: a round distance about 60 px long at the current map radius, in the chosen unit.
+function scaleBar(){
   const bar=niceDistance(VIEW,60);
   $.scale.innerHTML=`<i style="width:${bar.px.toFixed(0)}px"></i><span>${bar.label}</span>`;
 }
@@ -390,7 +392,7 @@ export default {
   mount(r,c){root=r;ctx=c;demo=c.demo;sat=c.layout?.()==='atlas-satellite';dark=c.layout?.()==='atlas-dark'||sat;$={};trails.clear();ui();drawMap();},
   setMap(m){maps=m;drawMap();},
   render,
-  refresh(){drawMap();},
+  refresh(){scaleBar();}, // units: the scale bar; the map itself shows no distance, and the card's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
   unmount(){root=null;satToken++;picHex='';photo=null;$={};maps={};trails.clear();},
 };

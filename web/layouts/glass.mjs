@@ -151,7 +151,7 @@ export default {
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
   render,
-  refresh(){drawMap();},
+  refresh(){}, // units: the map shows no distance; the card's and the list's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
   unmount(){root=null;$={};maps={};},
 };

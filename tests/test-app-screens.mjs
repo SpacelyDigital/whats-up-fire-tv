@@ -744,3 +744,15 @@ test('layout picker: a step to a layout whose code is already here (Atlas Dark -
   assert.deepEqual(mounted,['atlas','atlas-dark'],'Back in the window: the preview mounts nothing');assert.equal(shown(),'atlas-dark');
   assert.ok(!busy.on,'the cog is off');assert.equal(vm.runInContext('pick',p),null);
 });
+
+test('Settings > Distance and Altitude: a unit change saves, goes through the layout\'s refresh and a redraw of the model, and decodes or builds no map (the street map in memory is kept as it is)',()=>{
+  const calls=[];
+  const p=page([line('const RADII='),fn('adjustSetting'),fn('refreshLayout')],{settings:{distance:'mi',altitude:'ft',radiusMiles:3,place:{}},saveSettings(){calls.push('save');},useSettings(){},showSettings(){},
+    busy:fn=>{calls.push('busy');fn();},active:{mod:{refresh(){calls.push('refresh');},setMap(){calls.push('setMap');}}},lastModel:{},draw(){calls.push('draw');},
+    decodeDetail(){calls.push('decode');},savedDetail(){calls.push('saved');},buildDetail(){calls.push('build');},ensureDetail(){calls.push('ensure');},mapsChanged(){calls.push('maps');},
+    startPick(){},stepMap(){},zoneChanged(){},tellApp(){},tellAwake(){},clearTimeout(){},setTimeout(){},zoneTimer:0,restartFeed(){},VIEW_MILES:[25],CHIME_VOLUME:{}});
+  p.adjustSetting({id:'set-distance'},1);
+  assert.equal(p.settings.distance,'km');assert.deepEqual(calls,['save','busy','refresh','draw']);
+  calls.length=0;p.adjustSetting({id:'set-altitude'},1);
+  assert.equal(p.settings.altitude,'m');assert.deepEqual(calls,['save','busy','refresh','draw']);
+});
