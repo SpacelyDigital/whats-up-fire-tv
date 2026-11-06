@@ -314,16 +314,21 @@ export function paintMap(canvas,maps,view,spec){
     const [sx,sy]=mapShift(m,view.center),ppm=ppmOf(view),div=m.per||1000; // detail maps: points per mile
     const X=(x,y)=>{x+=sx;y+=sy;return view.cx+(x*cr-y*sr)*ppm;},Y=(x,y)=>{x+=sx;y+=sy;return view.cy-(x*sr+y*cr)*ppm;};
     g.beginPath();
+    // A ring ends with a line back to its start, not closePath: on one path Chromium's closePath costs more for every
+    // subpath already there (the 10 mi street map's 9,500 rings: 0.9 s at 1x, 3.5 s at a stick's pace). The fill closes
+    // each subpath anyway, and a stroke with round caps (the default) looks the same; a butt or square cap would notch
+    // the ring where it starts, so the few rings stroked that way (runway areas) keep closePath.
+    const join=!!s.stroke&&!!s.cap&&s.cap!=='round';
     for(const f of m[s.layer]){
       if(s.classes&&!s.classes.includes(f.c))continue;
       if(s.not&&s.not.includes(f.c))continue;
-      const pts=f.p||f.r||f,closed=!!f.r||s.layer==='water'&&from==='base';
+      const pts=f.p||f.r||f,closed=!!f.r||s.layer==='water'&&from==='base';let x0,y0;
       if(ArrayBuffer.isView(pts)){
-        for(let i=0;i<pts.length;i+=2){const x=pts[i]/div,y=pts[i+1]/div;i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(X(x,y),Y(x,y));}
+        for(let i=0;i<pts.length;i+=2){const x=pts[i]/div,y=pts[i+1]/div;i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(x0=X(x,y),y0=Y(x,y));}
       }else{
-        for(let i=0;i<pts.length;i++){const [x,y]=pts[i];i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(X(x,y),Y(x,y));}
+        for(let i=0;i<pts.length;i++){const [x,y]=pts[i];i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(x0=X(x,y),y0=Y(x,y));}
       }
-      if(closed)g.closePath();
+      if(closed&&pts.length){if(join)g.closePath();else g.lineTo(x0,y0);}
     }
     g.globalAlpha=s.alpha??1;
     g.shadowBlur=s.glow?s.glow*k:0;g.shadowColor=s.glowColor||s.stroke||s.fill||'transparent';
