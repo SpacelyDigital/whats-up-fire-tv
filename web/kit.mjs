@@ -265,6 +265,15 @@ export class TrailBook{
     }
   }
   get(hex){return this.map.get(hex)||[];}
+  // Keeps the tracks of the planes in `planes` and of the `keep` most recently departed (by last fix), forgetting the
+  // rest, so a busy sky turning over never piles up hundreds of fading trails; returns them, [hex,points], in the
+  // order first seen.
+  prune(planes,keep=60){
+    const live=new Set(planes.map(a=>a.hex)),gone=[];
+    for(const [hex,l] of this.map)if(!live.has(hex))gone.push([hex,l[l.length-1].t]);
+    for(const [hex] of gone.sort((a,b)=>b[1]-a[1]).slice(keep))this.map.delete(hex);
+    return [...this.map];
+  }
   clear(){this.map.clear();}
 }
 

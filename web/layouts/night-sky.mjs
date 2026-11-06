@@ -46,6 +46,12 @@ function ui(){
     r.append(svg('stop',{offset:'0','stop-color':c,'stop-opacity':.55}),svg('stop',{offset:'.35','stop-color':c,'stop-opacity':.16}),svg('stop',{offset:'1','stop-color':c,'stop-opacity':0}));
     defs.append(r);
   }
+  // A trail's tone: the stops each track's gradient takes through href (its own line runs from tail to head).
+  for(const [id,c] of [['ns-trail-cool','#dbe8ff'],['ns-trail-warm','#ffe0b0'],['ns-trail-mil','#d6ebab'],['ns-trail-red','#ff6b5c']]){
+    const l=svg('linearGradient',{id});
+    l.append(svg('stop',{offset:'0','stop-color':c,'stop-opacity':0}),svg('stop',{offset:'1','stop-color':c,'stop-opacity':.6}));
+    defs.append(l);
+  }
   $.grads=svg('g');defs.append($.grads);
   $.svg.append(defs);
   for(const k of ['home','trails','planes','labels'])$.svg.append($[k]=svg('g',{class:k}));
@@ -61,7 +67,8 @@ function drawHome(){
 }
 
 // Trails are in miles from home: a new home starts them afresh (they stayed up to 8 min).
-let trailHome='';
+let trailHome='',drawn=new Map(),gid=0;
+const attr=(e,o)=>{for(const k in o)if(e.getAttribute(k)!==o[k])e.setAttribute(k,o[k]);};
 function render(m){
   const p=ctx?.place(),key=p?`${p.latitude},${p.longitude}`:'';
   if(key!==trailHome){trailHome=key;trails.clear();}
@@ -77,23 +84,29 @@ function render(m){
   setText($['hero-sr'],hero?[hero.status,hero.flight,hero.emergency&&`${hero.squawk?`squawk ${hero.squawk} `:''}${hero.emergency.toLowerCase()}`,hero.type||hero.aircraft_type,
     hr?`${city(hr.from?.city)||hr.origin} to ${city(hr.to?.city)||hr.destination}`:hero.operator,number(hero.altitude_ft)?fmt.alt(hero.altitude_ft):'',fmt.dist(hero.ground)].filter(Boolean).join(', '):'');
 
-  // Contrails: every remembered track, alive or not, fading with age.
-  const live=new Map(m.planes.map(a=>[a.hex,a]));
-  const paths=[],grads=[];let gi=0;
-  for(const [hex,pts] of trails.map){
+  // Contrails: every plane present and the 60 most recently departed (a hub sky turning over leaves hundreds
+  // fading within the 8 min; the rest are forgotten), each fading with age. A track keeps its gradient (the tone's
+  // stops shared, its own line from tail to head) and its two paths from one render to the next; the fade is the
+  // stroke's opacity.
+  const live=new Map(m.planes.map(a=>[a.hex,a])),kept=new Set();
+  for(const [hex,pts] of trails.prune(m.planes,60)){
     const a=live.get(hex),list=pts.map(p=>toView(VIEW,p.x,p.y));
     if(a)list.push(toView(VIEW,a.x,a.y));
     if(list.length<2)continue;
     const fade=a?1:Math.max(0,1-(now-pts[pts.length-1].t)/TRAIL_AGE);
-    const head=list[list.length-1],tail=list[0],id=`ns-g${gi++}`;
-    const grad=svg('linearGradient',{id,gradientUnits:'userSpaceOnUse',x1:tail.x.toFixed(1),y1:tail.y.toFixed(1),x2:head.x.toFixed(1),y2:head.y.toFixed(1)});
-    const tone=a?.emergency?'#ff6b5c':a?.military?'#d6ebab':a?.cargo?'#ffe0b0':'#dbe8ff';
-    grad.append(svg('stop',{offset:'0','stop-color':tone,'stop-opacity':0}),svg('stop',{offset:'1','stop-color':tone,'stop-opacity':(.6*fade).toFixed(2)}));
-    grads.push(grad);
-    const d=`M${list.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('L')}`;
-    paths.push(svg('path',{class:'glow',d,stroke:`url(#${id})`}),svg('path',{class:'core',d,stroke:`url(#${id})`}));
+    const head=list[list.length-1],tail=list[0],tone=a?.emergency?'red':a?.military?'mil':a?.cargo?'warm':'cool';
+    let t=drawn.get(hex);
+    if(!t){
+      const id=`ns-g${gid++}`;
+      drawn.set(hex,t={grad:svg('linearGradient',{id,gradientUnits:'userSpaceOnUse'}),glow:svg('path',{class:'glow',stroke:`url(#${id})`}),core:svg('path',{class:'core',stroke:`url(#${id})`})});
+      $.grads.append(t.grad);$.trails.append(t.glow,t.core);
+    }
+    kept.add(hex);
+    attr(t.grad,{href:`#ns-trail-${tone}`,x1:tail.x.toFixed(1),y1:tail.y.toFixed(1),x2:head.x.toFixed(1),y2:head.y.toFixed(1)});
+    const d=`M${list.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('L')}`,op=fade.toFixed(2);
+    attr(t.glow,{d,'stroke-opacity':op});attr(t.core,{d,'stroke-opacity':op});
   }
-  $.grads.replaceChildren(...grads);$.trails.replaceChildren(...paths);
+  for(const [hex,t] of drawn)if(!kept.has(hex)){drawn.delete(hex);t.grad.remove();t.glow.remove();t.core.remove();}
 
   // Stars: low aircraft burn brighter.
   const stars=[],labels=[],boxes=[{x:0,y:0,w:W,h:96},{x:0,y:H-50,w:W,h:50},{x:VIEW.cx-8,y:VIEW.cy-8,w:16,h:16}];
@@ -141,9 +154,9 @@ function render(m){
 
 export default {
   name:'Night Sky',map:'base',
-  mount(r,c){root=r;ctx=c;demo=c.demo;$={};trails=new TrailBook(TRAIL_AGE,4000);radius=alertRadius();ui();paint();},
+  mount(r,c){root=r;ctx=c;demo=c.demo;$={};trails=new TrailBook(TRAIL_AGE,4000);drawn=new Map();radius=alertRadius();ui();paint();},
   setMap(m){maps=m;paint();},
   render,
   refresh(){radius=alertRadius();drawHome();},
-  unmount(){trails?.clear();trails=null;root=null;$={};maps={};ctx=null;},
+  unmount(){trails?.clear();trails=null;drawn=new Map();root=null;$={};maps={};ctx=null;},
 };
