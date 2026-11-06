@@ -209,3 +209,18 @@ test('route: a multi-leg flight counts only the leg it is flying (MUC-LHR-DFW ov
   const r=commercialRoute(lol,a);
   assert.equal(r.origin,'LHR');assert.equal(r.destination,'DFW');assert.equal(r.from.lat,51.47);
 });
+test('ledger: a row put again with the same value only moves its expiry (nothing to save); another value, a new row, a removal or the prune dirties it; a pause (cooldown) is urgent',()=>{
+  const L=new Ledger();
+  L.put('sighting:a1:FIX1',{latitude:39.06,observed:5},100,0);assert.ok(L.dirty,'a new row');assert.equal(L.urgent,false);
+  L.dirty=false;L.put('sighting:a1:FIX1',{latitude:39.06,observed:5},200,0);
+  assert.equal(L.dirty,false,'the same value: not dirty');assert.equal(L.rows.get('sighting:a1:FIX1').expires,200,'its expiry moved');
+  L.put('sighting:a1:FIX1',{latitude:39.06,observed:6},300,0);assert.ok(L.dirty,'another value');
+  L.dirty=false;L.put('lol:UAL1',{},400,0);assert.ok(L.dirty,'a miss cached');
+  L.dirty=false;L.put('lol:UAL1',{},500,0);assert.equal(L.dirty,false,'the miss checked again');
+  L.delete('lol:UAL1');assert.ok(L.dirty,'a removal');
+  L.dirty=false;L.put('cooldown:adsblol',60,60,0);assert.ok(L.dirty&&L.urgent,'a pause: dirty and urgent');
+  L.dirty=L.urgent=false;L.put('cooldown:adsblol',60,120,10);assert.ok(L.urgent&&!L.dirty,'the pause set again: urgent though its value is the same');
+  // The minute's prune of expired rows is a change too, also under a put that changed nothing itself.
+  L.urgent=false;L.put('sighting:a1:FIX1',{latitude:39.06,observed:6},400,200);
+  assert.ok(L.dirty&&!L.urgent,'the pause expired and pruned: dirty');assert.equal(L.rows.has('cooldown:adsblol'),false);
+});

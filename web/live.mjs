@@ -187,6 +187,8 @@ export function mergeHistory(old,inside){
     if(a&&typeof a==='object'&&typeof a.hex==='string'&&!present.has(a.hex)&&number(a.last_seen))rows.push(a);
   return rows.sort((a,b)=>b.last_seen-a.last_seen).slice(0,20);
 }
+// Which planes it lists, in which order: a change worth saving at once (the times move every poll).
+const hexes=h=>Array.isArray(h)?h.map(a=>a&&a.hex).join():'';
 
 // --- Route enrichment (model.py: observations, commercial_route, Enricher/adsblol).
 const DETOUR_MILES=60,DETOUR_SHARE=.05;
@@ -292,8 +294,13 @@ const slim=p=>({callsign:text(p.callsign,10),_airports:Array.isArray(p._airports
   ({iata:code(x?.iata),icao:code(x?.icao),name:text(x?.name,60),location:text(x?.location,40),
     lat:finite(x?.lat)?x.lat:null,lon:finite(x?.lon)?x.lon:null})):[]});
 
-// The integration's SQLite cache, as an expiring key/value map in localStorage.
+// The integration's SQLite cache, as an expiring key/value map in localStorage. `dirty`: a row was
+// added, removed or given another value since the last save; `urgent`: a pause adsb.lol asked for is
+// among them, saved at once (startLive saves the rest once a minute).
 const LOL_MAX=800;
+// The same value put again (a sighting whose position has not updated, an answer checked again) only
+// moves the row's expiry: nothing to save for.
+const same=(a,b)=>a===b||!!a&&!!b&&typeof a==='object'&&typeof b==='object'&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>a[k]===b[k]);
 export class Ledger {
   constructor(saved=null){
     // Only well-formed rows are kept: one damaged row in storage must not stop the feed. Nothing
@@ -301,18 +308,20 @@ export class Ledger {
     // back): kept, it would hold a cached answer or a route-lookup pause for years. A route, route
     // answer or sighting is an object (a null route stopped the feed).
     const latest=Date.now()/1000+25*3600,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([k,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)&&r.expires<=latest&&(!/^(route|past-route|lol|sighting):/.test(k)||obj(r.value))));this.dirty=false;
+    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([k,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)&&r.expires<=latest&&(!/^(route|past-route|lol|sighting):/.test(k)||obj(r.value))));this.dirty=this.urgent=false;
   }
   get(k,now){const row=this.rows.get(k);return row&&row.expires>now?row.value:undefined;}
   put(k,value,expires,now){
-    this.rows.set(k,{expires,value});this.dirty=true;
+    const old=this.rows.get(k);
+    if(old&&same(old.value,value))old.expires=expires;else{this.rows.set(k,{expires,value});this.dirty=true;}
+    if(k.startsWith('cooldown:'))this.urgent=true;
     // Expired rows go at most once a minute (a busy feed puts hundreds of rows a poll), and at once
     // when the TV clock has stepped back past the last time (else nothing went until it caught up).
     if(!(now-this.pruned<60)||now<this.pruned){
-      this.pruned=now;for(const [key,row] of this.rows)if(!row||!(row.expires>now))this.rows.delete(key);
+      this.pruned=now;for(const [key,row] of this.rows)if(!row||!(row.expires>now))this.delete(key);
       // Route lookups are kept a day; past LOL_MAX the ones expiring soonest go.
       const lol=[...this.rows].filter(([key])=>key.startsWith('lol:'));
-      if(lol.length>LOL_MAX)for(const [key] of lol.sort((a,b)=>a[1].expires-b[1].expires).slice(0,lol.length-LOL_MAX))this.rows.delete(key);
+      if(lol.length>LOL_MAX)for(const [key] of lol.sort((a,b)=>a[1].expires-b[1].expires).slice(0,lol.length-LOL_MAX))this.delete(key);
     }
   }
   delete(k){if(this.rows.delete(k))this.dirty=true;}
@@ -413,7 +422,7 @@ export class Enricher {
 // and 15 s mark are kept (a failure that lands after the restart counts too, unless a request made
 // since has succeeded), and while adsb.fi is known to be down the new feed starts on the backup with
 // both back-offs kept.
-export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
+export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20],LEDGER_FLUSH_MS=60000;
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
 // okAt: when the last adsb.fi request that answered with data went out. lastStamp: the last good reply's
@@ -435,6 +444,15 @@ export function startLive(show,config){
   const radius=Math.max(1,Math.min(10,Number(config.radiusMiles)||3));
   const ledger=new Ledger(store.get(LEDGER_KEY)),enricher=new Enricher(ledger,url=>getJson(url,8000));
   let history=store.get(HISTORY_KEY)||[],routes=ledger.routes(Date.now()/1000),enriching=false,timer=null,stopped=false;
+  // The ledger (hundreds of KB after a day near a hub) and 'Recently above' are saved once a minute, the
+  // logbook's way, not on every poll: serialising and writing them blocked a stick about 30 ms a poll.
+  // At once: a pause adsb.lol asked for (urgent), all that is unsaved when the app is hidden (pause,
+  // pagehide) or the feed stops (the feed that replaces it reads it back), and 'Recently above' when its
+  // planes change. A minute of refreshed expiries and times lost on a power cut is nothing (a cache).
+  let saved=performance.now(),seq=hexes(history),histDirty=false;
+  const saveLedger=()=>{ledger.dirty=ledger.urgent=false;store.set(LEDGER_KEY,ledger);};
+  const saveHistory=()=>{histDirty=false;store.set(HISTORY_KEY,history);};
+  const flush=()=>{saved=performance.now();if(ledger.dirty||ledger.urgent)saveLedger();if(histDirty)saveHistory();};
   // Recently above: in Window view only planes that passed through the window (or right above).
   const zone=config.zone?.kind==='window'?config.zone:radius;
   let states=build(null,0,selection([],0,home,zone,0));
@@ -457,7 +475,7 @@ export function startLive(show,config){
       routes=await enricher.tick(observations(ac,stamp,home,zone,history,feedNow),now);
       if(stopped)return; // a stopped feed (place or zone changed) must not render or save
       states={...states,[IDS.routes]:{state:String(routes.length),attributes:{routes}}};
-      if(ledger.dirty){ledger.dirty=false;store.set(LEDGER_KEY,ledger);}
+      if(ledger.urgent||performance.now()-saved>=LEDGER_FLUSH_MS)flush();
       onUpdate(states,true);
     }catch{/* Routes stay as they were; retried next poll. */}
     finally{enriching=false;}
@@ -547,7 +565,7 @@ export function startLive(show,config){
     if(body){
       const ac=oneEach(body.ac),skew=stamp-now,feedNow=now+skew;
       const sel=selection(ac,stamp,home,zone,feedNow);
-      if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
+      if(sel.inside.length){history=mergeHistory(history,sel.inside);histDirty=true;const h=hexes(history);if(h!==seq){seq=h;saveHistory();}}
       // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
       // tell "no receivers here" either.
       if(ac.length)coverage.none=false;else if(!backup){busy=true;await checkCoverage(performance.now());busy=false;}
@@ -570,7 +588,7 @@ export function startLive(show,config){
         outage.backupStep++;outage.backupRetryAt=now+Math.max(60,wait)*1000;
       }else if(typeof status==='number'&&status>=400&&status<500){
         const pause=Math.max(BACKUP_PAUSE_S,wait),tv=Date.now()/1000;outage.backupRetryAt=now+pause*1000;
-        ledger.put(BACKUP_COOLDOWN,tv+pause,tv+pause,tv);ledger.dirty=false;store.set(LEDGER_KEY,ledger);
+        ledger.put(BACKUP_COOLDOWN,tv+pause,tv+pause,tv);flush();
       }else outage.backupRetryAt=now+backoff(status,retryAfter||0,++outage.backupFails);
       failed(schedule(started));
     }else{
@@ -584,8 +602,10 @@ export function startLive(show,config){
   // The first poll at once, but never within a second of the last adsb.fi request (its 1 request/s),
   // also when that was the feed before a restart.
   if(!paused){const wait=outage.lastAsked+1000-performance.now();if(wait>0)timer=setTimeout(poll,wait);else poll();}
-  return {stop(){stopped=true;clearTimeout(timer);},
-    pause(){paused=true;clearTimeout(timer);hid=Date.now();},
+  // A stop saves the ledger for the feed that replaces it; 'Recently above' waits (an alert-zone change
+  // drops it just before the restart), its times at most a minute behind.
+  return {stop(){stopped=true;clearTimeout(timer);if(ledger.dirty||ledger.urgent)saveLedger();},
+    pause(){paused=true;clearTimeout(timer);hid=Date.now();flush();},flush,
     // Back on screen: the next poll when it is due (at once after a hide longer than the interval;
     // a back-off kept), never within a second of the last request (adsb.fi's before a restart too), nor
     // while one is out (it carries on).

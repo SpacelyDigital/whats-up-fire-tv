@@ -1035,10 +1035,10 @@ function eraseAll(){
   location.reload();
 }
 
-// The app tells the page when it leaves or returns to the screen: polling pauses meanwhile, and a search
-// still waiting for the typing to pause is not sent.
+// The app tells the page when it leaves or returns to the screen: polling pauses meanwhile (the pause saves
+// the route ledger), the logbook is saved, and a search still waiting for the typing to pause is not sent.
 window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();clearTimeout(searchTimer);}countDown();keepTime();};
-addEventListener('pagehide',()=>flushLog());
+addEventListener('pagehide',()=>{flushLog();feed?.flush?.();});
 
 // --- Boot
 async function boot(){
