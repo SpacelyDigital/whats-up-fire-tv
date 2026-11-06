@@ -766,7 +766,9 @@ function select(el){
   if(el._place)return confirmPlace(el._place);
   if(el.dataset.key)return typeKey(el.dataset.key);
   switch(el.id){
-    case 'welcome-ok':settings.confirmed=true;saveSettings(settings);return close();
+    // Confirm on the guess: a saved place that couldn't be read, whose logbook and 'Recently above' findHome kept on the guess,
+    // may be another city, so they start afresh with the confirmed place; a first run's guess keeps what it has logged.
+    case 'welcome-ok':{const stale=placeDamaged();settings.confirmed=true;saveSettings(settings);if(stale)applyPlace(settings.place,{fresh:true});return close();}
     case 'welcome-change':return openLocate();
     case 'set-layout':return startPick(0);
     case 'set-location':return openLocate();
@@ -1100,7 +1102,8 @@ async function findHome(){
     return;
   }
   // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
-  // that can't be read keeps 'Recently above' and the logbook until a confirmed place replaces it.
+  // that can't be read keeps 'Recently above' and the logbook until a confirmed place replaces it (Confirm starts them afresh
+  // for the guess: select; Change by the distance moved: choosePlace).
   settings={...settings,place,confirmed:false};useSettings(settings);
   applyPlace(place,{fresh:!damaged});
   if(retry)closeAll();

@@ -267,6 +267,37 @@ test('launch: a saved place that can\'t be read keeps \'Recently above\' and the
   assert.deepEqual((await run({damaged:true,found:null})).seen,[['search']],'the lookup failed: the search screen');
 });
 
+test('welcome card: Confirm on the guess that stood in for a saved place that can\'t be read (findHome kept its logbook and \'Recently above\' on the guess) starts both afresh for the confirmed place, which may be another city; a first run\'s guess keeps what the session has logged for it, with no feed restart',async()=>{
+  const {loadSettings,saveSettings,placeDamaged}=await import('../web/place.mjs'),{store,HISTORY_KEY}=await import('../web/live.mjs'),{resetLog}=await import('../web/model.mjs'),{dLon}=await import('../web/core.mjs');
+  const SET='whatsup.settings.v1',LOG_KEY='whatsup.logbook.v1',CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},DEN={name:'Denver',latitude:39.739,longitude:-104.985,timeZone:'America/Denver',source:'ip'};
+  const LOG={day:'2026-11-06',pk:1,seen:['a10101'],planes:{},typesAll:{B738:12}},HIST=[{hex:'a10101',last_seen:1}];
+  const saved={};globalThis.localStorage={getItem:k=>saved[k]??null,setItem:(k,v)=>{saved[k]=String(v);},removeItem:k=>{delete saved[k];}};
+  const stored=()=>{const j=k=>saved[k]?JSON.parse(saved[k]):null,s=j(SET)||{};return {log:j(LOG_KEY)?.typesAll?.B738??null,hist:j(HISTORY_KEY)?.map(r=>r.hex)??null,place:s.place?.name??null,confirmed:!!s.confirmed,damaged:placeDamaged()};};
+  const run=async seed=>{
+    for(const k of [SET,LOG_KEY,HISTORY_KEY])store.remove(k);for(const [k,v] of Object.entries(seed))saved[k]=JSON.stringify(v);
+    const feeds=[],settings=loadSettings();
+    const p=page([line('const NO_NET='),fn('boot'),fn('findHome'),fn('applyPlace'),fn('select')],{dropOldMaps(){},buildKeys(){},fitText(){},$:()=>({}),tellAwake(){},query:{get:()=>null},VIEW_MILES:[25],MAP_RADII:[10],validLayout:id=>id,useSettings(){},
+      hasConsent:()=>true,useLayout(){},refineZone:async()=>null,placeDamaged,locating:false,locateByIp:async()=>({place:DEN,offline:false}),setTimeout(){},layer:null,settings,showWelcome(){},openLocate(){},close(){},saveSettings,
+      dLon,placeToken:0,chime:null,feed:null,maps:{},store,HISTORY_KEY,resetLog,mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),savedMap:pl=>({latitude:pl.latitude,longitude:pl.longitude,range:10}),touchMap(){},mapsChanged(){},active:null,
+      ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},start:pl=>{feeds.push(pl.name);return {stop(){}};},feedConfig:()=>({}),render(){},demo:false,buildMap:async()=>{throw new Error('not built');},saveMap(){},flashCredits(){},STALE:'stale',detailNote:()=>''});
+    await p.boot();
+    return {confirm:()=>p.select({id:'welcome-ok',dataset:{}}),feeds};
+  };
+  try{
+    // A saved place that can't be read: its logbook and 'Recently above' stay on the guess (as before), and go with Confirm.
+    let t=await run({[SET]:{place:{...CHI,latitude:'abc'},confirmed:true,layout:'radar'},[LOG_KEY]:LOG,[HISTORY_KEY]:HIST});
+    assert.deepEqual([stored(),t.feeds],[{log:12,hist:['a10101'],place:'Chicago',confirmed:true,damaged:true},['Denver']],'the guess: kept');
+    t.confirm();
+    assert.deepEqual([stored(),t.feeds],[{log:null,hist:null,place:'Denver',confirmed:true,damaged:false},['Denver','Denver']],'Confirm: afresh, the feed started again');
+    // A first run (nothing saved): afresh at launch; what the session then logs on the guess stays through Confirm.
+    t=await run({});
+    assert.deepEqual([stored(),t.feeds],[{log:null,hist:null,place:null,confirmed:false,damaged:false},['Denver']],'a first run: afresh at launch');
+    saved[LOG_KEY]=JSON.stringify(LOG);saved[HISTORY_KEY]=JSON.stringify(HIST); // the session's own logging on the guess
+    t.confirm();
+    assert.deepEqual([stored(),t.feeds],[{log:12,hist:['a10101'],place:'Denver',confirmed:true,damaged:false},['Denver']],'Confirm: kept, no restart');
+  }finally{for(const k of [SET,LOG_KEY,HISTORY_KEY])store.remove(k);delete globalThis.localStorage;}
+});
+
 test('launch: the saved maps an older build left and this one never reads are dropped first, with a saved place or without',async()=>{
   for(const place of [{name:'Chicago',latitude:41.85,longitude:-87.65},null]){
     const seen=[];
