@@ -93,7 +93,7 @@ test('the street map\'s note stays while it is drawn: the base map landing first
   const {dLon}=await import('../web/core.mjs');
   const builds=[],bases=[],settle=()=>new Promise(r=>setImmediate(r)),place={latitude:41.85,longitude:-87.65};
   const MODS={blueprint:{map:'detail'},swiss:{},radar:{}};for(const m of Object.values(MODS))Object.assign(m,{mount(){},setMap(){}});
-  const p=page([line('let active=null'),line('let detailToken=0'),line('const detailNote='),fn('useLayout'),fn('ensureDetail'),fn('applyPlace')],{dLon,
+  const p=page([line('let active=null'),line('let detailToken=0'),line('const detailNote='),fn('useLayout'),fn('ensureDetail'),fn('applyPlace')],{dLon,registry:{},codeOf:id=>id,
     settings:{place:null},maps:{},mapMiles:()=>10,detailSpec:()=>({key:'r10'}),detailFits:()=>true,savedDetail:()=>null,decodeDetail:m=>m,saveDetail(){},mapsChanged(){},STALE:'stale',
     buildDetail:()=>new Promise((res,rej)=>builds.push({res,rej})),buildMap:()=>new Promise((res,rej)=>bases.push({res,rej})),savedMap:()=>null,saveMap(){},
     placeToken:0,chime:null,feed:null,store:{remove(){}},HISTORY_KEY:'h',resetLog(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,flashCredits(){},
@@ -629,7 +629,7 @@ test('screen reader: OK on a Settings value row says "Editing <row>, <value>", O
 test('screen reader: a plane that came before the layout script landed is read as soon as the layout has mounted, not at the next poll; a layout switch with the same plane, or no model yet, reads nothing',async()=>{
   const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
   const MOD={mount(){},setMap(){},render(){}},ENY={hex:'a1b2c3',status:'Nearest',flight:'ENY4198',type:'Embraer 170',ground:8.2};
-  const p=page([line('let active=null'),fn('useLayout'),fn('draw'),line('let spoken='),fn('announce')],{lastModel:{hero:ENY},adj:null,layer:null,
+  const p=page([line('let active=null'),fn('useLayout'),fn('draw'),line('let spoken='),fn('announce')],{lastModel:{hero:ENY},adj:null,layer:null,registry:{},codeOf:id=>id,
     $:id=>id==='sr-live'?sr:{classList:{add(){},remove(){}},textContent:''},fmt:{dist:d=>`${d} mi`},quietText:()=>'',demo:false,
     validLayout:id=>id,unloadExcept(){},busyNow:false,loadLayout:async()=>MOD,sheetsOf:id=>[id],stage:{classList:{add(){},remove(){}},dataset:{}},
     root:{replaceChildren(){},querySelectorAll:()=>[]},pruneFitted(){},ctx:{},maps:{},paintEdge(){},refitScreens(){},flashCredits(){},requestAnimationFrame(){},
@@ -715,4 +715,32 @@ test('screen reader: Adjust position puts focus on its panel (named, its instruc
   assert.equal(writes.length,2);assert.match(writes[1],/^Moved 800 m E$/);
   p.nudge('up');p.endAdjust();fire();
   assert.equal(writes.length,2,'Back: the pending line is dropped');
+});
+
+test('layout picker: a step to a layout whose code is already here (Atlas Dark -> Atlas Light share atlas.js) returns before the mount, which runs in its own task after the cog and the count have painted, as a step that loads a script does; Back in that window reverts cleanly, mounting nothing',async()=>{
+  const timers=[],mounted=[],els={},busy={on:false,classList:{add(){busy.on=true;},remove(){busy.on=false;}}};
+  const MOD={mount(r,c){mounted.push(c.layout());},setMap(){},unmount(){}};
+  const settle=()=>new Promise(r=>setImmediate(r)),tick=()=>{for(const t of timers.splice(0).sort((a,b)=>a.ms-b.ms))t.f();};
+  const p=page([line('const VARIANTS='),line('const sheetsOf='),line('const codeOf='),fn('addCss'),fn('loadLayout'),fn('unloadExcept'),line('let active=null'),line('const ctx='),line('const validLayout='),fn('useLayout'),
+    line('let pick='),fn('startPick'),fn('showPick'),fn('stepPick'),fn('endPick')],{
+    LAYOUTS:[['atlas-dark','Atlas Dark'],['atlas','Atlas Light'],['atlas-satellite','Atlas Satellite'],['radar','Radar']],settings:{layout:'atlas-dark',place:{}},demo:false,saveSettings(){},MOD,
+    registry:{atlas:MOD},bundled:true,document:{querySelector:()=>({}),querySelectorAll:()=>[]}, // every stylesheet already in the page: the load lands at once
+    $:id=>id==='busy'?busy:els[id]??={classList:{add(){},remove(){}},textContent:''},busyNow:false,requestAnimationFrame:f=>f(),setTimeout:(f,ms)=>timers.push({f,ms}),clearTimeout(){},
+    stage:{classList:{add(){},remove(){}},dataset:{layout:'atlas-dark'}},root:{replaceChildren(){},className:''},pruneFitted(){},maps:{},lastModel:null,paintEdge(){},ensureDetail(){},detailNote:()=>'',refitScreens(){},flashCredits(){},open(){},setFocus(){}});
+  vm.runInContext("active={id:'atlas-dark',mod:MOD}",p);
+  const shown=()=>p.stage.dataset.layout;
+  p.startPick(0);p.stepPick(1); // Settings > Layout > OK, Right: the key handler has returned
+  await settle();
+  assert.deepEqual(mounted,[],'not mounted inside the key\'s task');
+  assert.equal(p.texts['pick-count'],'Layout 2 of 4');assert.equal(p.texts['pick-name'],'Atlas Light');assert.ok(busy.on,'the cog is on meanwhile');
+  tick();await settle();
+  assert.deepEqual(mounted,['atlas'],'mounted in the queued task');assert.equal(shown(),'atlas');assert.ok(!busy.on,'the cog clears after the mount');
+  p.endPick(false);await settle(); // Back: the saved layout comes back the same way
+  assert.deepEqual(mounted,['atlas'],'the revert waits for its task too');assert.ok(busy.on);
+  tick();await settle();
+  assert.deepEqual(mounted,['atlas','atlas-dark']);assert.equal(shown(),'atlas-dark');assert.ok(!busy.on);
+  p.startPick(0);p.stepPick(1);await settle();p.endPick(false);await settle(); // Right, Back at once: the preview never lands
+  tick();await settle();
+  assert.deepEqual(mounted,['atlas','atlas-dark'],'Back in the window: the preview mounts nothing');assert.equal(shown(),'atlas-dark');
+  assert.ok(!busy.on,'the cog is off');assert.equal(vm.runInContext('pick',p),null);
 });

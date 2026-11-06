@@ -141,7 +141,11 @@ async function useLayout(id){
   $('busy').classList.add('on'); // a layout switch can take a moment on the stick
   const done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===layoutToken&&!busyNow)$('busy').classList.remove('on');}));
   let mod;
+  // Code already here (a picker step among the Atlas layouts) lands within the key's own task: its mount then waits for
+  // the next one, after the cog and the picker's count have painted, as a switch that loads its script does.
+  const here=!!registry[codeOf(id)];
   try{mod=await loadLayout(id);}catch(e){console.error(e.message);if(token===layoutToken&&!active&&id!==LAYOUTS[0][0])useLayout(LAYOUTS[0][0]);}
+  if(here)await new Promise(r=>setTimeout(r,20));
   if(token!==layoutToken)return unloadExcept(active?.id); // overtaken: what it loaded goes, unless the newer switch needs it
   if(!mod)return;
   const old=active;
