@@ -677,7 +677,8 @@ test('screen reader: each dialog\'s body is its description, read with its first
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   const attrs=id=>Object.fromEntries([...(new RegExp(`<div class="overlay" id="${id}"([^>]*)>`).exec(html)?.[1]||'').matchAll(/([\w-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
   assert.equal(attrs('consent')['aria-describedby'],'consent-body');
-  assert.deepEqual([attrs('welcome')['aria-labelledby'],attrs('welcome')['aria-describedby']],['welcome-label welcome-city','welcome-note']);
+  // The welcome card's last line (where Select opens Settings) is read with the note, as it is shown.
+  assert.deepEqual([attrs('welcome')['aria-labelledby'],attrs('welcome')['aria-describedby']],['welcome-label welcome-city','welcome-note welcome-hint']);
   assert.deepEqual([attrs('confirm')['aria-labelledby'],attrs('confirm')['aria-describedby']],['confirm-label confirm-main','confirm-sub confirm-note']);
   // The questions are drawn in capitals (CSS), which Chromium would put in the name: their aria-label keeps the spoken case.
   assert.match(html,/<div class="label" id="welcome-label" aria-label="Is this right\?">Is this right\?<\/div>/);
