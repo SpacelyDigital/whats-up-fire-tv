@@ -130,6 +130,9 @@ export function updateLog(log,planes,now){
   delete log.typesZone;delete log.zoneSeen;
   const night=tonightKey(now);
   if(log.cargo.night!==night||Array.isArray(log.cargo.seen))log.cargo={night,seen:{}};
+  // Counted once per update, not per new plane: a reply of 300 newcomers into a full log read the 4,000
+  // keys and searched the 3,000 seen once for each (over 100 ms per poll at full speed on a full log).
+  let types=Object.keys(log.typesAll).length;const seen=new Set(log.seen);
   for(const a of planes){
     const from=a.route?.from,d=Math.round(a.distance_mi*10)/10;
     let rec=log.planes['x'+a.hex];
@@ -137,11 +140,11 @@ export function updateLog(log,planes,now){
       rec=log.planes['x'+a.hex]={d};
       // All-time type tallies: once per aircraft per day, wherever it was seen.
       if(a.aircraft_type&&/^[A-Z0-9]{2,4}$/.test(a.aircraft_type)){
+        if(!Object.hasOwn(log.typesAll,a.aircraft_type))types++;
         log.typesAll[a.aircraft_type]=(log.typesAll[a.aircraft_type]||0)+1;
         // Bounded: ICAO designators only, at most 600 kept (the rarest-ever pick reads it).
-        const ks=Object.keys(log.typesAll);if(ks.length>600){ks.sort((x,y)=>log.typesAll[y]-log.typesAll[x]);for(const k of ks.slice(600))delete log.typesAll[k];}
+        if(types>600){const ks=Object.keys(log.typesAll);ks.sort((x,y)=>log.typesAll[y]-log.typesAll[x]);for(const k of ks.slice(600))delete log.typesAll[k];types=600;}
       }
-      const keys=Object.keys(log.planes);if(keys.length>4000)delete log.planes[keys[0]];
     }
     rec.d=Math.min(rec.d,d);
     if(a.aircraft_type)rec.t=a.aircraft_type;
@@ -149,8 +152,8 @@ export function updateLog(log,planes,now){
     if(from&&number(from.lat)&&number(from.lon)&&!rec.o)
       rec.o={code:a.route.origin,city:from.city||a.route.origin,mi:Math.round(haversine(from.lat,from.lon,HOME.latitude,HOME.longitude))};
     if(a.distance_mi>LOG_MILES)continue; // Seen/Highest/Fastest/Cargo: the local area only
-    if(!log.seen.includes(a.hex)){
-      log.seen.push(a.hex);if(log.seen.length>3000)log.seen.shift();
+    if(!seen.has(a.hex)){
+      seen.add(a.hex);log.seen.push(a.hex);
       if(a.aircraft_type&&!log.typesToday.includes(a.aircraft_type))log.typesToday.push(a.aircraft_type);
     }
     const name=a.flight;
@@ -162,6 +165,9 @@ export function updateLog(log,planes,now){
     // Military today: once per aircraft per day, same local area as Seen; kept with its type.
     if(a.military){log.mil=log.mil||{};if(!(a.hex in log.mil)){log.mil[a.hex]=String(a.aircraft_type||'').slice(0,4);const k=Object.keys(log.mil);if(k.length>500)delete log.mil[k[0]];}}
   }
+  // Bounded, the oldest first (keys keep their insertion order): at most 4,000 planes and 3,000 seen.
+  const keys=Object.keys(log.planes);for(let i=0;i<keys.length-4000;i++)delete log.planes[keys[i]];
+  if(log.seen.length>3000)log.seen.splice(0,log.seen.length-3000);
   return log;
 }
 // Rarest and Farthest among today's aircraft that came within `radius` miles.

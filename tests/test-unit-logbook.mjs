@@ -47,6 +47,22 @@ test('Seen: the caps (3000 seen, 4000 planes, 600 types) keep the newest and the
   log=updateLog(log,[P('b00000')],t+MIN);
   assert.equal(log.seen.length,3000,'an evicted plane comes back as new but the cap holds');
 });
+test('Seen: a full log takes a reply of 300 newcomers in milliseconds, the oldest planes going first',()=>{
+  // Before: each newcomer read the 4,000 plane keys and searched the 3,000 seen (over 100 ms a reply at full speed).
+  home('UTC');
+  const t=Date.UTC(2026,9,20,12),hex=n=>(0xc00000+n).toString(16),costs=[];
+  let log=updateLog(null,[],t);
+  for(let r=0;r<20;r++){
+    const reply=[];for(let i=0;i<300;i++)reply.push(P(hex(r*300+i),{aircraft_type:'B738'}));
+    const t0=performance.now();log=updateLog(log,reply,t+r*MIN);costs.push(performance.now()-t0);
+  }
+  assert.equal(Object.keys(log.planes).length,4000);assert.equal(log.seen.length,3000);
+  assert.equal(Object.keys(log.planes)[0],'x'+hex(6000-4000),'the oldest planes went first');
+  assert.equal(log.seen[0],hex(6000-3000));assert.equal(log.seen.at(-1),hex(5999));
+  assert.ok('x'+hex(5999) in log.planes&&!('x'+hex(1999) in log.planes));
+  const full=costs.slice(-5).sort((a,b)=>a-b)[2];
+  assert.ok(full<40,`a reply into a full log took ${full.toFixed(1)} ms`);
+});
 test('cargo tonight: 6 pm to 6 am local, once per aircraft, local area only, by brand most first',()=>{
   home('America/New_York');
   const eve=Date.UTC(2026,9,20,22,30); // 18:30 EDT
