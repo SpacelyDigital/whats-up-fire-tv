@@ -418,6 +418,12 @@ test('styles: the Adjust position privacy note is at least 13 px and its colour 
     assert.ok(r>=4.5,`${id}: ${fg} on ${bg} is ${r.toFixed(2)}:1`);
   }
 });
+test('styles: no @keyframes block of the Synthwave sheet animates box-shadow or filter (either re-rasters its layer every frame: 16 fps idle at 1x); the hero\'s pulse (sw-pulse) breathes through the opacity of a static glow layer, and the sun, whose glow its stripe mask clips away, is not animated at all',()=>{
+  const css=layoutCss('synthwave'),blocks=[...css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g)];
+  assert.ok(blocks.some(b=>b[1]==='sw-pulse'),'@keyframes sw-pulse');assert.match(css,/\.pulse\{[^}]*animation:sw-pulse\b/,'the pulse layer breathes');
+  assert.doesNotMatch(css,/\.sun\{[^}]*animation:/,'the sun does not animate');
+  for(const [,name,body] of blocks)assert.ok(!/(?:^|[;{\s])(?:box-shadow|filter)\s*:/.test(body),`@keyframes ${name} animates ${body.trim()}`);
+});
 test('place time zone refresh: both paths (pick and launch) go through one helper that restarts a street map in progress',async()=>{
   const {readFileSync}=await import('node:fs');
   const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');

@@ -61,7 +61,9 @@ function ui(){
   $.canvas=floorCanvas();floor.append($.canvas);
   $.svg=svg('svg',{class:'fly',viewBox:'0 0 960 540','aria-hidden':'true'});
   for(const id of ['marks','stalks','jets','tags'])$.svg.append($[id]=svg('g'));
-  root.querySelector('.world').after($.svg);
+  // The hero's pulsing glow: a copy of its chevron on its own small layer under the overlay, moved to the hero.
+  $.pulse=svg('svg',{class:'pulse',viewBox:'-80 -80 160 160','aria-hidden':'true',style:'display:none'});$.pulse.append($.halo=svg('path',{d:CHEV}));
+  root.querySelector('.world').after($.pulse,$.svg);
   for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m1','m2','quiet','q1','q2',
     's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
@@ -102,7 +104,7 @@ function render(m){
   setText($['s-status'],statusText(m,demo));$['s-status'].classList.toggle('off',!demo&&!m.fresh&&!m.connecting);
   root.classList.toggle('emergency',!!hero?.emergency);
 
-  const stalks=[],jets=[],tags=[],boxes=[{x:0,y:0,w:960,h:VP.y-14},{x:0,y:470,w:600,h:70}];
+  const stalks=[],jets=[],tags=[],boxes=[{x:0,y:0,w:960,h:VP.y-14},{x:0,y:470,w:600,h:70}];let halo=null;
   const tagged=new Set(byInterest(m).slice(0,6));
   const order=[...m.planes].sort((a,b)=>(b===hero)-(a===hero)||b.y-a.y); // hero, then far (north) first
   for(const a of order){
@@ -123,7 +125,9 @@ function render(m){
       rot=Math.atan2(q.x-g.x,-(q.y-g.y))*180/Math.PI;
     }
     const size=off?.8:Math.max(.75,Math.min(1.35,.6+g.s*.45))*(isHero?1.35:1);
-    jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`}));
+    const spin=`rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`;
+    jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) ${spin}`}));
+    if(isHero)halo={x:px,y:py,spin,off};
     if(tagged.has(a)){
       const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):fmt.hundreds(a.altitude_ft);
       const l2=off?`↓ ${fmt.dist(a.ground,0)} ${compass(a.bearing)}`:alt,h=32;
@@ -137,6 +141,8 @@ function render(m){
     }
   }
   $.stalks.replaceChildren(...stalks);$.jets.replaceChildren(...jets);$.tags.replaceChildren(...tags);
+  $.pulse.style.display=halo?'':'none';
+  if(halo){Object.assign($.pulse.style,{left:`${halo.x.toFixed(1)}px`,top:`${halo.y.toFixed(1)}px`});$.halo.setAttribute('transform',halo.spin);$.halo.classList.toggle('off',halo.off);}
 
   $.hcard.hidden=!hero;$.quiet.hidden=!!hero;$.mayday.hidden=!hero?.emergency;
   showPhotoIn($.pic,hero);
