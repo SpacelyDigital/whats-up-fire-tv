@@ -429,6 +429,7 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
 // two slots make room first (the base maps stay), then they and the base maps are evicted and
 // it is tried once more.
 const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_KEY}.r10`:`${DETAIL_KEY}.wide`;
+export const hasDetail=spec=>{try{return localStorage.getItem(detailKey(spec))!==null;}catch{return false;}}; // saved for this spec (not read: a stale or damaged one counts)
 export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');

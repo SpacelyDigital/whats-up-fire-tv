@@ -9,7 +9,7 @@ import {chimeGate,dLon} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
-import {buildMap,savedMap,saveMap,touchMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
+import {buildMap,savedMap,saveMap,touchMap,buildDetail,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
@@ -156,7 +156,7 @@ async function useLayout(id){
   unloadExcept(id);
   root.replaceChildren();pruneFitted();root.className='layout';
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));stage.dataset.layout=id;
-  active={id,mod};
+  const first=!active;active={id,mod};
   if(mod.map!=='detail')maps.detail=null; // free it; it reloads from storage when needed
   try{
     mod.mount(root,ctx);
@@ -164,7 +164,7 @@ async function useLayout(id){
     if(lastModel)draw(lastModel); // a model that came before the layout landed is drawn and read now, not at the next poll
   }catch(e){console.error(`layout ${id}`,e);}
   paintEdge();
-  if(mod.map==='detail'){ensureDetail();const n=detailNote();if(n)setText('layout-note',n);} // a street map still being drawn says so again
+  if(mod.map==='detail'){first&&hasDetail(detailSpec(mapMiles()))?deferDetail():ensureDetail();const n=detailNote();if(n)setText('layout-note',n);} // a street map still being drawn says so again; at launch a saved one comes after the first planes
   else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
   refitScreens(); // screens open over the switch now have this layout's fonts
   flashCredits();done();
@@ -178,6 +178,7 @@ function draw(m){
   // it later, it is fitted again here (fuzz seed 7008: cut by 3 px).
   for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
   announce(m);
+  if(detailLater)setTimeout(detailLater,20); // the saved street map, once these planes have painted
 }
 function mapsChanged(){
   try{active?.mod.setMap?.({...maps});}catch(e){console.error('setMap',e);}
@@ -187,12 +188,12 @@ function mapsChanged(){
 // A build stops as soon as it's no longer wanted (another radius or place: detailToken);
 // a failed one is tried again after 30 s, 60 s... up to 5 min, and an older saved map for
 // this place and radius is shown meanwhile. Its notes give way to the base map's (baseNote).
-let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null,baseNote='';
+let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null,baseNote='',detailLater=null;
 // The street map's note while it is drawn, on the layouts that draw it.
 const detailNote=()=>baseNote||(detailBusy&&active?.mod.map==='detail'?(mapMiles()<=15?'Drawing the street map':'Filling in map detail'):'');
 async function ensureDetail(){
   const place=settings.place;
-  if(!place||maps.detail&&!maps.detail.stale||detailBusy)return;
+  if(!place||detailLater||maps.detail&&!maps.detail.stale||detailBusy)return;
   const spec=detailSpec(mapMiles()),saved=savedDetail(place,spec);
   if(saved){maps.detail=decodeDetail(saved);detailTries=0;return mapsChanged();}
   if(!maps.detail){const old=savedDetail(place,spec,{stale:true});if(old){maps.detail={...decodeDetail(old),stale:true};mapsChanged();}}
@@ -212,6 +213,15 @@ async function ensureDetail(){
     const wait=Math.min(300000,30000*2**detailTries++);
     detailRetry=setTimeout(()=>{if(token===detailToken){setText('layout-note',baseNote);detailBusy=false;if(active?.mod.map==='detail')ensureDetail();}},wait);
   }finally{if(token===detailToken)detailBusy=false;}
+}
+// At launch (useLayout) a saved street map is read, decoded and painted in a task of its own after the first planes are
+// drawn (draw: 20 ms later, after their frame), or after 1.5 s without any, not in the layout's mount: a slow stick shows
+// the dashboard about a second sooner and the streets fill in. Calls to ensureDetail meanwhile (applyPlace, a radius or
+// layout step) wait for that task, which looks at the place, radius and layout of that moment, so nothing stale is painted.
+function deferDetail(){
+  if(detailLater)return;
+  const later=()=>{if(detailLater!==later)return;detailLater=null;clearTimeout(timer);if(active?.mod.map==='detail')ensureDetail();};
+  const timer=setTimeout(later,lastModel?20:1500);detailLater=later;
 }
 
 // --- Place, map and feed

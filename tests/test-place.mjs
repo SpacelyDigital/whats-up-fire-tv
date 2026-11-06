@@ -181,7 +181,7 @@ test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft'
 // --- Map radius
 import {MAP_RADII,alertFor} from '../web/place.mjs';
 import {niceStep,niceDistance,zoom,range} from '../web/kit.mjs';
-import {zoomFor,savedMap,saveMap,touchMap,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
+import {zoomFor,savedMap,saveMap,touchMap,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
 test('map radius: saved value must be a step, default 10; alert ring never wider than the map',()=>{
   for(const [saved,want] of [[50,50],[7,10],['250',250],[undefined,10]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({mapMiles:saved}),setItem(){},removeItem(){}};
@@ -568,4 +568,13 @@ test('address detection: a street name that starts with a digit (5th Ave, 42nd S
   const [p]=await searchAddress('350 5th Ave New York NY',{census:true,nominatim:true});
   assert.equal(p.street,'350 5th Ave');assert.equal(placeLabel(p),'New York, NY');assert.equal(p.source,'census');
   assert.deepEqual(seen.map(u=>new URL(u).hostname),['geocoding.geo.census.gov'],'Census alone: no Open-Meteo, no Nominatim');
+});
+test('hasDetail: whether a street map is saved in the slot for a radius, without reading it; no storage: no',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  assert.equal(hasDetail(detailSpec(10)),false,'nothing saved');
+  saveDetail({v:5,latitude:41.85,longitude:-87.65,key:'r10',roads:[]});
+  assert.equal(hasDetail(detailSpec(10)),true);assert.equal(hasDetail(detailSpec(25)),false,'another slot');
+  delete globalThis.localStorage;
+  assert.equal(hasDetail(detailSpec(10)),false,'no storage');
 });

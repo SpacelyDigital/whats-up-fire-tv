@@ -94,7 +94,7 @@ test('the street map\'s note stays while it is drawn: the base map landing first
   const builds=[],bases=[],settle=()=>new Promise(r=>setImmediate(r)),place={latitude:41.85,longitude:-87.65};
   const MODS={blueprint:{map:'detail'},swiss:{},radar:{}};for(const m of Object.values(MODS))Object.assign(m,{mount(){},setMap(){}});
   const p=page([line('let active=null'),line('let detailToken=0'),line('const detailNote='),fn('useLayout'),fn('ensureDetail'),fn('applyPlace')],{dLon,registry:{},codeOf:id=>id,
-    settings:{place:null},maps:{},mapMiles:()=>10,detailSpec:()=>({key:'r10'}),detailFits:()=>true,savedDetail:()=>null,decodeDetail:m=>m,saveDetail(){},mapsChanged(){},STALE:'stale',
+    settings:{place:null},maps:{},mapMiles:()=>10,detailSpec:()=>({key:'r10'}),detailFits:()=>true,hasDetail:()=>false,savedDetail:()=>null,decodeDetail:m=>m,saveDetail(){},mapsChanged(){},STALE:'stale',
     buildDetail:()=>new Promise((res,rej)=>builds.push({res,rej})),buildMap:()=>new Promise((res,rej)=>bases.push({res,rej})),savedMap:()=>null,saveMap(){},
     placeToken:0,chime:null,feed:null,store:{remove(){}},HISTORY_KEY:'h',resetLog(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,flashCredits(){},
     clearTimeout(){},setTimeout(){},requestAnimationFrame(){},validLayout:id=>id,unloadExcept(){},busyNow:false,loadLayout:async id=>MODS[id],sheetsOf:id=>[id],
@@ -196,7 +196,7 @@ test('a map that can\'t be built for want of the network (no TileJSON, a portal,
   const place={latitude:39.05,longitude:-84.41};
   const base=(console,e)=>{page([fn('applyPlace')],{console,dLon:()=>0,placeToken:0,chime:null,feed:null,maps:{},mapMiles:()=>10,detailFits:()=>true,detailSpec:()=>({}),savedMap:()=>null,
     mapsChanged(){},active:null,ensureDetail(){},detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,clearTimeout(){},setTimeout(){},start:()=>({stop(){}}),feedConfig(){},render(){},demo:false,buildMap:async()=>{throw e;},STALE:'stale'}).applyPlace(place);};
-  const detail=(console,e)=>page([line('const detailNote='),fn('ensureDetail')],{console,settings:{place},maps:{},mapMiles:()=>10,detailSpec:()=>({}),savedDetail:()=>null,detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,
+  const detail=(console,e)=>page([line('const detailNote='),fn('ensureDetail')],{console,settings:{place},maps:{},mapMiles:()=>10,detailSpec:()=>({}),savedDetail:()=>null,detailToken:0,detailBusy:false,detailTries:0,detailRetry:0,detailLater:null,
     baseNote:'',active:null,clearTimeout(){},setTimeout(){},buildDetail:async()=>{throw e;},STALE:'stale'}).ensureDetail();
   const adjust=async(console,e)=>(await adjustPage({console,buildMap:async()=>{throw e;}})).startAdjust(place);
   for(const [what,make] of [['map',base],['detail map',detail],['adjust map',adjust]])for(const [msg,e,level] of cases){
@@ -332,7 +332,7 @@ test('an outage: with no model for minutes the dashboard is drawn again at each 
 test('screen reader: closing the last screen reads the plane now on the card at once (an emergency begun behind Settings too); closing onto another screen, or the next poll, reads nothing more',()=>{
   const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
   const screen=id=>({id,hidden:false,style:{}});
-  const p=page([line('let spoken='),fn('announce'),fn('draw'),fn('close')],{layer:null,layers:[],adj:null,lastModel:null,settings:{place:{}},active:{mod:{render(){}}},
+  const p=page([line('let spoken='),fn('announce'),fn('draw'),fn('close')],{layer:null,layers:[],adj:null,lastModel:null,detailLater:null,settings:{place:{}},active:{mod:{render(){}}},
     shown:m=>m,paintEdge(){},root:{querySelectorAll:()=>[]},fitLine(){},$:id=>id==='sr-live'?sr:null,fmt:{dist:d=>`${d} mi`},
     endPick(){},showSettings(){},refitSettings(){},setFocus(){},focusables:()=>[],syncApp(){}});
   const model=hero=>{p.lastModel={hero};p.draw(p.lastModel);};
@@ -755,4 +755,33 @@ test('Settings > Distance and Altitude: a unit change saves, goes through the la
   assert.equal(p.settings.distance,'km');assert.deepEqual(calls,['save','busy','refresh','draw']);
   calls.length=0;p.adjustSetting({id:'set-altitude'},1);
   assert.equal(p.settings.altitude,'m');assert.deepEqual(calls,['save','busy','refresh','draw']);
+});
+
+test('at launch a saved street map is read, decoded and painted in a task after the first planes are drawn (or after 1.5 s), not in the layout\'s mount; ensureDetail calls meanwhile wait for that task, which reads the map of the place, radius and layout of that moment; a later mount decodes at once',async()=>{
+  const timers=[],calls=[],saved={v:5},cur={miles:10};
+  const tick=()=>{for(const t of timers.splice(0).sort((a,b)=>a.ms-b.ms))t.f();};
+  const p=page([line('let detailToken=0'),line('let active=null'),fn('ensureDetail'),fn('deferDetail'),fn('draw')],{
+    settings:{place:{latitude:41.85,longitude:-87.65}},maps:{},mapMiles:()=>cur.miles,detailSpec:mi=>({key:mi>10?'wide':'r10'}),savedDetail:(pl,spec)=>{calls.push(`read ${pl.latitude} ${spec.key}`);return saved;},
+    decodeDetail:m=>({...m,decoded:true}),mapsChanged(){calls.push('maps');},
+    lastModel:null,adj:null,shown:m=>m,paintEdge(){},root:{querySelectorAll:()=>[]},fitLine(){},announce(){},
+    setTimeout:(f,ms)=>timers.push({f,ms}),clearTimeout(){},buildDetail(){throw new Error('no build');},saveDetail(){},STALE:'stale'});
+  const detail=()=>vm.runInContext('maps.detail',p),reset=()=>{p.maps={};p.lastModel=null;calls.length=0;timers.length=0;};
+  vm.runInContext("active={id:'atlas-dark',mod:{map:'detail',render(){}}}",p);
+  p.deferDetail();await p.ensureDetail(); // launch: the layout mounted before any model, then applyPlace
+  assert.equal(detail(),undefined,'not read in the mount');assert.deepEqual(calls,[]);assert.deepEqual(timers.map(t=>t.ms),[1500],'one fallback timer');
+  p.lastModel={};p.draw({}); // the first planes
+  assert.equal(detail(),undefined,'nor in the task that draws them');assert.deepEqual(timers.map(t=>t.ms),[1500,20],'a task of its own after them');
+  tick();assert.ok(detail()?.decoded,'read and decoded in that task');assert.deepEqual(calls,['read 41.85 r10','maps'],'once: the fallback then does nothing');
+  reset();p.lastModel={};p.deferDetail(); // launch with the model there before the layout: the mount drew it
+  assert.equal(detail(),undefined,'not in the mount');assert.deepEqual(timers.map(t=>t.ms),[20],'the task after it');tick();assert.deepEqual(calls,['read 41.85 r10','maps']);
+  reset();p.deferDetail();tick(); // launch with no feed: the fallback paints it
+  assert.ok(detail()?.decoded);assert.deepEqual(calls,['read 41.85 r10','maps']);
+  reset();p.deferDetail();p.settings={place:{latitude:51.5,longitude:-.1}};await p.ensureDetail();tick(); // the place changed meanwhile (applyPlace)
+  assert.deepEqual(calls,['read 51.5 r10','maps'],'the new place\'s saved map, once');
+  reset();p.deferDetail();cur.miles=25;tick(); // the radius changed meanwhile (stepMap)
+  assert.deepEqual(calls,['read 51.5 wide','maps'],'the new radius\'s saved map');
+  reset();p.deferDetail();vm.runInContext("active={id:'radar',mod:{}}",p);tick(); // a base-map layout meanwhile
+  assert.equal(detail(),undefined,'not this layout\'s');assert.deepEqual(calls,[]);
+  vm.runInContext("active={id:'atlas-dark',mod:{map:'detail'}}",p);reset();p.lastModel={};await p.ensureDetail(); // a picker or radius step: a model is there
+  assert.ok(detail()?.decoded,'decoded at once');assert.deepEqual(calls,['read 51.5 wide','maps']);
 });
