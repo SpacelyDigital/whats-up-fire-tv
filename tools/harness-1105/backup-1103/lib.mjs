@@ -13,7 +13,7 @@ const HERE=dirname(fileURLToPath(import.meta.url));
 const CACHE=join(HERE,'tilecache');mkdirSync(CACHE,{recursive:true});
 export const PORT=Number(process.env.PORT)||8802;
 export const SHOTS=process.env.SHOTS||'~/Documents/ChatGPT/Vibe Coding/whatsup/qa/backup-2026-11-03/shots';mkdirSync(SHOTS,{recursive:true});
-const JPG=readFileSync('~/overhead-tv/whatsup-fixes/build/store-assets-faults/models/A20N.jpg');
+const JPG=readFileSync('~/whats-up/whatsup-fixes/build/store-assets-faults/models/A20N.jpg');
 export const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 // Host allowlist, copied from src/App.tsx.

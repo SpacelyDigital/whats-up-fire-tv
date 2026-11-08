@@ -12,8 +12,8 @@ import {fileURLToPath} from 'node:url';
 const HERE=dirname(fileURLToPath(import.meta.url));
 const CACHE=join(HERE,'../faults/tilecache');mkdirSync(CACHE,{recursive:true});
 export const PORT=Number(process.env.PORT)||8802;
-export const SHOTS='~/overhead-tv/scratch/browse-audit/shots';
-const JPG=readFileSync('~/overhead-tv/whatsup-fixes/build/store-assets-faults/models/A20N.jpg');
+export const SHOTS='~/whats-up/scratch/browse-audit/shots';
+const JPG=readFileSync('~/whats-up/whatsup-fixes/build/store-assets-faults/models/A20N.jpg');
 export const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 // Host allowlist, copied from src/App.tsx.

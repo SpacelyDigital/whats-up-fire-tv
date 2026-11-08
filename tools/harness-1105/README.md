@@ -1,6 +1,6 @@
 # QA harness for What's Up (copied from the developer's Mac, November 2026)
 
-Scripts assume `~/overhead-tv/...` paths and macOS Chrome; set `CHECK_BROWSER` to any Chromium binary.
+Scripts assume `~/whats-up/...` paths and macOS Chrome; set `CHECK_BROWSER` to any Chromium binary.
 Runner scripts in `slate/` are records of how the slates were run, not portable tools.
 
 Setup: `npm run build:vendor` (map tests need `vendor/node_modules`), then

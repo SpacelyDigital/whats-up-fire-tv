@@ -3,8 +3,8 @@
 # store build on 8826, personal on 8824. Phase R: reruns of tonight's failures. Phase S: the
 # core slate. Each run has a time limit; test profiles are cleaned after each one.
 #   sh seq-tip.sh R   |   sh seq-tip.sh S   (results in regress-1103n/tip/)
-R=~/overhead-tv/scratch/regress-1103n/tip; mkdir -p $R/checks $R/fit $R/rerun; B=~/overhead-tv/scratch/backup-1103
-W=~/overhead-tv/whatsup-fixes; ST=http://127.0.0.1:8830/index.html; PE=http://127.0.0.1:8831/index.html
+R=~/whats-up/scratch/regress-1103n/tip; mkdir -p $R/checks $R/fit $R/rerun; B=~/whats-up/scratch/backup-1103
+W=~/whats-up/whatsup-fixes; ST=http://127.0.0.1:8830/index.html; PE=http://127.0.0.1:8831/index.html
 t(){ lim=$1; shift; perl -e "alarm $lim; exec @ARGV" "$@"; }
 clean(){ $B/cleanup-profiles.sh "$S" >/dev/null; }
 S="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -22,13 +22,13 @@ R)
     log "R drawn $n sectional"; CHECK_URL=$u t 600 node scripts/check-drawn.mjs sectional > $R/rerun/drawn-$n-sectional.txt 2>&1; clean; done
   # Deliberate break: Sectional drawing no planes (build/broken-sectional-store on 8829) must still fail.
   log "R drawn broken sectional"; CHECK_URL=http://127.0.0.1:8829/index.html t 600 node scripts/check-drawn.mjs sectional > $R/rerun/drawn-broken-sectional.txt 2>&1; clean
-  cd ~/overhead-tv/scratch/models2; log "R model C177 1080"; PORT=8826 DSF=2 HERO=C177 t 900 node fitd2-p0.mjs '' > $R/rerun/model-C177-1080.txt 2>&1; clean
-  cd ~/overhead-tv/scratch/breakit; log "R erase-backup"; PORT=8826 t 600 node erase-backup.mjs > $R/rerun/erase-backup.txt 2>&1; clean
+  cd ~/whats-up/scratch/models2; log "R model C177 1080"; PORT=8826 DSF=2 HERO=C177 t 900 node fitd2-p0.mjs '' > $R/rerun/model-C177-1080.txt 2>&1; clean
+  cd ~/whats-up/scratch/breakit; log "R erase-backup"; PORT=8826 t 600 node erase-backup.mjs > $R/rerun/erase-backup.txt 2>&1; clean
   for l in swiss blueprint; do log "R clips $l"; PORT=8826 t 300 node clips.mjs $l > $R/rerun/clips-$l.json 2>&1; clean; done
   log "R done";;
 S1)
   # Lane 1: fit checks, 12 layouts x 5 scenes x 2 sizes, both builds.
-  cd ~/overhead-tv/scratch/models2
+  cd ~/whats-up/scratch/models2
   for b in personal:8831:fitd-p0 store:8830:fitd2-p0; do n=${b%%:*}; p=$(echo $b|cut -d: -f2); h=$(echo $b|cut -d: -f3)
     for dsf in 2:1080 1.3333:720; do d=${dsf%%:*}; px=${dsf#*:}
       for scene in busy long longest emergency quiet; do sc=$scene; [ $scene = busy ] && sc=''
@@ -52,7 +52,7 @@ S3)
   for b in "store:$ST" "personal:$PE"; do n=${b%%:*}; u=${b#*:}
     log "S3 browse $n"; CHECK_URL=$u t 1800 node scripts/check-browse.mjs > $R/checks/browse-$n.txt 2>&1; clean; done
   log "S3 safe-area store"; CHECK_URL=$ST t 1800 node scripts/check-safe-area.mjs > $R/checks/safe-store.txt 2>&1; clean
-  cd ~/overhead-tv/scratch/models2
+  cd ~/whats-up/scratch/models2
   for h in C177 P28B R44; do for d in 2:1080 1.3333:720; do log "S3 model $h ${d#*:}"; PORT=8830 DSF=${d%%:*} HERO=$h t 900 node fitd2-p0.mjs '' > $R/fit/model-$h-${d#*:}.txt 2>&1; clean; done; done
   for d in 2:1080 1.3333:720; do log "S3 privacy ${d#*:}"; PORT=8830 DSF=${d%%:*} t 900 node priv-p0.mjs '' > $R/fit/privacy-qr-store-${d#*:}.txt 2>&1; clean; done
   cd $B
