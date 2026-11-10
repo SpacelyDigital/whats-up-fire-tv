@@ -434,7 +434,7 @@ export const outage={...CLEAR};
 // Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
 const UNCHECKED={url:'',none:false,checked:-Infinity};
 let coverageOf={...UNCHECKED};
-export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};paceAt=0;}; // tests
+export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};paceAt=0;tileCooldown=0;tileStrikes=0;}; // tests (the map tiles' pause too)
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles; paused: started while
 // the app is hidden (a restart just before Home), so nothing is asked until resume().
 export function startLive(show,config){

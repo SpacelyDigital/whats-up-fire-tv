@@ -42,8 +42,9 @@ test('welcome card: the lookup\'s accuracy reads as whole miles or km, at least 
 test('choosing a place: a move of a few hundred metres across the date line keeps today\'s logbook and \'Recently above\', and the map is drawn where it was built',async()=>{
   const {dLon}=await import('../web/core.mjs'),{mapShift}=await import('../web/kit.mjs');
   const calls=[];
+  let damaged=false;
   const p=page([fn('choosePlace')],{dLon,settings:{},saveSettings(){},useSettings(){},closeAll(){},mapsChanged(){},refreshLayout(){},refineZone:async()=>null,
-    applyPlace:(pl,o)=>{calls.push(o?.fresh?'fresh':'apply');},restartFeed:()=>{calls.push('feed');}});
+    placeDamaged:()=>damaged,applyPlace:(pl,o)=>{calls.push(o?.fresh?'fresh':'apply');},restartFeed:()=>{calls.push('feed');}});
   const move=(from,[latitude,longitude])=>{calls.length=0;p.settings={place:from&&{latitude:from[0],longitude:from[1]}};p.choosePlace({latitude,longitude});return calls.join();};
   // An Adjust position save: endAdjust brings the longitude back within ±180.
   for(const [from,to] of [[[0,180],[0,-179.99955]],[[0,179.999],[0,-179.99381]],[[0,-179.999],[0,179.99381]],[[-16.8,179.999],[-16.8,-179.996]],[[41.85003,-87.65005],[41.85003,-87.6404]]])
@@ -51,6 +52,12 @@ test('choosing a place: a move of a few hundred metres across the date line keep
   assert.equal(move([0,180],[0,-180]),'feed','the same point');
   for(const [from,to] of [[[0,179.99],[0,-179.95]],[[0,-179.99],[0,179.9]],[[41.85,-87.65],[41.9,-87.65]]])assert.equal(move(from,to),'fresh',`${from} -> ${to}: a new home`);
   assert.equal(move(null,[0,180]),'fresh','the first place');
+  // The saved place couldn't be read (the feed runs on the IP guess with what it logged): a place chosen through Change
+  // starts afresh however close to the guess, as Confirm on the guess does.
+  damaged=true;
+  assert.equal(move([41.85003,-87.65005],[41.85003,-87.6404]),'fresh','1 mi from the guess, a damaged saved place');
+  assert.equal(move([41.85003,-87.65005],[41.85003,-87.65005]),'fresh','the guess itself');
+  damaged=false;
   // A map built at 180 drawn for -179.99955 (50 m east): 0.03 mi to the west, not round the world.
   const [x,y]=mapShift({latitude:0,longitude:180},{latitude:0,longitude:-179.99955});
   assert.ok(Math.abs(x+.0311)<.001&&y===0,`shift ${x},${y}`);
@@ -756,7 +763,7 @@ test('layout picker: a step to a layout whose code is already here (Atlas Dark -
   const p=page([line('const VARIANTS='),line('const sheetsOf='),line('const codeOf='),fn('addCss'),fn('loadLayout'),fn('unloadExcept'),line('let active=null'),line('const ctx='),line('const validLayout='),fn('useLayout'),
     line('let pick='),fn('startPick'),fn('showPick'),fn('stepPick'),fn('endPick')],{
     LAYOUTS:[['atlas-dark','Atlas Dark'],['atlas','Atlas Light'],['atlas-satellite','Atlas Satellite'],['radar','Radar']],settings:{layout:'atlas-dark',place:{}},demo:false,saveSettings(){},MOD,
-    registry:{atlas:MOD},bundled:true,document:{querySelector:()=>({}),querySelectorAll:()=>[]}, // every stylesheet already in the page: the load lands at once
+    registry:{atlas:MOD},bundled:true,document:{querySelector:()=>({_ended:true}),querySelectorAll:()=>[]}, // every stylesheet already in the page (loaded): the load lands at once
     $:id=>id==='busy'?busy:els[id]??={classList:{add(){},remove(){}},textContent:''},busyNow:false,requestAnimationFrame:f=>f(),setTimeout:(f,ms)=>timers.push({f,ms}),clearTimeout(){},
     stage:{classList:{add(){},remove(){}},dataset:{layout:'atlas-dark'}},root:{replaceChildren(){},className:''},pruneFitted(){},maps:{},lastModel:null,paintEdge(){},ensureDetail(){},detailNote:()=>'',refitScreens(){},flashCredits(){},open(){},setFocus(){}});
   vm.runInContext("active={id:'atlas-dark',mod:MOD}",p);
@@ -816,4 +823,27 @@ test('at launch a saved street map is read, decoded and painted in a task after 
   assert.equal(detail(),undefined,'not this layout\'s');assert.deepEqual(calls,[]);
   vm.runInContext("active={id:'atlas-dark',mod:{map:'detail'}}",p);reset();p.lastModel={};await p.ensureDetail(); // a picker or radius step: a model is there
   assert.ok(detail()?.decoded,'decoded at once');assert.deepEqual(calls,['read 51.5 wide','maps']);
+});
+
+test('layout stylesheets: one already in the page but still loading (kept by unloadExcept, picked again) is waited for; a loaded one, or a new one, ends as before',()=>{
+  const added=[];let found=null;
+  const p=page([fn('addCss')],{document:{querySelector:()=>found,createElement:()=>({dataset:{}}),head:{append:l=>added.push(l)}}});
+  const L=()=>{const h={};return {_ended:false,h,addEventListener(t,f,o){(h[t]??=[]).push(f);assert.equal(o?.once,true);}};};
+  let n=0;const done=()=>n++;
+  found=L();p.addCss('atlas-satellite',done);
+  assert.equal(n,0,'not done while the sheet is still loading');assert.equal(added.length,0,'not added twice');
+  found._ended=true;found.h.load[0]();assert.equal(n,1,'done when it loads');
+  const bad=L();found=bad;p.addCss('atlas-satellite',done);bad.h.error[0]();assert.equal(n,2,'or fails');
+  found={_ended:true};p.addCss('atlas',done);assert.equal(n,3,'a loaded sheet: at once');
+  found=null;p.addCss('radar',done);assert.equal(added.length,1);assert.equal(added[0].href,'layouts/radar.css');assert.equal(n,3);
+  added[0].onload();assert.equal(n,4);assert.equal(added[0]._ended,true);
+});
+
+test('screen reader: a plane the card keeps as Above you now just past the zone edge (the slack holds it) is not read again as it steps out and back in',()=>{
+  const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
+  const p=page([line('let spoken='),fn('announce')],{layer:null,adj:null,$:id=>id==='sr-live'?sr:null,fmt:{dist:d=>`${d.toFixed(1)} mi`},quietText:()=>'',demo:false});
+  const H=(ground,inside,held=false)=>({hex:'a1b2c3',status:inside||held?'Above you now':'Nearest',flight:'N123HX',type:'Robinson R44',ground,inside,held});
+  for(const h of [H(2.9,true),H(3.1,false,true),H(2.95,true),H(3.05,false,true),H(2.9,true)])p.announce({hero:h});
+  assert.deepEqual(writes,['Above you now, N123HX, Robinson R44, 2.9 mi'],'a hover on the edge: one line');
+  p.announce({hero:H(3.4,false)});assert.equal(writes.length,2,'read again once it really leaves');assert.match(writes[1],/^Nearest, N123HX/);
 });

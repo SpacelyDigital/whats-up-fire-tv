@@ -5,7 +5,7 @@
 // &still=1: the planes hold where they start, for checks that step through them in order).
 import {IDS,airspace,recentSightings,number,inZone,inBearings,norm,ABOVE_MI,designator} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
-import {startLive,haversine,store,text} from './live.mjs';
+import {startLive,haversine,store,text,HISTORY_KEY} from './live.mjs';
 import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
 
 // Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
@@ -305,6 +305,9 @@ export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):
 function liveSource(config,onModel,was){
   const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
   const routes=new RouteLookup(),held={};let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused,last=null;
+  // The planes carry over; 'Recently above' and the logbook only as they stand now: a fresh start (Confirm on a
+  // guess that replaced a damaged place, a new Alert zone) cleared them, and the old picture must not bring them back.
+  if(lastGood)lastGood={...lastGood,recent:store.get(HISTORY_KEY)?.length?lastGood.recent:[],log:log?lastGood.log:logSummary(null)};
   const update=(states,ok)=>{
     last={states,ok};clearTimeout(stale);judge=null;
     if(ok){lastOk=performance.now();okAt=Date.now();}

@@ -103,7 +103,9 @@ const bundled=!!window.__whatsupModules;
 const registry={};
 window.__whatsupLayout=(id,mod)=>{registry[id]=mod;};
 function addCss(id,done){
-  if(document.querySelector(`link[data-layout="${id}"]`))return done();
+  // Already here: done once it has loaded (a sheet kept while still loading, picked again before it ends, waits for it).
+  const had=document.querySelector(`link[data-layout="${id}"]`);
+  if(had){if(had._ended)return done();had.addEventListener('load',done,{once:true});had.addEventListener('error',done,{once:true});return;}
   const end=()=>{css._ended=true;done();},css=Object.assign(document.createElement('link'),{rel:'stylesheet',href:`layouts/${id}.css`,onload:end,onerror:end});
   css.dataset.layout=id;document.head.append(css);
 }
@@ -242,7 +244,9 @@ function listen(m){
 let spoken='';
 function announce(m){
   if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
-  const h=m.hero,key=h?h.hex+(h.emergency?'!':h.browse?'+':h.inside?'^':''):quietText({...m,retryIn:0},demo);
+  // Inside means as the card says it (Above you now / In your window): a plane the slack holds just past the zone edge
+  // (held) is still inside here, so stepping across the edge and back is not read out again each poll.
+  const h=m.hero,key=h?h.hex+(h.emergency?'!':h.browse?'+':h.inside||h.held?'^':''):quietText({...m,retryIn:0},demo);
   if(key===spoken)return;spoken=key;
   $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):key;
 }
@@ -378,11 +382,13 @@ function adoptRefined(p){
 function choosePlace(place){
   // Chosen before its time zone came back: look it up once more for the saved place.
   if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place)adoptRefined(p);}).catch(()=>{});
-  const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
+  const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180),damaged=placeDamaged();
   const miles=old?Math.hypot(dLon(place.longitude,old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity; // the short way round, across the date line too
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
   closeAll();
-  if(miles>2)return applyPlace(place,{fresh:true});
+  // A saved place that couldn't be read: what was logged belongs to it, wherever it was, so any chosen place
+  // starts afresh, as Confirm on the guess does (the distance from the guess says nothing about it).
+  if(miles>2||damaged)return applyPlace(place,{fresh:true});
   if(miles>.01)applyPlace(place);else restartFeed();
   mapsChanged();refreshLayout();
 }
@@ -1103,7 +1109,7 @@ async function findHome(){
   }
   // Not saved until the user confirms it (Confirm, or a place chosen through Change). A saved place
   // that can't be read keeps 'Recently above' and the logbook until a confirmed place replaces it (Confirm starts them afresh
-  // for the guess: select; Change by the distance moved: choosePlace).
+  // for the guess: select; so does any place chosen through Change: choosePlace).
   settings={...settings,place,confirmed:false};useSettings(settings);
   applyPlace(place,{fresh:!damaged});
   if(retry)closeAll();

@@ -109,7 +109,7 @@ test('map tiles: a 429\'s pause runs on performance.now(): the TV clock stepped 
     assert.equal(await getBytes(TILE),null);status=200;
     p+=30000;d+=30000;assert.equal(await getBytes(TILE),null,'paused');assert.equal(calls,1);
     p+=31000;d-=3600000;assert.equal((await getBytes(TILE))?.length,8,'asked again a minute after the 429');assert.equal(calls,2);
-  }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;}
+  }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;resetOutage();}
 });
 
 test('map: a 429 on the TileJSON waits out its Retry-After and the tile pause; neither it nor a tile is asked meanwhile',async()=>{
@@ -127,7 +127,7 @@ test('map: a 429 on the TileJSON waits out its Retry-After and the tile pause; n
     p+=540000; // 601 s after the 429
     assert.equal((await getJson(TILEJSON)).status,200);assert.equal((await getBytes(TILE))?.length,8);
     assert.equal(asked.length,3);
-  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;}
+  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;resetOutage();}
 });
 
 test('map: a 5xx or 403 on the TileJSON starts no tile pause: its 30 s retry asks again, and tiles are asked',async()=>{
@@ -144,7 +144,7 @@ test('map: a 5xx or 403 on the TileJSON starts no tile pause: its 30 s retry ask
       assert.equal((await getBytes(TILE))?.length,8,`and a tile after a ${code}`);
     }
     assert.equal(asked.length,9);
-  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;}
+  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;resetOutage();}
 });
 
 test('route cache: after the TV clock steps back an hour, expired rows still go and the 800-lookup cap still holds',()=>{
@@ -267,4 +267,25 @@ test('standby: back on screen after an hour the feed polls at once, and a failed
     assert.ok(shown.length&&shown.every(x=>!x.m.fresh&&!x.m.planes.length),`after the wake: ${shown.map(x=>`+${x.t-at} ms ${x.m.fresh?'live':'stale'} ${x.m.planes.length}`)}`);
     s.stop();
   }finally{r.restore();}
+});
+
+test('a feed restarted for the same place carries the planes on, but not \'Recently above\' or the logbook that a fresh start cleared',async()=>{
+  const r=fresh();resetLog();const F=T0/1000,P={...CVG,timeZone:'America/New_York'};
+  const stops=[];
+  try{
+    store.set(HISTORY_KEY,[{hex:'a0a0a1',callsign:'UAL1234',registration:'N1234U',aircraft_type:'B738',last_seen:F-30}]);
+    const a=[];const s1=start(P,CFG,m=>a.push(m));stops.push(s1);
+    await r.advance(1000);
+    const good=a.filter(x=>x.fresh).at(-1);
+    assert.equal(good?.recent.length,1,'the first feed shows the saved sighting');assert.ok(good.log.today>0,'and logs the planes');
+    s1.stop();
+    const b=[];const s2=start(P,CFG,m=>b.push(m),undefined,s1);stops.push(s2); // a new map radius: nothing cleared
+    assert.equal(b[0]?.planes.length,good.planes.length,'the planes carry on at once');
+    assert.equal(b[0].recent.length,1);assert.equal(b[0].log.today,good.log.today);
+    s2.stop();
+    store.remove(HISTORY_KEY);resetLog(); // Confirm on a guess that replaced a damaged place, or a new Alert zone
+    const c=[];const s3=start(P,CFG,m=>c.push(m),undefined,s2);stops.push(s3);
+    assert.equal(c[0]?.planes.length,good.planes.length,'the planes still carry on');
+    assert.deepEqual(c[0].recent,[],'\'Recently above\' starts afresh');assert.equal(c[0].log.today,0,'so does the logbook');
+  }finally{for(const s of stops)s.stop();r.restore();}
 });
