@@ -57,7 +57,7 @@ const READ=sel=>`(()=>{const L=document.getElementById('layout'),q=s=>L.querySel
   const vis=e=>{for(let x=e;x&&x.nodeType===1;x=x.parentElement){const cs=getComputedStyle(x);if(cs.display==='none'||cs.visibility==='hidden'||x.hidden)return false;}return true;};
   const st=document.getElementById('stage').getBoundingClientRect(),bad=[];
   for(const e of L.querySelectorAll('*')){
-    if(e.children.length||!(e.textContent||'').trim()||e.closest('svg')||!vis(e))continue;
+    if(e.children.length||!(e.textContent||'').trim()||e.closest('svg')||e.closest('.sr-only')||!vis(e))continue; // screen-reader-only text has no visible box: it is clipped by design
     const cs=getComputedStyle(e),r=e.getBoundingClientRect();if(!r.width)continue;
     if(e.scrollWidth>e.clientWidth+1&&cs.overflow!=='visible')bad.push('CLIP '+(e.className||e.tagName)+': '+e.textContent.slice(0,40));
     if(/…/.test(e.textContent))bad.push('ELLIPSIS '+e.textContent.slice(0,40));
