@@ -578,3 +578,21 @@ test('hasDetail: whether a street map is saved in the slot for a radius, without
   delete globalThis.localStorage;
   assert.equal(hasDetail(detailSpec(10)),false,'no storage');
 });
+// Search pressed again while the first search is out: the same request, not a second one (Codex F3;
+// Nominatim asks for at most one request a second).
+test('address search: the same search asked again before it answers shares the request',async()=>{
+  let release;const gate=new Promise(r=>{release=r;});
+  const seen=[];
+  globalThis.fetch=async url=>{seen.push(url);await gate;return {status:200,text:async()=>JSON.stringify([{lat:'51.5',lon:'-0.12',name:'Test Street',address:{house_number:'10',road:'Test Street',city:'London',country:'United Kingdom',country_code:'gb'}}])};};
+  const a=searchAddress('10 Test Street London',{census:true,nominatim:true}),b=searchAddress('10 TEST STREET LONDON',{census:true,nominatim:true});
+  release();
+  const [x,y]=await Promise.all([a,b]);
+  assert.equal(seen.length,1,'one request');
+  assert.equal(x,y);assert.equal(x[0].street,'10 Test Street');
+  // A failure is shared too, and not kept: asking again after it asks again.
+  globalThis.fetch=async url=>{seen.push(url);throw new TypeError('network down');};
+  const [f1,f2]=await Promise.all([searchAddress('11 Test Street London',{census:true,nominatim:true}),searchAddress('11 Test Street London',{census:true,nominatim:true})]);
+  assert.equal(f1,null);assert.equal(f2,null);assert.equal(seen.length,2,'one request for both');
+  await searchAddress('11 Test Street London',{census:true,nominatim:true});
+  assert.equal(seen.length,3,'Try again asks again');
+});

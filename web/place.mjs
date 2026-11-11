@@ -171,14 +171,19 @@ export async function refineZone(p){
 // address (census), then Nominatim where the profile allows it (nominatim); one request
 // per search, never as you type.
 // Results are kept per query for the session (Nominatim's usage policy asks apps to
-// cache); failures are not kept, so Try again asks again.
-const addressCache=new Map();
-export async function searchAddress(query,opts={}){
+// cache); failures are not kept, so Try again asks again. A search already out is shared: Search
+// pressed again before it answers asks nothing new.
+const addressCache=new Map(),addressPending=new Map();
+export function searchAddress(query,opts={}){
   const key=`${clean(query,120).toLowerCase()}|${!!opts.census}|${!!opts.nominatim}`;
-  if(addressCache.has(key))return addressCache.get(key);
-  const found=await searchAddressUncached(query,opts);
-  if(found){addressCache.set(key,found);if(addressCache.size>50)addressCache.delete(addressCache.keys().next().value);}
-  return found;
+  if(addressCache.has(key))return Promise.resolve(addressCache.get(key));
+  if(addressPending.has(key))return addressPending.get(key);
+  const work=searchAddressUncached(query,opts).then(found=>{
+    if(found){addressCache.set(key,found);if(addressCache.size>50)addressCache.delete(addressCache.keys().next().value);}
+    return found;
+  }).finally(()=>addressPending.delete(key));
+  addressPending.set(key,work);
+  return work;
 }
 async function searchAddressUncached(query,{census=false,nominatim=false}={}){
   const q=clean(query,120);

@@ -18,8 +18,8 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   geocoders only the typed text, and map tiles only the z10/z12/z13/z14 tile area.
 * **Settings** (press Select on the dashboard): layout, location, alert radius 1–10 mi, map
   radius 2–250 mi (also Up/Down on the dashboard; the alert ring never exceeds it),
-  keep screen awake (on by default: a silent, invisible 10 s loop in Vega's native player
-  holds off the screensaver while the app is shown; see `src/silentLoop.ts` before an Appstore build),
+  keep screen awake (off unless turned on: a silent, invisible 10 s loop in Vega's native player
+  holds off the screensaver while the app is shown; see `src/silentLoop.ts`),
   distance mi/km (speed kt or km/h), altitude ft/m. Back closes.
 * **Layouts.** Settings > Layout opens a bar over the live dashboard: left/right switch
   layouts on the spot, OK keeps one, Back goes back to the saved one. 1 Atlas Dark (default), 2 Atlas Light (full city map), 3 Atlas Satellite (USGS / Sentinel-2
