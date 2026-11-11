@@ -1,7 +1,8 @@
 // node --test tests/test-ledger-writes.mjs — the route ledger (whatsup.ledger.v1) and 'Recently above'
-// (whatsup.history.v1) are saved once a minute, at once when the app is hidden, the feed stops or adsb.lol
+// (whatsup.history.v1) are saved every 5 minutes, at once when the app is hidden, the feed stops or adsb.lol
 // asks for a pause, and 'Recently above' when its planes change: not on every poll (after a day near a
-// hub the ledger is hundreds of KB, and serialising and writing it blocked a stick about 30 ms a poll).
+// hub the ledger is hundreds of KB, and serialising and writing it blocked a stick about 30 ms a poll),
+// nor every minute (that alone wrote about 40 MB an hour to the flash near a hub; Amazon asks under 50).
 // The live source runs on a simulated clock (Date.now, performance.now, setTimeout and fetch replaced)
 // over a counting localStorage.
 import test from 'node:test';
@@ -48,27 +49,32 @@ function rig(){
   return {saved,asked,routes,advance,n,ledger,restore,live:(config=CFG)=>startLive(()=>{},config),get t(){return t-T0;}};
 }
 
-test('ledger: 13 polls in a minute write it once, at the minute, and once a minute after; Recently above once when its plane appears and once a minute with its times',async()=>{
+test('ledger: 60 polls in 5 minutes write it once, at 5 minutes, and once every 5 minutes after; Recently above once when its plane appears and every 5 minutes with its times',async()=>{
   const r=rig();
   try{
     const live=r.live();
-    await r.advance(59000);
+    await r.advance(60000);
     assert.deepEqual(r.asked,['FIX101','UAL1'],'both lookups made');
-    assert.equal(r.n(LEDGER_KEY),0,'12 polls, every one putting rows: no write within the minute');
+    assert.equal(r.n(LEDGER_KEY),0,'a minute of polls, every one putting rows: no write (it was written here before)');
+    await r.advance(239000);
+    assert.equal(r.n(LEDGER_KEY),0,'59 polls: no write within the 5 minutes');
     assert.equal(r.n(HISTORY_KEY),1,'Recently above: written when the plane appeared, not for its moving time');
     await r.advance(2000);
-    assert.equal(r.n(LEDGER_KEY),1,'written at the minute');
+    assert.equal(r.n(LEDGER_KEY),1,'written at 5 minutes');
     assert.equal(r.n(HISTORY_KEY),2,'its time refreshed with it');
     assert.deepEqual(Object.keys(r.ledger()).sort(),['lol:FIX101','lol:UAL1','route:a2b2b2:UAL1','sighting:a1f1f1:FIX101'],'the saved ledger is whole');
     assert.deepEqual(JSON.parse(r.saved.get(HISTORY_KEY)).map(a=>a.hex),['a1f1f1']);
-    await r.advance(60000);
-    assert.equal(r.n(LEDGER_KEY),2,'12 more polls: one more write');
+    await r.advance(300000);
+    assert.equal(r.n(LEDGER_KEY),2,'60 more polls: one more write');
     assert.equal(r.n(HISTORY_KEY),3);
+    // 55 minutes more (65 in all): 13 ledger writes, where once a minute made 65.
+    await r.advance(3300000);
+    assert.equal(r.n(LEDGER_KEY),13);assert.equal(r.n(HISTORY_KEY),14,'and the one when the plane appeared');
     live.stop();
   }finally{r.restore();}
 });
 
-test('ledger: hidden (pause), the unsaved ledger and Recently above are written at once; shown again, the minute starts over',async()=>{
+test('ledger: hidden (pause), the unsaved ledger and Recently above are written at once; shown again, the 5 minutes start over',async()=>{
   const r=rig();
   try{
     const live=r.live();
@@ -80,8 +86,8 @@ test('ledger: hidden (pause), the unsaved ledger and Recently above are written 
     assert.deepEqual(Object.keys(r.ledger()).sort(),['lol:FIX101','lol:UAL1','route:a2b2b2:UAL1','sighting:a1f1f1:FIX101']);
     live.pause();assert.equal(r.n(LEDGER_KEY),1,'nothing new to save: no second write');
     live.resume();
-    await r.advance(59000);
-    assert.equal(r.n(LEDGER_KEY),1,'back on screen: not within the minute');
+    await r.advance(299000);
+    assert.equal(r.n(LEDGER_KEY),1,'back on screen: not within the 5 minutes');
     await r.advance(5000);
     assert.equal(r.n(LEDGER_KEY),2,'then at the first poll past it');
     live.stop();
@@ -106,7 +112,7 @@ test('ledger: a stop saves it (the feed that replaces it reads the lookups back 
   }finally{r.restore();}
 });
 
-test('ledger: a pause adsb.lol asks for on a route lookup (a 429: 15 min) is saved on that poll, so the next launch keeps it; the polls after wait for the minute again',async()=>{
+test('ledger: a pause adsb.lol asks for on a route lookup (a 429: 15 min) is saved on that poll, so the next launch keeps it; the polls after wait for the 5 minutes again',async()=>{
   const r=rig();
   try{
     r.routes.FIX101={status:429,body:null};

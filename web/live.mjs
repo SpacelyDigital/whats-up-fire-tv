@@ -426,7 +426,7 @@ export class Enricher {
 // and 15 s mark are kept (a failure that lands after the restart counts too, unless a request made
 // since has succeeded), and while adsb.fi is known to be down the new feed starts on the backup with
 // both back-offs kept.
-export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20],LEDGER_FLUSH_MS=60000;
+export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20],LEDGER_FLUSH_MS=300000;
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
 // okAt: when the last adsb.fi request that answered with data went out. lastStamp: the last good reply's
@@ -455,11 +455,13 @@ export function startLive(show,config){
   const radius=Math.max(1,Math.min(10,Number(config.radiusMiles)||3));
   const ledger=new Ledger(store.get(LEDGER_KEY)),enricher=new Enricher(ledger,url=>getJson(url,8000));
   let history=store.get(HISTORY_KEY)||[],routes=ledger.routes(Date.now()/1000),enriching=false,timer=null,stopped=false;
-  // The ledger (hundreds of KB after a day near a hub) and 'Recently above' are saved once a minute, the
-  // logbook's way, not on every poll: serialising and writing them blocked a stick about 30 ms a poll.
+  // The ledger (hundreds of KB after a day near a hub) and 'Recently above' are saved every 5 minutes, as
+  // the logbook is, not on every poll: serialising and writing them blocked a stick about 30 ms a poll, and
+  // once a minute a busy hub's ledger alone wrote about 40 MB an hour to the stick's flash (Amazon asks
+  // under 50 MB an hour for the whole app in front), 5 minutes about 8 MB.
   // At once: a pause adsb.lol asked for (urgent), all that is unsaved when the app is hidden (pause,
   // pagehide) or the feed stops (the feed that replaces it reads it back), and 'Recently above' when its
-  // planes change. A minute of refreshed expiries and times lost on a power cut is nothing (a cache).
+  // planes change. Five minutes of refreshed expiries and times lost on a power cut is nothing (a cache).
   let saved=performance.now(),seq=hexes(history),histDirty=false;
   const saveLedger=()=>{ledger.dirty=ledger.urgent=false;store.set(LEDGER_KEY,ledger);};
   const saveHistory=()=>{histDirty=false;store.set(HISTORY_KEY,history);};
