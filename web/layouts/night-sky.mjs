@@ -6,8 +6,9 @@ import {el,svg,setText,fmt,metric,placeName,statusText,quietText,byInterest,make
 
 const W=960,H=540,TRAIL_AGE=8*60000;
 const VIEW={cx:480,cy:300,ppm:24};
-// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
-const shows=a=>{const p=toView(VIEW,a.x,a.y);return !(p.x<-20||p.y<-20||p.x>W+20||p.y>H+20);};
+// The planes in this sky: the ones counted, labelled, and offered by Left/Right (browse.mjs). Stars
+// are also drawn just past the edges, half in view; those are neither counted nor offered.
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return p.x>=0&&p.y>=0&&p.x<=W&&p.y<=H;};
 const MAP=[
   {layer:'water',fill:'rgba(120,150,205,.075)'},
   {layer:'rivers',stroke:'rgba(150,175,215,.14)',width:1},
@@ -114,8 +115,8 @@ function render(m){
   const stars=[],labels=[],boxes=[{x:0,y:0,w:W,h:96},{x:0,y:H-50,w:W,h:50},{x:VIEW.cx-8,y:VIEW.cy-8,w:16,h:16}];
   const order=byInterest(m);
   for(const a of order.slice().reverse()){
-    if(!shows(a))continue;
     const p=toView(VIEW,a.x,a.y);
+    if(p.x<-20||p.y<-20||p.x>W+20||p.y>H+20)continue;
     const low=number(a.altitude_ft)?Math.max(0,Math.min(1,1-a.altitude_ft/40000)):.5,isHero=a===hero;
     const halo=a.emergency?'ns-halo-red':a.military?'ns-halo-mil':a.cargo?'ns-halo-warm':'ns-halo';
     const g=svg('g',{class:`star${isHero?' hero':''}${a.emergency?' sos':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`});
@@ -124,8 +125,8 @@ function render(m){
     stars.push(g);
   }
   for(const a of order.slice(0,8)){
+    if(!shows(a))continue;
     const p=toView(VIEW,a.x,a.y),isHero=a===hero;
-    if(p.x<0||p.y<0||p.x>W||p.y>H)continue;
     if(isHero){
       const r=a.route;
       const l1=a.emergency?`${a.flight} · ${a.squawk?`squawk ${a.squawk} · `:''}${a.emergency.toLowerCase()}`:a.flight;
@@ -148,7 +149,7 @@ function render(m){
   $['quiet-note'].hidden=!!hero;
   if(!hero)setText($['quiet-note'].lastChild,(demo||m.fresh)&&!m.noCoverage?`Nothing within ${fmt.dist(range(),0)} right now.`:quietText(m,demo));
   // Everything drawn counts (the sky reaches a little past the map radius at the sides).
-  const n=m.planes.filter(a=>{const p=toView(VIEW,a.x,a.y);return p.x>=0&&p.y>=0&&p.x<=W&&p.y<=H;}).length;
+  const n=m.planes.filter(shows).length;
   // Browsing (Left/Right): the chosen plane's number in the list, and where it is.
   const seen=`${fmt.int(m.log.today)} seen today`,head=headingAlts(hero,'');
   setText($.count,'',hero?.browse?[...head.map(h=>`${h} · ${seen}`),...head]:[`${n?`${n} aircraft in this sky`:'no aircraft in this sky'} · ${seen}`]);
