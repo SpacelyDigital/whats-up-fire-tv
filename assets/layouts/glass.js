@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
-  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts}=__modules["kit.mjs"];
+  compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 5, Glass: a near-black street map (roads by class, water, parks, faint
 // buildings) under see-through glass cards: time and place, the hero flight with
 // route and four instrument tiles, the nearest aircraft in range, and today's tallies.
@@ -55,16 +55,17 @@ function ui(){
   const quiet=card('gl-quiet','<div class="gl-kicker">Sky</div><div class="gl-quiet-t"></div>');quiet.hidden=true;
   const near=card('gl-near','<div class="gl-kicker">In range</div><div class="gl-list"></div>');
   const tally=el('div','gl-tally');
-  tally.append(card('gl-mini','<span>Today</span><b class="gl-seen"></b><i>aircraft</i>'),card('gl-mini cargo','<span>Cargo tonight</span><b class="gl-cargo"></b><i class="gl-cargo-by"></i>'));
+  tally.append(card('gl-mini','<span>Today</span><b class="gl-seen"></b><i class="gl-seen-by">aircraft</i>'),card('gl-mini cargo','<span>Cargo</span><b class="gl-cargo"></b><i class="gl-cargo-by"></i>'),
+    card('gl-mini mil','<span>Military</span><b class="gl-mil"></b><i class="gl-mil-by"></i>'));
   col.append($.alert,hero,quiet,near,tally);
   // Aircraft photo: its own glass card, bottom left, only while there is a picture.
   $.photo=card('gl-photo','');$.photo.hidden=true;$.photo.append($.pic=photoSlot());
   root.append($.canvas,el('div','gl-vignette'),$.labels,$.over,top,col,$.photo);
   Object.assign($,{hero,quiet,near});
-  for(const c of ['clock','city','status','date','kicker','flight','sub','o','oc','d','dc','line','alt','spd','look','cpa','quiet-t','list','seen','cargo','cargo-by'])
+  for(const c of ['clock','city','status','date','kicker','flight','sub','o','oc','d','dc','line','alt','spd','look','cpa','quiet-t','list','seen','seen-by','mil','mil-by','cargo','cargo-by'])
     $[c]=root.querySelector('.gl-'+c);
   $.lineFill=$.line.firstChild;
-  fit($.city,$.flight,$.alt,$.spd,$.look,$.cpa,$['cargo-by']);
+  fit($.city,$.kicker,$.flight,$.alt,$.spd,$.look,$.cpa);
 }
 
 function drawMap(){
@@ -96,7 +97,7 @@ function render(m){
     const p=toView(VIEW,a.x,a.y);
     if(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)continue;
     const isHero=a===hero;
-    planes.push(planeIcon(a,p,isHero?26:18,`gl-plane${isHero?' hero':''}${a.inside?'':' far'}`));
+    planes.push(planeIcon(a,p,isHero?26:18,`gl-plane${isHero?' hero':''}${a.inside?'':' far'}${a.military?' mil':''}`));
     if(p.x>624||p.y<110)continue;
     const t=`${a.flight} · ${fmt.alt(a.altitude_ft)}`,w=t.length*6.9+18,hh=22;
     const b=placeBox(boxes,p,w,hh,[[16,-hh-4],[-w-16,-hh-4],[16,6],[-w-16,6]],bounds);if(!b)continue;
@@ -110,7 +111,7 @@ function render(m){
   if(hero?.emergency)$.alert.replaceChildren(el('b','',`Squawk ${hero.squawk}`),el('span','',hero.emergency));
   if(!hero)setText($['quiet-t'],quietText(m,demo));
   if(hero){
-    setText($.kicker,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`);
+    setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.flight,hero.flight);
     setText($.sub,[hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''),hero.type||hero.aircraft_type].filter(Boolean).join(' · ')||'Unknown aircraft');
     const r=hero.route;
@@ -121,7 +122,7 @@ function render(m){
     setText($.look,`${Math.max(0,Math.round(hero.elevation))}° ${compass(hero.bearing)}`);
     const c=hero.cpa;setText($.cpa,!c?'—':c.receding?'Passed':fmt.mmss(c.seconds));
   }
-  const others=m.planes.filter(a=>a!==hero).slice(0,hero?.emergency?2:3);
+  const others=m.planes.filter(a=>a!==hero&&a.ground<=range()).slice(0,hero?.emergency?2:3); // on the map only
   $.list.replaceChildren(...(others.length?others.map(a=>{
     const r=el('div','gl-row');
     const arrow=el('i','gl-arrow','▲');arrow.style.transform=`rotate(${Math.round(a.heading||0)}deg)`;
@@ -133,7 +134,14 @@ function render(m){
   while(col.scrollHeight>col.clientHeight+1&&$.list.children.length>1)$.list.lastElementChild.remove();
   const L=m.log;
   setText($.seen,fmt.int(L.today));setText($.cargo,L.cargoTonight);
-  setText($['cargo-by'],L.cargoBy.length?L.cargoBy.slice(0,2).map(([b,n])=>`${b} ${n}`).join(' · '):L.night?'none yet':'from 6 pm');
+  // The cards' bottom lines fit their card (cargo drops brands, military drops types), then
+  // all three take the smallest size so none is bigger than its neighbours.
+  const brands=n=>L.cargoBy.slice(0,n).map(([b,n])=>`${n} ${b}`).join(' · '); // count first, like Military
+  $['cargo-by']._alts=L.cargoBy.length?[...new Set([brands(2),brands(1)])]:[L.night?'none yet':'from 6 pm'];
+  setText($.mil,L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
+  const lines=[$['seen-by'],$['cargo-by'],$['mil-by']];
+  for(const e of lines){e.textContent=(e._alts||[e.textContent])[0];fitLine(e);}
+  const size=Math.min(...lines.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of lines)e.style.fontSize=`${size}px`;
 }
 
 

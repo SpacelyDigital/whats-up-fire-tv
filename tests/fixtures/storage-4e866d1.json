@@ -1,0 +1,9 @@
+{
+ "_note": "What the TV build (4e866d1) saved at CVG (39.05, -84.65) after adsb.fi went down: two minutes on adsb.lol (one plane logged today), then an adsb.lol 429 (in 4e866d1, a 15-minute pause), then the app sent to the background. Made by running 4e866d1's web/model.mjs on a fake clock from 2026-11-03T05:00:00Z.",
+ "savedAt": "2026-11-03T05:02:31.000Z",
+ "storage": {
+  "whatsup.history.v1": "[{\"hex\":\"a10101\",\"callsign\":\"LOL202\",\"registration\":\"N1101\",\"aircraft_type\":\"B738\",\"last_seen\":1793682119.6}]",
+  "whatsup.logbook.v1": "{\"day\":\"2026-11-03\",\"pk\":1,\"seen\":[\"a10101\"],\"planes\":{\"xa10101\":{\"d\":1,\"t\":\"B738\",\"f\":\"LOL202\"}},\"highest\":{\"name\":\"LOL202\",\"value\":4000},\"fastest\":{\"name\":\"LOL202\",\"value\":220},\"typesToday\":[\"B738\"],\"typesAll\":{\"B738\":1},\"cargo\":{\"night\":\"2026-11-02\",\"seen\":{}},\"mil\":{}}",
+  "whatsup.ledger.v1": "{\"sighting:a10101:LOL202\":{\"expires\":1793703720,\"value\":{\"latitude\":39.065,\"longitude\":-84.65,\"heading\":90,\"speed_kt\":220,\"altitude_ft\":4000,\"vertical_rate\":-640,\"observed\":1793682119.6}},\"lol:LOL202\":{\"expires\":1793768410,\"value\":{}},\"cooldown:adsblol-positions\":{\"expires\":1793683030,\"value\":1793683030}}"
+ }
+}

@@ -13,9 +13,8 @@
 .L-synthwave .sun{position:absolute;left:350px;top:66px;width:260px;height:260px;border-radius:50%;
   background:linear-gradient(var(--sun1) 0,#ffb347 30%,#ff5f8f 62%,#ff2e88 100%);box-shadow:0 0 60px rgba(255,90,160,.75),0 0 140px rgba(255,46,136,.45);
   -webkit-mask:linear-gradient(#000 0 46%,transparent 46% 50%,#000 50% 58%,transparent 58% 63%,#000 63% 70%,transparent 70% 76%,#000 76% 82%,transparent 82% 89%,#000 89%);
-  mask:linear-gradient(#000 0 46%,transparent 46% 50%,#000 50% 58%,transparent 58% 63%,#000 63% 70%,transparent 70% 76%,#000 76% 82%,transparent 82% 89%,#000 89%);
-  animation:sw-sun 6s ease-in-out infinite alternate}
-@keyframes sw-sun{to{box-shadow:0 0 80px rgba(255,90,160,.9),0 0 170px rgba(255,46,136,.55)}}
+  mask:linear-gradient(#000 0 46%,transparent 46% 50%,#000 50% 58%,transparent 58% 63%,#000 63% 70%,transparent 70% 76%,#000 76% 82%,transparent 82% 89%,#000 89%)}
+/* The disc's glow (its box-shadow) is clipped away by the stripe mask, so it is not animated: that re-rastered the blurred disc every frame for nothing visible. */
 .L-synthwave .world{position:absolute;inset:0;perspective:600px;overflow:hidden}
 .L-synthwave .floor{position:absolute;transform-origin:50% 50%;transform:rotateX(60deg);
   background:linear-gradient(#14012e,#240650 60%,#1a0438)}
@@ -32,10 +31,13 @@
 .L-synthwave .jet{fill:rgba(33,240,255,.25);stroke:var(--cyan);stroke-width:2;stroke-linejoin:round;filter:drop-shadow(0 0 5px var(--cyan))}
 .L-synthwave .jet.inside{stroke:#fff;fill:rgba(33,240,255,.55)}
 .L-synthwave .jet.cargo{stroke:var(--sun1);filter:drop-shadow(0 0 5px var(--sun1));fill:rgba(255,228,92,.25)}
-.L-synthwave .jet.hero{stroke:var(--pink);fill:rgba(255,79,216,.55);filter:drop-shadow(0 0 8px var(--pink));animation:sw-pulse 1.6s ease-in-out infinite}
+.L-synthwave .jet.hero{stroke:var(--pink);fill:rgba(255,79,216,.55);filter:drop-shadow(0 0 2px var(--pink))}
 .L-synthwave .stalk.hero{stroke:var(--pink)}.L-synthwave .shadow.hero{fill:rgba(255,79,216,.5)}
-.L-synthwave .jet.off{opacity:.6}
-@keyframes sw-pulse{50%{filter:drop-shadow(0 0 2px var(--pink))}}
+.L-synthwave .jet.off,.L-synthwave .pulse .off{opacity:.6}
+/* The hero's pulse: a copy of its chevron on its own layer under the overlay, its wide glow fading in and out over the chevron's own narrow one (an animated drop-shadow re-rasters the overlay, 300 filtered jets, every frame). */
+.L-synthwave .pulse{position:absolute;width:160px;height:160px;margin:-80px 0 0 -80px;overflow:visible;animation:sw-pulse 1.6s ease-in-out infinite}
+.L-synthwave .pulse path{stroke:var(--pink);fill:rgba(255,79,216,.55);stroke-width:2;stroke-linejoin:round;filter:drop-shadow(0 0 8px var(--pink))}
+@keyframes sw-pulse{50%{opacity:0}}
 .L-synthwave .tag{fill:#fff;font:700 14px var(--orb);paint-order:stroke;stroke:rgba(11,2,33,.8);stroke-width:3.5}
 .L-synthwave .tag2{fill:var(--cyan);font:600 12px var(--orb);paint-order:stroke;stroke:rgba(11,2,33,.8);stroke-width:3.5}
 .L-synthwave .tag.hero{fill:var(--pink)}
@@ -47,7 +49,7 @@
 .L-synthwave .clock{font:900 48px/1.05 var(--orb);color:#fff;text-shadow:0 0 6px #fff,0 0 18px var(--cyan),0 0 36px var(--cyan);margin-top:4px}
 .L-synthwave .date{font:600 13px var(--orb);color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
 .L-synthwave .hcard{position:absolute;right:24px;top:18px;width:330px;text-align:right}
-.L-synthwave .h-label{font:700 12px var(--orb);color:var(--cyan);letter-spacing:.18em;text-transform:uppercase}
+.L-synthwave .h-label{white-space:nowrap;font:700 12px var(--orb);color:var(--cyan);letter-spacing:.18em;text-transform:uppercase}
 .L-synthwave .h-fl{font:900 38px/1.1 var(--orb);color:#fff;text-shadow:0 0 8px var(--pink),0 0 24px var(--pink);white-space:nowrap}
 .L-synthwave .h-fl.long{font-size:28px}
 .L-synthwave .h-rt{font:700 17px var(--orb);color:var(--sun1);text-shadow:0 0 8px rgba(255,180,70,.7);line-height:1.3}
@@ -65,8 +67,9 @@
 .L-synthwave .s-status{font:700 12px var(--orb);color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;align-self:center}
 .L-synthwave .s-status.off{color:var(--hot)}
 
+/* QUIET SKIES and the takeover headline: one line in the middle 380px of the sky, 9px clear of the longest date */
 .L-synthwave .quiet,.L-synthwave .mayday{position:absolute;left:180px;right:180px;top:84px;text-align:center;pointer-events:none}
-.L-synthwave .q1{font:900 46px var(--orb);color:#fff;letter-spacing:.12em;text-shadow:0 0 8px var(--cyan),0 0 26px var(--cyan),0 0 50px var(--pink);animation:sw-flicker 5s infinite}
+.L-synthwave .q1{font:900 46px var(--orb);color:#fff;letter-spacing:.12em;white-space:nowrap;margin:0 110px;text-shadow:0 0 8px var(--cyan),0 0 26px var(--cyan),0 0 50px var(--pink);animation:sw-flicker 5s infinite}
 .L-synthwave .q2{font:600 14px var(--orb);color:#ffe9fb;margin-top:8px;text-shadow:0 0 6px #000}
 @keyframes sw-flicker{0%,18%,22%,60%,100%{opacity:1}20%,61%{opacity:.55}}
 
@@ -74,13 +77,16 @@
 .L-synthwave .emergency .sky{background:linear-gradient(#1a0008 0,#4a0414 40%,#a3081f 75%,#ff3b2f 100%)}
 .L-synthwave .emergency .sun{background:linear-gradient(#ffd0c0,#ff4a3d 50%,#a3081f);box-shadow:0 0 80px rgba(255,40,40,.9)}
 .L-synthwave .emergency .hcard{display:none}
-.L-synthwave .m1{font:900 64px var(--orb);color:#fff;letter-spacing:.14em;text-shadow:0 0 10px #ff2a2a,0 0 30px #ff2a2a,0 0 60px #ff2a2a;animation:sw-may 1s steps(2) infinite}
+.L-synthwave .m1{font:900 64px var(--orb);color:#fff;letter-spacing:.14em;white-space:nowrap;margin:0 110px;text-shadow:0 0 10px #ff2a2a,0 0 30px #ff2a2a,0 0 60px #ff2a2a;animation:sw-may 1s steps(2) infinite}
 .L-synthwave .m2{font:800 16px var(--orb);color:#fff;background:rgba(120,0,10,.75);display:inline-block;padding:4px 12px;border-radius:6px;margin-top:6px;border:1.5px solid #ff4a3d}
 @keyframes sw-may{50%{opacity:.45}}
-.L-synthwave .emergency .jet.hero{stroke:#ff3b30;fill:rgba(255,59,48,.7);filter:drop-shadow(0 0 10px #ff3b30)}
+.L-synthwave .emergency .jet.hero{stroke:#ff3b30;fill:rgba(255,59,48,.7)}
+.L-synthwave .emergency .pulse path{stroke:#ff3b30;fill:rgba(255,59,48,.7);filter:drop-shadow(0 0 10px #ff3b30)}
 .L-synthwave .emergency .tag.hero{fill:#ff6a5f}
 /* Aircraft photo under the hero card: right-aligned in a thin neon frame on night purple. */
 .L-synthwave .ph{justify-content:flex-end;margin-top:8px}
 .L-synthwave .ph-img,.L-synthwave .ph-qr{border:1px solid var(--cyan);box-shadow:0 0 8px rgba(33,240,255,.55);background:#12032b}
 .L-synthwave .ph-img{height:62px}.L-synthwave .ph-qr{width:62px;height:62px}
 .L-synthwave .ph-cap{text-align:right;font:500 10px var(--orb);color:rgba(255,220,250,.85);opacity:1;text-shadow:0 0 3px #0b0221,0 0 6px #0b0221}
+.L-synthwave .jet.mil{stroke:#b9e07a;filter:drop-shadow(0 0 5px #b9e07a);fill:rgba(185,224,122,.25)}
+.L-synthwave .strip b.s-mil{text-shadow:0 0 6px #b9e07a}

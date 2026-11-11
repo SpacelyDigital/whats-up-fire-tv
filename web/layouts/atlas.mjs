@@ -5,12 +5,15 @@
 // Layout 1, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 3,
 // Atlas Satellite, puts satellite imagery under a light road overlay (atlas-satellite.css).
 import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
-  airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit} from '../kit.mjs';
+  airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit,headingAlts} from '../kit.mjs';
+import {PROFILE} from '../profile.mjs';
 
 const DETAIL_MAX=15; // the street map is drawn up to this map radius (mapgen DETAIL_MAX_RANGE)
 // ppm 25.5: the map radius fits between home and the bottom edge (264 px), so every plane
 // within the radius is on screen (at 54 it showed about half the radius north-south).
 const W=700,H=540,VIEW={cx:350,cy:276,ppm:25.5,clip:{x:0,y:0,w:W,h:H}};
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return !(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20);};
 const road=(classes,casing,fill,cw,fw)=>[{layer:'roads',from:'detail',classes,stroke:casing,width:cw},{layer:'roads',from:'detail',classes,stroke:fill,width:fw}];
 const DETAIL=[
   {layer:'landuse',classes:['residential'],fill:'#ece6da'},
@@ -83,8 +86,12 @@ const SAT_BASE=[
   {layer:'roads',classes:['trunk'],stroke:'rgba(255,255,255,.45)',width:1.4},
   {layer:'roads',classes:['motorway'],stroke:'rgba(255,214,120,.6)',width:1.8},
 ];
-// Imagery: USGS The National Map in the US (public domain), else Sentinel-2 cloudless 2016
-// by EOX (Contains modified Copernicus Sentinel data 2016). {z}/{y}/{x} web-mercator tiles.
+// Imagery: USGS The National Map in the US (USGSImageryOnly, public domain), else EOxCloudless
+// 2016 by EOX (CC BY 4.0; Contains modified Copernicus Sentinel data 2016) where the build
+// profile allows it (personal). Without imagery (store build outside the US) Atlas Satellite
+// draws the dark vector map instead. Only the imagery layer is loaded from EOX: no overlay,
+// label or road layer. {z}/{y}/{x} web-mercator tiles.
+const SAT_TILES=48;
 const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';
 const EOX='https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg';
 const BASE=[
@@ -95,12 +102,14 @@ const BASE=[
   {layer:'runways',stroke:'#a29bb8',width:4},
 ];
 
-let root,demo,ctx,dark=false,sat=false,satToken=0,$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
+const usPlace=p=>p?.countryCode==='US'||p?.countryCode==='PR';
+const imagery=()=>sat&&(usPlace(ctx?.place?.())||PROFILE.eox);
+let root,demo,ctx,dark=false,sat=false,satToken=0,satKey='',$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
 
 function ui(){
   const map=el('div','at-map'),side=el('aside','at-side');
   $.canvas=makeCanvas(W,H,'at-canvas');
-  if(sat)$.sat=makeCanvas(W,H,'at-canvas at-sat');
+  if(sat){$.sat=makeCanvas(W,H,'at-canvas at-sat');satKey='';}
   $.labels=svg('svg',{class:'at-svg',viewBox:`0 0 ${W} ${H}`});
   $.over=svg('svg',{class:'at-svg',viewBox:`0 0 ${W} ${H}`});
   for(const k of ['ring','trails','marks','tags'])$.over.append($[k]=svg('g',{class:`at-${k}`}));
@@ -121,18 +130,21 @@ function ui(){
         <div><dt>Climb</dt><dd class="at-vs"></dd></div><div><dt>Heading</dt><dd class="at-hdg"></dd></div>
         <div><dt>Look</dt><dd class="at-look"></dd></div><div><dt>Closest</dt><dd class="at-cpa"></dd></div>
       </dl>
-      <div class="at-type"><span class="at-typet"></span></div><div class="at-reg"></div>
-      <div class="at-pic" hidden><img class="at-img" alt=""><img class="at-qr" alt=""><div class="at-credit"></div></div>
+      <div class="at-id"><div class="at-type"><span class="at-typet"></span></div><div class="at-reg"></div>
+        <div class="at-pic" hidden><img class="at-img" alt=""><img class="at-qr" alt=""></div><div class="at-credit"></div></div>
     </section>
     <section class="at-quiet" hidden></section>
     <section class="at-books">
-      <div class="at-cargo"><b class="at-cargo-n"></b><div><h4>Cargo tonight</h4><div class="at-cargo-by"></div></div></div>
-      <h4>Today</h4><dl class="at-log"></dl>
+      <div class="at-counts"><b class="at-cargo-n"></b><div class="at-ct"><h4>Cargo</h4><div class="at-cargo-by"></div></div>
+        <b class="at-mil-n"></b><div class="at-ct"><h4>Military</h4><div class="at-mil-by"></div></div></div>
+      <dl class="at-log"></dl>
     </section>
     <section class="at-recent"><h4 class="at-rech">Recently above</h4><div class="at-rec"></div></section>`;
   for(const c of ['city','clock','status','date','hero','alert','kicker','fl','op','route','prog','bar','progt','alt','spd','vs','hdg','look','cpa',
-    'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','log','rec'])$[c]=side.querySelector('.at-'+c);
-  $.barFill=$.bar.firstChild;fit($.city);
+    'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','mil-n','mil-by','log','rec'])$[c]=side.querySelector('.at-'+c);
+  $.credit._whole=true; // attribution: wraps rather than losing words
+  $.alert._firm=true; // the emergency notice: "7600 · RADIO FAILURE" rather than smaller type
+  $.barFill=$.bar.firstChild;fit($.city,$.kicker,$.alert);
   root.append(map,side);
 }
 
@@ -140,19 +152,33 @@ function ui(){
 // ~40 tiles), drawn as they arrive onto their own canvas; the images are dropped once drawn.
 function drawSatellite(){
   const place=ctx?.place?.();if(!sat||!$.sat||!place)return;
-  const token=++satToken,c=$.sat,k=c._k||1,g=c.getContext('2d');
+  if(!imagery()){const g=$.sat.getContext('2d');g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,$.sat.width,$.sat.height);g.restore();satKey='';satToken++;return;}
+  const c=$.sat,k=c._k||1,g=c.getContext('2d');
+  const us=usPlace(place),ppm=ppmOf(VIEW),cos=Math.cos(place.latitude*Math.PI/180);
+  // Nothing changed that moves the imagery (place, scale, the water drawn under it): keep
+  // what is drawn instead of downloading every tile again on each redraw.
+  const key=[place.latitude,place.longitude,ppm,k,maps.base?.built,maps.detail?.built].join();
+  if(key===satKey)return;
+  satKey=key;
+  const token=++satToken;
   paintMap(c,maps,VIEW,SAT_UNDER);g.setTransform(k,0,0,k,0,0);
-  const us=place.countryCode==='US'||place.countryCode==='PR',ppm=ppmOf(VIEW),cos=Math.cos(place.latitude*Math.PI/180);
   const metresPerPx=1609.344/ppm/k;
-  const z=Math.max(3,Math.min(us?16:13,Math.round(Math.log2(156543.03*cos/metresPerPx))));
-  const n=2**z,tx=lon=>(lon+180)/360*n,ty=lat=>{const s=Math.sin(lat*Math.PI/180);return (.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n;};
+  // The tile set is chosen around the snapped grid point (core.mjs), widened to still cover
+  // the view around the true home, so imagery requests only reveal the grid cell. At most
+  // z14 (z13 outside the US) and SAT_TILES tiles: a wide map takes a coarser zoom rather
+  // than going blank.
+  const sc=snapped(place),pad=GRID_PAD_MI;
+  const halfW=(W/2/ppm+pad)/(69.172*cos),halfH=(H/2/ppm+pad)/69;
+  let z=Math.max(3,Math.min(us?14:13,Math.round(Math.log2(156543.03*cos/metresPerPx)))),n,tx,ty,x0,x1,y0,y1;
+  for(;;z--){
+    n=2**z;tx=lon=>(lon+180)/360*n;ty=lat=>{const s=Math.sin(lat*Math.PI/180);return (.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n;};
+    x0=Math.floor(tx(sc.longitude-halfW));x1=Math.floor(tx(sc.longitude+halfW));
+    y0=Math.floor(ty(sc.latitude+halfH));y1=Math.floor(ty(sc.latitude-halfH));
+    if((x1-x0+1)*(y1-y0+1)<=SAT_TILES||z<=3)break;
+  }
   const lonOf=x=>x/n*360-180,latOf=y=>Math.atan(Math.sinh(Math.PI-2*Math.PI*y/n))*180/Math.PI;
-  // Screen point of a lat/lon (same equirectangular miles as the vector maps).
+  // Screen point of a lat/lon (same equirectangular miles as the vector maps, from the true home).
   const px=(lat,lon)=>({x:VIEW.cx+(lon-place.longitude)*69.172*cos*ppm,y:VIEW.cy-(lat-place.latitude)*69*ppm});
-  const halfW=W/2/ppm/(69.172*cos),halfH=H/2/ppm/69;
-  const x0=Math.floor(tx(place.longitude-halfW)),x1=Math.floor(tx(place.longitude+halfW));
-  const y0=Math.floor(ty(place.latitude+halfH)),y1=Math.floor(ty(place.latitude-halfH));
-  if((x1-x0+1)*(y1-y0+1)>48)return;
   for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){
     const img=new Image();
     img.onload=()=>{
@@ -166,8 +192,8 @@ function drawSatellite(){
 
 function drawMap(){
   drawSatellite();
-  paintMap($.canvas,maps,VIEW,sat?(maps.detail?SAT_DETAIL:SAT_BASE):maps.detail?(dark?DARK_DETAIL:DETAIL):(dark?DARK_BASE:BASE));
-  setText($.note,maps.detail?'':maps.base?'Drawing detail…':'Drawing the map…');
+  paintMap($.canvas,maps,VIEW,imagery()?(maps.detail?SAT_DETAIL:SAT_BASE):maps.detail?(dark?DARK_DETAIL:DETAIL):(dark?DARK_BASE:BASE));
+  setText($.note,maps.detail?'':maps.base?'Drawing detail':'Drawing the map');
   // Labels, set once per map with a halo like print. Up to 15 mi: no place names, just the
   // airports with an official code (IATA/ICAO/FAA), each a ring marker (never a plane
   // shape: planes are the aircraft) with "CODE Name". Wider: those airports, then cities.
@@ -202,8 +228,10 @@ function drawMap(){
     const t=svg('text',{class:`at-place ${big?'big':''}`,x:b.x+w/2,y:b.y+h-4,'text-anchor':'middle'},name);
     t._box=b;nodes.push(t);
   }
-  $.labels.replaceChildren(...nodes);
-  // Scale bar: a round distance about 60 px long at the current map radius.
+  $.labels.replaceChildren(...nodes);scaleBar();
+}
+// Scale bar: a round distance about 60 px long at the current map radius, in the chosen unit.
+function scaleBar(){
   const bar=niceDistance(VIEW,60);
   $.scale.innerHTML=`<i style="width:${bar.px.toFixed(0)}px"></i><span>${bar.label}</span>`;
 }
@@ -221,29 +249,35 @@ function showPhoto(a){
   photoFor(a).then(p=>{
     if(!root||picHex!==hex)return;
     const qr=p&&themedQr(p.link);
-    if(p&&qr){
-      photo=p;$.img.src=p.src;$.qr.src=qr;
-      $.credit._alts=[`© ${p.photographer} · Planespotters.net`,`© ${p.photographer}`];
-    }else{
-      // No photo of this aircraft: a typical one of its type, labelled so, if bundled.
-      const m=modelPhoto(a);if(!m)return;
-      photo=m;$.img.src=m.src;$.pic.classList.add('model');
+    // No photo of this aircraft, or its image fails to load: a typical one of its type,
+    // labelled so, if bundled.
+    const useModel=()=>{
+      const m=modelPhoto(a);if(!m){photo=null;$.pic.hidden=true;return false;}
+      photo=m;$.img.src=m.src;$.img.alt=`Typical ${m.model}`;$.qr.removeAttribute('src');$.qr.alt='';$.pic.classList.add('model');
       // CC BY: the author stays in every wording; long names shorten to an initial.
-      const short=m.author.replace(/^(\S)\S*\s+(?=\S)/,'$1. ').replace(/,.*$/,'');
+      const short=shortAuthor(m.author);
       $.credit._alts=[`Typical ${m.model} · ${m.author} · ${m.license}`,`Model photo · ${m.author} · ${m.license}`,
         `${m.author} · ${m.license}`,`Model photo · ${short} · ${m.license}`,`${short} · ${m.license}`];
-    }
+      return true;
+    };
+    $.img.onerror=()=>{if(picHex!==hex||$.pic.classList.contains('model'))return;if(useModel()){$.credit.textContent=$.credit._alts[0];fitLine($.credit);}};
+    if(p&&qr){
+      photo=p;$.img.src=p.src;$.qr.src=qr;$.img.alt=photoAlt(a);$.qr.alt='QR code for this photo on Planespotters.net';
+      $.credit._alts=psCredit(p.photographer);
+    }else if(!useModel())return;
     $.credit.textContent=$.credit._alts[0];
   });
 }
 
 function render(m){
   const {now,hero}=m;
-  setText($.city,'',[cityName()||placeName()]);setText($.clock,fmt.clock(now));
+  setText($.clock,fmt.clock(now));
   setText($.date,fmt.date(now));
   // Status only when it matters (Connecting / No signal); Live and Preview go unsaid.
   const status=statusText(m,demo);setText($.status,status==='Live'||status==='Preview'?'':status);
   $.status.classList.toggle('off',!demo&&!m.fresh&&!m.connecting);
+  // The place name after the clock and status beside it: fitted to the room they leave.
+  setText($.city,'',[cityName()||placeName()]);
   root.classList.toggle('emergency',!!hero?.emergency);
   trails.update(m.planes,now);
 
@@ -257,12 +291,11 @@ function render(m){
   const bounds={x:4,y:4,w:W-8,h:H-34};
   const ranked=byInterest(m);
   for(const a of ranked){
-    const p=toView(VIEW,a.x,a.y);
-    if(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)continue;
-    const isHero=a===hero,t=trails.get(a.hex);
+    if(!shows(a))continue;
+    const p=toView(VIEW,a.x,a.y),isHero=a===hero,t=trails.get(a.hex);
     if(t.length>1)lines.push(svg('polyline',{class:`at-trail${isHero?' hero':''}`,points:[...t.map(s=>toView(VIEW,s.x,s.y)),p].map(q=>`${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')}));
     if(isHero)marks.push(svg('circle',{class:'at-target',cx:p.x,cy:p.y,r:19}));
-    marks.push(planeIcon(a,p,isHero?28:21,`at-plane${isHero?' hero':''}${a.cargo?' cargo':''}`));
+    marks.push(planeIcon(a,p,isHero?28:21,`at-plane${isHero?' hero':''}${a.cargo?' cargo':''}${a.military?' mil':''}`));
     if(tags.length>=7*2&&!isHero)continue;
     const text=`${a.flight}  ${fmt.alt(a.altitude_ft)}`,w=text.length*7.1+14,hh=22;
     const b=placeBox(boxes,p,w,hh,[[16,-hh-6],[-w-16,-hh-6],[16,8],[-w-16,8]],bounds);
@@ -290,8 +323,8 @@ function render(m){
   $.hero.hidden=!hero;$.quiet.hidden=!!hero;
   if(!hero)setText($.quiet,quietText(m,demo));
   if(hero){
-    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`Squawk ${hero.squawk} · ${hero.emergency}`:'');
-    setText($.kicker,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`);
+    $.alert.hidden=!hero.emergency;setText($.alert,'',hero.emergency?(hero.squawk?[`Squawk ${hero.squawk} · ${hero.emergency}`,`${hero.squawk} · ${hero.emergency}`]:[hero.emergency]):['']);
+    setText($.kicker,'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)} ${compass(hero.bearing)}`));
     setText($.fl,hero.flight);setText($.op,hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':''));
     const r=hero.route;
     setText($.route,r?`${r.from?.city||r.origin} → ${r.to?.city||r.destination}`:'Route not reported');
@@ -303,20 +336,21 @@ function render(m){
     setText($.look,`${compass(hero.bearing)} ${Math.max(0,Math.round(hero.elevation))}°`);
     const c=hero.cpa;setText($.cpa,!c?'—':c.receding?'passed':`${fmt.mmss(c.seconds)} · ${fmt.dist(c.miles)}`);
     const typeName=hero.type||hero.aircraft_type||'Unknown type',regLine=[hero.registration,hero.year&&`built ${hero.year}`].filter(Boolean);
-    // With a photo the registration joins the type line (one line) to make room.
-    $.typet._alts=[[typeName,...regLine].join(' · '),[typeName,regLine[0]].filter(Boolean).join(' · '),typeName];
-    setText($.typet,typeName);
+    // The type shrinks to fit its line; the registration keeps its own line beside the photo
+    // and shortens to just the registration when needed.
+    $.typet._alts=[typeName];setText($.typet,typeName);
     // A small side-profile picture of the aircraft family beside the type, until (or
     // unless) a real photo of this aircraft arrives.
     const sil=silhouette(hero,'at-sil');
     if($.type.lastElementChild?.dataset?.family!==sil.dataset.family){$.type.querySelector('.at-sil')?.remove();$.type.append(sil);}
     showPhoto(hero);
-    setText($.reg,[hero.registration,hero.year&&`built ${hero.year}`].filter(Boolean).join(' · '));
+    $.reg._alts=[regLine.join(' · '),regLine[0]||''];setText($.reg,regLine.join(' · '));
   }
   const L=m.log;
   setText($['cargo-n'],L.cargoTonight);
-  const brands=n=>L.cargoBy.slice(0,n).map(([b,c])=>`${b} ${c}`).join(' · ');
+  const brands=n=>L.cargoBy.slice(0,n).map(([b,c])=>`${c} ${b}`).join(' · '); // count first, like Military
   $['cargo-by']._alts=L.cargoBy.length?[brands(4),brands(3),brands(2)]:[L.night?'none yet':'counted 6 pm – 6 am'];
+  setText($['mil-n'],L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
   const cell=(k,v,cls='',alts)=>{const d=el('div',cls),dd=el('dd','',v);dd._alts=alts;d.append(el('dt','',k),dd);return d;};
   const far=L.farthest,farMi=far&&fmt.far(far.value);
   $.log.replaceChildren(cell('Seen',fmt.int(L.today)),cell('Highest',L.highest?fmt.alt(L.highest.value):'—'),
@@ -328,12 +362,12 @@ function render(m){
     const d=el('div','at-rr');d.append(el('b','',a.flight),el('span','',[a.route&&`${a.route.origin}–${a.route.destination}`,a.aircraft_type].filter(Boolean).join(' ')),el('i','',fmt.ago(a.last_seen,now)));return d;
   }):[el('div','at-rr none',windowView()?'Nothing through your window yet.':'Nothing inside the alert zone yet.')]));
   // One-line rows (cargo by brand, Rarest, Farthest): the type shrinks until they fit.
-  for(const e of [$['cargo-by'],...$.log.querySelectorAll('dd'),...root.querySelectorAll('.at-stats dd')])fitLine(e);
+  fitAll();
   // Nothing is cut short: long names wrap, and the sections spread down the full
   // column. If a busy hero leaves no room, Recent goes (its space is shared out by
-  // the column), then the type tightens.
+  // the column), then the type tightens, then the photo and the operator line go.
   const side=$.rec.closest('.at-side'),sec=$.rec.parentNode;
-  side.classList.remove('tight','tighter');sec.hidden=false;
+  side.classList.remove('tight','tighter');sec.hidden=false;$.op.hidden=false;
   $.pic.hidden=!(hero&&photo&&picHex===hero.hex);side.classList.toggle('photo',!$.pic.hidden);
   const over=()=>side.scrollHeight>side.clientHeight+1;
   if(over())sec.hidden=true;
@@ -341,16 +375,25 @@ function render(m){
   if(over())side.classList.add('tighter');
   // Still no room: the photo gives way (the silhouette stays) rather than a stat row.
   if(over()&&!$.pic.hidden){$.pic.hidden=true;side.classList.remove('photo');}
-  if(!$.pic.hidden){fitLine($.credit);fitLine($.typet);}
-  for(const e of [$['cargo-by'],...$.log.querySelectorAll('dd'),...side.querySelectorAll('.at-stats dd')])fitLine(e);
+  if(over())$.op.hidden=true; // e.g. an emergency notice over a two-line route
+  fitAll();
+}
+// One-line rows (cargo and military, the stats, the type and registration beside the photo,
+// the photo credit): each shrinks, then shortens, until it fits. Rarest and Farthest then
+// share the smaller of their two sizes, so they read as a pair.
+function fitAll(){
+  for(const e of [$['cargo-by'],$['mil-by'],$.typet,$.reg,...$.log.querySelectorAll('dd'),...root.querySelectorAll('.at-stats dd')])fitLine(e);
+  if(!$.pic.hidden)fitLine($.credit);
+  for(const pair of [[...$.log.querySelectorAll('.wide dd')],[$['cargo-by'],$['mil-by']]])
+    if(pair.length===2){const size=Math.min(...pair.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of pair)e.style.fontSize=`${size}px`;}
 }
 
 export default {
   name:'Atlas Light',map:'detail',
   mount(r,c){root=r;ctx=c;demo=c.demo;sat=c.layout?.()==='atlas-satellite';dark=c.layout?.()==='atlas-dark'||sat;$={};trails.clear();ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
-  refresh(){drawMap();},
+  render,shows,
+  refresh(){scaleBar();}, // units: the scale bar; the map itself shows no distance, and the card's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
   unmount(){root=null;satToken++;picHex='';photo=null;$={};maps={};trails.clear();},
 };

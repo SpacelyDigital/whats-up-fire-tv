@@ -12,7 +12,7 @@ import {fileURLToPath} from 'node:url';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const web=join(root,'web'),out=process.env.WHATSUP_OUT||join(root,'assets'); // WHATSUP_OUT: build elsewhere (checks)
 // Dependency order.
-const MODULES=['config.js','core.mjs','silhouettes.mjs','routes.mjs','aircraft-types.mjs','live.mjs','models.mjs','photos.mjs','place.mjs','mapgen.mjs','model.mjs','kit.mjs','app.mjs'];
+const MODULES=['config.js','profile.mjs','core.mjs','silhouettes.mjs','routes.mjs','aircraft-types.mjs','live.mjs','models.mjs','photos.mjs','place.mjs','mapgen.mjs','model.mjs','kit.mjs','browse.mjs','app.mjs'];
 
 // Rewrites `import {a,b} from './x.mjs'` (paths relative to `dir` inside web/) and
 // `export const|function ...`. Returns the body plus the import lines and exported names.
@@ -41,7 +41,22 @@ const parts=MODULES.map(file=>{
 
 rmSync(out,{recursive:true,force:true});
 mkdirSync(join(out,'layouts'),{recursive:true});
-writeFileSync(join(out,'whatsup.js'),`'use strict';\n(()=>{\nconst __modules={};\nwindow.__whatsupModules=__modules;\n${parts.join('\n')}\n})();\n`);
+// Texts shown in the app (Settings > Privacy, About & credits), bundled into the script:
+// the page is loaded from file:// and does not fetch its own files. Also copied as .txt.
+const DOCS={privacy:'privacy.txt',licenses:'licenses.txt'},docs={};
+for(const [k,f] of Object.entries(DOCS))try{docs[k]=readFileSync(k==='licenses'&&process.env.WHATSUP_LICENSES||join(web,f),'utf8');}catch{docs[k]='';}
+// WHATSUP_RELEASE=1 (npm run build:release): the developer URL hooks (?demo, ?q, ?screen...) are off.
+const release=process.env.WHATSUP_RELEASE==='1';
+// WHATSUP_PROFILE: personal (default) or store (web/profile.mjs).
+const profileId=process.env.WHATSUP_PROFILE||'personal';
+if(!['personal','store'].includes(profileId))throw new Error(`unknown WHATSUP_PROFILE ${profileId}`);
+const {profileFor}=await import('../web/profile.mjs');
+// Privacy: the store build shows the final policy (web/privacy-store.txt, kept byte for byte);
+// the personal build its short text with this profile's services.
+if(profileId==='store')docs.privacy=readFileSync(join(web,'privacy-store.txt'),'utf8');
+else docs.privacy=docs.privacy.replace('{{SERVICES}}',profileFor(profileId).consent);
+
+writeFileSync(join(out,'whatsup.js'),`'use strict';\nwindow.__whatsupProfile=${JSON.stringify(profileId)};\n${release?'window.__whatsupRelease=true;\n':''}window.__whatsupDocs=${JSON.stringify(docs)};\n(()=>{\nconst __modules={};\nwindow.__whatsupModules=__modules;\n${parts.join('\n')}\n})();\n`);
 
 // Layouts: `export default {...}` must be the module's last statement.
 const layouts=readdirSync(join(web,'layouts')).filter(f=>f.endsWith('.mjs'));
@@ -59,12 +74,23 @@ for(const file of layouts){
 
 // Every layout stylesheet, including variants that reuse another layout's code (atlas-dark.css).
 for(const file of readdirSync(join(web,'layouts')).filter(f=>f.endsWith('.css')))cpSync(join(web,'layouts',file),join(out,'layouts',file));
-const html=readFileSync(join(web,'index.html'),'utf8')
+let html=readFileSync(join(web,'index.html'),'utf8')
   .replace('<script type="module" src="app.mjs"></script>','<script src="whatsup.js" defer></script>');
+// A build whose profile turns a service off can't reach it (Content-Security-Policy).
+{
+  const P=profileFor(profileId);
+  if(!P.eox)html=html.replace(' https://tiles.maps.eox.at','');
+  if(!P.photos)html=html.replace(' https://cdn.planespotters.net https://*.plnspttrs.net','');
+}
 if(!html.includes('whatsup.js'))throw new Error('index.html: script tag not found');
 writeFileSync(join(out,'index.html'),html);
 // media/keep-awake.mp4: the silent loop the app plays to hold off the screensaver (Settings > Keep screen awake).
 for(const item of ['whatsup.css','mvt.js','qr.js','fonts','media','models'])cpSync(join(web,item),join(out,item),{recursive:true});
-// App icon for manifest.toml (@image/whatsup_icon.png): the 1280x720 launcher tile (icon/src/tile.svg).
-mkdirSync(join(out,'image'),{recursive:true});cpSync(join(root,'icon','whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
-console.log(`assets/ written (${MODULES.length} modules, ${layouts.length} layout scripts, ${Math.round(layoutBytes/1024)} KB layout code)`);
+for(const [k,f] of Object.entries(DOCS))if(docs[k])writeFileSync(join(out,f),docs[k]);
+// App icon for manifest.toml (@image/whatsup_icon.png). Store: the 512x512 square the Vega manifest asks for (the
+// Settings app list; the home row shows the 1280x720 tile uploaded with the listing). Personal, sideloaded, where the
+// home row shows this icon: a 320x180 tile (icon/src/tile-small.svg, no tagline), near the size the row draws it,
+// so the stick's own scaling stays under 2x and its edges stay clean.
+mkdirSync(join(out,'image'),{recursive:true});
+cpSync(join(root,'icon',profileId==='store'?'whatsup-icon-512.png':'whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
+console.log(`assets/ written, ${profileId} profile${release?' (release: no URL hooks)':''} (${MODULES.length} modules, ${layouts.length} layout scripts, ${Math.round(layoutBytes/1024)} KB layout code)`);

@@ -1,7 +1,8 @@
 // Layout 6, Departures: an amber split-flap board. Rows are the aircraft in range
 // now (hero first) and then those recently above; only the characters that change
 // flip. A small dark map inset shows where they are.
-import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,alertRadius,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts} from '../kit.mjs';
+import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,windowView,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
+import {ABOVE_MI} from '../core.mjs';
 
 // Columns: [key, label, width in characters, align]
 const COLS=[['flight','Flight',7],['dest','Destination',11],['type','Type',4],['alt','Alt',5,'r'],['dist','Dist',4,'r'],['remark','Remarks',10]];
@@ -33,7 +34,7 @@ function setFlaps(row,text){
     c.classList.remove(flip?'fa':'fb');c.classList.add(flip?'fb':'fa');
   }
 }
-// A board cell: too long, it keeps whole words (FRANKFURT AM MAIN -> FRANKFURT), as boards do.
+// A board cell: too long, it keeps whole words, as boards do (Destination gives a code instead).
 const words=(s,n)=>{if(s.length<=n)return s;let o='';for(const w of s.split(/\s+/)){const t=o?`${o} ${w}`:w;if(t.length>n)break;o=t;}return o||s.slice(0,n);};
 const fit=(s,n,right)=>{s=words(String(s??'').toUpperCase().trim(),n);return right?s.padStart(n):s.padEnd(n);};
 
@@ -69,20 +70,28 @@ function ui(){
 }
 
 function drawMap(){paintMap($.canvas,maps,view,MAP);}
+// The planes the inset map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{if(!view)return false;const p=toView(view,a.x,a.y);return !(p.x<0||p.y<0||p.x>INSET.w||p.y>INSET.h);};
 
+// The squawk names the emergency only when it is 7500, 7600 or 7700 (a declared one may squawk 1200, or nothing).
+const sos=a=>/^7[567]00$/.test(a.squawk);
+// The card's words: Above you now, In your window (Window view, past a mile; a quarter more for the plane the card's
+// slack holds, as the card has it), Approaching (DUE).
 function remark(a){
-  if(a.emergency)return `SQUAWK${a.squawk||''}`;
-  if(a.inside)return 'ABOVE';
-  if(a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.cpa.miles<alertRadius()+1)return `DUE ${Math.max(1,Math.round(a.cpa.seconds/60))} MIN`;
+  if(a.emergency)return sos(a)?`SQUAWK${a.squawk}`:'EMERGENCY';
+  if(a.inside||a.held)return windowView()&&a.ground>ABOVE_MI+(a.held?.25:0)?'IN WINDOW':'ABOVE';
+  if(a.approaching)return `DUE ${Math.max(1,Math.round(a.cpa.seconds/60))} MIN`;
   if(number(a.vertical)&&a.vertical>500)return 'CLIMBING';
   if(number(a.vertical)&&a.vertical<-500)return 'DESCENDING';
   return a.cpa?.receding?'LEAVING':'IN RANGE';
 }
 // "Cincinnati/Northern Kentucky International" -> "Cincinnati"
 const city=s=>String(s||'').split(/[\/(,]/)[0].replace(/\s+(International|Regional|Municipal|Airport|Intl)\b.*$/i,'').trim();
-const dest=a=>a.route?city(a.route.to?.city)||a.route.destination:a.operator?a.operator:'PRIVATE';
+// No route: the operator, MILITARY for a military aircraft ("US AIR" read like US Airways), or PRIVATE.
+const dest=a=>a.route?boardCity(city(a.route.to?.city),a.route.destination,11):a.military?'MILITARY':a.operator?boardOperator(a.operator,a.callsign,11):'PRIVATE';
 const altText=ft=>!number(ft)?'':fmt.altUnit()==='m'?String(Math.round(ft*.3048)):String(Math.round(ft/10)*10);
-const distText=mi=>!number(mi)?'':(metric()?mi*KM:mi).toFixed(1);
+// Four flaps: one decimal under 100, whole numbers above ("123." was the old cut).
+const distText=mi=>{if(!number(mi))return '';const d=metric()?mi*KM:mi;return d<99.95?d.toFixed(1):String(Math.min(9999,Math.round(d)));};
 
 // The two ticker lines stay on one line: the first of `alts` that fits, shrunk if need be.
 const ticker=(e,alts)=>{e._alts=alts;fitLine(e);};
@@ -95,15 +104,15 @@ function render(m){
   const emergency=hero?.emergency;
   root.classList.toggle('emergency',!!emergency);
   $.banner.hidden=!emergency;
-  if(emergency)setText($.banner,'',[`${hero.squawk||''} ${emergency} · ${hero.flight}`,`${hero.squawk||''} · ${hero.flight}`]);
+  if(emergency)setText($.banner,'',[`${hero.squawk?`${hero.squawk} `:''}${emergency} · ${hero.flight}`,`${sos(hero)?hero.squawk:emergency} · ${hero.flight}`]);
 
   const live=byInterest(m).filter(a=>a.ground<=range()*1.1).slice(0,ROWS);
-  const lines=live.map(a=>({a,cells:[a.flight,dest(a),a.aircraft_type||'',altText(a.altitude_ft),distText(a.ground),remark(a)],cls:a===hero?'hero':a.inside?'in':''}));
+  const lines=live.map(a=>({a,cells:[a.flight,dest(a),a.aircraft_type||'',altText(a.altitude_ft),distText(a.ground),remark(a)],cls:a===hero?'hero':a.inside||a.held?'in':''}));
   for(const r of m.recent){
     if(lines.length>=ROWS)break;
     if(lines.some(l=>l.a.flight===r.flight))continue;
     const ago=Math.max(1,Math.round((now/1000-r.last_seen)/60));
-    lines.push({a:r,cells:[r.flight,r.route?city(r.route.to?.city)||r.route.destination:'',r.aircraft_type||'','','',ago<60?`${ago} MIN AGO`:'DEPARTED'],cls:'past'});
+    lines.push({a:r,cells:[r.flight,r.route?boardCity(city(r.route.to?.city),r.route.destination,11):'',r.aircraft_type||'','','',ago<60?`${ago} MIN AGO`:'DEPARTED'],cls:'past'});
   }
   if(!live.length&&lines.length<ROWS)lines.splice(0,0,{cells:['','QUIET SKIES','','','','NO TRAFFIC'],cls:'quiet'});
   $.rows.forEach((row,i)=>{
@@ -115,22 +124,25 @@ function render(m){
   if(hero){
     const r=hero.route,from=city(r?.from?.city)||r?.origin,to=city(r?.to?.city)||r?.destination;
     const rt=r?` · ${from} → ${to}`:'',op=hero.operator?` · ${hero.operator}`:'';
-    ticker($['hero-line'],[`${hero.status}: ${hero.flight}${op}${rt}`,`${hero.flight}${op}${rt}`,`${hero.flight}${rt}`]);
+    // Browsing (Left/Right): every wording keeps the plane's number in the list.
+    const head=headingAlts(hero,hero.status),last=head[head.length-1];
+    ticker($['hero-line'],hero.browse?[...head.map(h=>`${h}: ${hero.flight}${op}${rt}`),`${last}: ${hero.flight}${rt}`,`${last}: ${hero.flight}`]:
+      [`${hero.status}: ${hero.flight}${op}${rt}`,`${hero.flight}${op}${rt}`,`${hero.flight}${rt}`]);
     const c=hero.cpa,parts=[hero.type||hero.aircraft_type,fmt.alt(hero.altitude_ft),fmt.speed(hero.speed_kt),
-      c&&!c.receding?`closest in ${fmt.mmss(c.seconds)} at ${fmt.dist(c.miles)}`:'',`cargo tonight ${m.log.cargoTonight}`].filter(Boolean);
+      c&&!c.receding?`closest in ${fmt.mmss(c.seconds)} at ${fmt.dist(c.miles)}`:'',`cargo ${m.log.cargoTonight}`,`military ${m.log.militaryToday||0}`].filter(Boolean);
     ticker($['sub-line'],parts.map((_,i)=>parts.slice(0,parts.length-i).join(' · ')));
   }else{
     const q=quietText(m,demo);
     ticker($['hero-line'],[q,q.split('. ')[0]]);
-    ticker($['sub-line'],[`Seen today ${fmt.int(m.log.today)} · cargo tonight ${m.log.cargoTonight}`]);
+    ticker($['sub-line'],[`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoTonight} · military ${m.log.militaryToday||0}`,`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoTonight}`]);
   }
   showPhotoIn($.pic,hero,()=>{fitLine($['hero-line']);fitLine($['sub-line']);});
   // Inset: home and plane dots.
   const dots=[svg('circle',{class:'home',cx:view.cx,cy:view.cy,r:2.6}),svg('path',{class:'ring',d:zonePath((x,y)=>toView(view,x,y))})];
   for(const a of m.planes){
+    if(!shows(a))continue;
     const p=toView(view,a.x,a.y);
-    if(p.x<0||p.y<0||p.x>INSET.w||p.y>INSET.h)continue;
-    dots.push(svg('circle',{class:a===hero?'dot hero':'dot','data-hex':a.hex,cx:p.x.toFixed(1),cy:p.y.toFixed(1),r:a===hero?3.4:2.2}));
+    dots.push(svg('circle',{class:`dot${a===hero?' hero':''}${a.military?' mil':''}`,'data-hex':a.hex,cx:p.x.toFixed(1),cy:p.y.toFixed(1),r:a===hero?3.4:2.2}));
   }
   $.dots.replaceChildren(...dots);
 }
@@ -140,7 +152,7 @@ export default {
   name:'Departures',map:'base',
   mount(r,c){root=r;ctx=c;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){setText($['inset-label'],`${fmt.dist(range(),0)} radius`);for(const row of $.rows)for(const g of row._parts)setFlaps(g,'');},
   unmount(){root=null;$={};maps={};ctx=null;},
 };

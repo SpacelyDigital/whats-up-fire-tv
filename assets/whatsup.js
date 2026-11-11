@@ -1,4 +1,6 @@
 'use strict';
+window.__whatsupProfile="personal";
+window.__whatsupDocs={"privacy":"## Privacy policy (placeholder)\n\nThis is a placeholder. The final policy text will replace it before release.\n\n## What is sent\n\nTo show planes near you, this app sends your approximate location, rounded to a few miles, to public flight and map services (adsb.fi, or ADSB.lol while adsb.fi is down, OpenFreeMap, Open-Meteo, USGS, EOX). It looks up the planes it shows with ADSB.lol and Planespotters. Your first city guess comes from your internet address (GeoJS). What you type in search goes to Open-Meteo, the U.S. Census Bureau or OpenStreetMap to find the place. Every service also sees your TV’s internet address. Your settings and history are saved only on this TV. No accounts, ads or analytics. You can erase it all in Settings.\n\n## What is saved on this TV\n\nYour location, the place or address you chose, your settings, the planes seen today and the saved maps. Nothing is sent to the developer.\n\n## Erase\n\nChoose Erase all data below to remove everything this app stored on this TV.\n","licenses":"## About\n\nMade by Spacely Digital. Questions, credit corrections or removal requests: spacelydigital@gmail.com.\n\nFor fun and general information only. Positions can be late, incomplete or wrong, and many aircraft are not shown. Not for navigation, air traffic, safety or emergency use.\n\nAirline, operator and aircraft-manufacturer names are trademarks of their owners, used only to identify aircraft. This app is not affiliated with or endorsed by any airline, manufacturer or data provider. Not affiliated with the FAA.\n\n## Data\n\nAircraft data: adsb.fi, https://adsb.fi (scan the code on this page).\n\nBackup aircraft positions, only while adsb.fi isn’t answering: adsb.lol, https://adsb.lol. Contains information from adsb.lol, which is made available here under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/\n\nFlight routes: adsb.lol, from Virtual Radar Server standing data (CC0). Routes are community-sourced and may be wrong.\n\nadsb.lol data is made available under the Open Database License (ODbL): opendatacommons.org/licenses/odbl/1-0/\n\nMap data © OpenStreetMap contributors, available under the Open Database License (ODbL): openstreetmap.org/copyright\n\nVector tile schema © OpenMapTiles (openmaptiles.org), licensed under CC BY 4.0: creativecommons.org/licenses/by/4.0\n\nTiles served by OpenFreeMap: openfreemap.org\n\nAircraft photos: Planespotters.net. Each photo is credited \"Photo © photographer / Planespotters.net\" beside it.\n\nSatellite imagery in the U.S.: USDA, USGS The National Map. Map services and data available from U.S. Geological Survey, National Geospatial Program.\n\nSatellite imagery elsewhere: EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017), licensed under CC BY 4.0: creativecommons.org/licenses/by/4.0. Served from maps.eox.at. The imagery is resized and darkened for this app.\n\nPlace search: GeoNames via Open-Meteo (CC BY 4.0). Time zones for addresses: Open-Meteo.\n\nApproximate location: GeoJS (geojs.io), using GeoLite2 data created by MaxMind (maxmind.com)\n\nAddress matching: U.S. Census Bureau Geocoder (not endorsed by the Census Bureau)\n\nOther addresses: Nominatim, © OpenStreetMap contributors.\n\n## Aircraft model photos\n\nFrom Wikimedia Commons, resized for this app. Use does not imply endorsement by the photographers, Wikimedia, or any airline or manufacturer. Photos are provided as is, without warranties; see each license.\n\nAirbus A319: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Germanwings_Airbus_A319-112_D-AKNP_STR_2016_01.jpg. Resized.\n\nAirbus A320: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Lufthansa_Airbus_A320-211_D-AIQT_01.jpg. Resized.\n\nAirbus A321: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Middle_East_Airlines_A321-200_(F-ORMF)_landing_at_London_Heathrow_Airport.jpg. Resized.\n\nAirbus A321neo: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:China_Airlines_Airbus_A321neo_B-18102_departing_Taoyuan_February_2026.jpg. Resized.\n\nAirbus A320neo: Flywithnoe. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Airbus_A320Neo_Transavia.jpg. Resized.\n\nAirbus A330-200: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Bmi.a330-200.g-wwbb.arp.jpg. Resized.\n\nAirbus A330-300: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:EVA_Air_Airbus_A330-300_B-16331_departing_Taoyuan_February_2026_1.jpg. Resized.\n\nAirbus A330-900: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Delta_Airbus_A330-900_N402DX_departing_Boston_June_2025_2.jpg. Resized.\n\nAirbus A350-900: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Airbus_A350-941_F-WWCF_MSN002_ILA_Berlin_2016_17.jpg. Resized.\n\nAirbus A350-1000: Clemens Vasters. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Airbus_A350-1000_(34598951684).jpg. Resized.\n\nAirbus A380: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Emirates_Airbus_A380-861_A6-EER_MUC_2015_01.jpg. Resized.\n\nAirbus A300-600F: N.C (Wikimedia Commons). CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:MU_A300B4-605RPtoF_B-2306_1.jpg. Resized.\n\nBoeing 717: Alf van Beem. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:OH-BLG_Blue1_Boeing_717-2CM_-_cn_55059_taxiing,_25august2013_pic-005.JPG. Resized.\n\nBoeing 737-700: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Southwest_Airlines_Boeing_737-700_N953WN_departing_Boston_June_2025.jpg. Resized.\n\nBoeing 737-800: Alf van Beem. Public domain. https://commons.wikimedia.org/wiki/File:Boeing_737-800_PH-BCA_KLM_takeoff_at_Schiphol.JPG. Resized.\n\nBoeing 737-900: AlfvanBeem. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Boeing_737-900_KLM_PH-BXP.jpg. Resized.\n\nBoeing 737 MAX 8: DavidivardiIL. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:DAV_2777-Ryanair_Boeing_737_MAX_8-200_SP-RZM.jpg. Resized.\n\nBoeing 737 MAX 9: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:United_Airlines_Boeing_737-9_MAX_N17583_departing_Boston_July_2026.jpg. Resized.\n\nBoeing 757-200: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:United_Boeing_757-200_N19136_planform_view.jpg. Resized.\n\nBoeing 757-300: Mark Harkin. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:TF-ISX_Boeing_757-300_Icelandair_(44139300214).jpg. Resized.\n\nBoeing 767-300: Oleg Yunakov. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Boeing_767-300ER_-_Delta_Air_Lines_-_N198DN.jpg. Resized.\n\nBoeing 767-400: Mark Harkin. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N826MH_Boeing_767-400_Delta_(9467285812).jpg. Resized.\n\nBoeing 777-200: Aaron Davis. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:British_Airways_Boeing_777-200ER_G-VIIP.jpg. Resized.\n\nBoeing 777-300ER: tjdarmstadt. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:China_Airlines_(Boeing_livery)_Boeing_777-300ER_(B-18007)_at_Frankfurt_Airport.jpg. Resized.\n\nBoeing 777F: Steve Knight. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:B-226C_Boeing_777F_China_Southern_Cargo_Halstead_250925.jpg. Resized.\n\nBoeing 787-8: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Qatar_Airways_Boeing_787-8_Dreamliner_A7-BCO_MUC_2015_02.jpg. Resized.\n\nBoeing 787-9: Masahiro TAKAGI. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:All_Nippon_Airways_Boeing_787-9_(JA871A)_at_Tokyo_Haneda_Airport.jpg. Resized.\n\nBoeing 787-10: jounigripen. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Etihad_Boeing_787-10_A6-BMI_EcoDemonstrator.jpg. Resized.\n\nBoeing 747-400: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Thai_Airways_International_Boeing_747-4D7_HS-TGP_MUC_2015_03.jpg. Resized.\n\nBoeing 747-8F: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Atlas_Air_Boeing_747-8F_departing_Taoyuan_February_2026.jpg. Resized.\n\nMcDonnell Douglas MD-11F: Kambui. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Lufthansa_Cargo_McDonnell_Douglas_MD-11F_D-ALCK_(25157042382).jpg. Resized.\n\nMcDonnell Douglas DC-10: spaceaero2. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Finnair_McDonnell_Douglas_DC-10-30_Moomin_collar.jpg. Resized.\n\nBombardier CRJ200: lasta29. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:J-Air,_CRJ-200,_JA209J_(17165929830).jpg. Resized.\n\nBombardier CRJ700: Colin Brown. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N659CA_-_Bombardier_CRJ-700_-_Delta_Connection_at_Nashville_International_-_June_5,_2012.jpg. Resized.\n\nBombardier CRJ900: Reinhard Zinabold. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N932XJ_(Delta_Conn._-_Endeavor_Air)_at_Toronto_Lester_B._Pearson_Airport_20241005.jpg. Resized.\n\nEmbraer ERJ 135: Nuiteux731. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Embraer_ERJ_135_de_Lorizon_Aircraft_F-HSTE_à_l'Aéroport_de_Lorient.jpg. Resized.\n\nEmbraer ERJ 145: Tisch1234. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Embraer_ERJ-145_of_Amelia_International_(F-HRAM)_at_Münster_Osnabrück_Airport.png. Resized.\n\nEmbraer 170: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:DeltaConnection_Embraer_170_N880RW_on_final_approach_to_Boston_December_2025.jpg. Resized.\n\nEmbraer 175: Alexis Doine. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:N238JQ_Embraer_ERJ-175_of_Delta_at_Ronald_Reagan_Washington_National_Airport_(2026).jpg. Resized.\n\nEmbraer 190: Wilfredor. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:YV2911_Conviasa_Embraer_ERJ-190_in_Maiquetia_Airport.jpg. Resized.\n\nEmbraer 195: Dbx54. Public domain. https://commons.wikimedia.org/wiki/File:Flybe_Embraer_195_aircraft_at_Edinburgh_Airport.jpg. Resized.\n\nAirbus A220-100: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Delta_Airbus_A220-100_N137DU_departing_Boston_December_2025.jpg. Resized.\n\nAirbus A220-300: 4300streetcar. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:JetBlue_Airbus_A220-300_N3196J_planform_view.jpg. Resized.\n\nDash 8 Q400: Alf van Beem. Public domain. https://commons.wikimedia.org/wiki/File:G-JEDP_-_Bombardier_Dash_8_Q400_takeoff_from_Schiphol_pic3.JPG. Resized.\n\nATR 72: Md Shaifuzzaman Ayon. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:S2-STA_-_Air_Astra_-_ATR_72-600_(72-212A)_-_1311_-_VGHS.jpg. Resized.\n\nATR 72-600: Md Shaifuzzaman Ayon. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:S2-STA_-_Air_Astra_-_ATR_72-600_(72-212A)_-_1311_-_VGHS.jpg. Resized.\n\nSaab 340: lasta29. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:JCG,_Saab_340B,_MA954_\"Hayabusa_(Falcon)\"_(18264502350).jpg. Resized.\n\nBeechcraft 1900: Flox Papa. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_1900_Swiss_Air_Force.jpg. Resized.\n\nBeechcraft King Air 200: Armada Argentina. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_B-200_M_Super_King_Air_Armada_Argentina.jpg. Resized.\n\nBeechcraft King Air 90: Beech Aircraft Corporation. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_King_Air_65-90_-_DPLA_-_080fc286c7edfb58f2b85f348e76cad7_(page_6).jpg. Resized.\n\nPilatus PC-12: Robbie Klinkenberg. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Pilatus_PC-12_OH-WAU_at_Portimão_Airport_12-06-2023_(1).jpg. Resized.\n\nCessna 208 Caravan: Robbie Klinkenberg. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Fallschirmsportzentrum_Saar_Cessna_208_Caravan_D-FNDA_at_Portimão_Airport_12-06-2023_(1).jpg. Resized.\n\nCessna 172: TRTPUWU. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:CC-STA_(Cessna_172_of_the_Temuco_Air_club).jpg. Resized.\n\nCessna 182: Sudan Envoy. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_182_-_Takeoff.jpg. Resized.\n\nPiper PA-28 Cherokee: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Piper_pa-28-140_cherokee_g-atoo_arp.jpg. Resized.\n\nCirrus SR22: Author unknown. Public domain. https://commons.wikimedia.org/wiki/File:Cirrus.sr22.n147vc.arp.jpg. Resized.\n\nDiamond DA40: Weißnichtmiristlangweilig. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Bundesheer_(Austrian_Air_Force)_Diamond_DA40_3H-DD.jpg. Resized.\n\nCessna Citation CJ2: Kambui. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Untitled_Cessna_525A_Citation_CJ2%2B_D-IDAS_(24042804719).jpg. Resized.\n\nCessna Citation CJ3: simon butler. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:GENEVA_MAY_2006_CESSNA_AIRCRAFT_COMPANY_CESSNA_CITATION_525_CJ3_N361TL_(9477374657).jpg. Resized.\n\nCessna Citation Excel: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Cessna_560XL_Citation_XLS_CS-DXK.jpg. Resized.\n\nCessna Citation Latitude: kitmasterbloke. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:D-CAWN_Cessna_680A_Citation_Latitude_STN_230525.jpg. Resized.\n\nCessna Citation Longitude: Sewageboy. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Cessna_Citation_Longitude_N807QS.jpg. Resized.\n\nBombardier Challenger 300: Arpingstone. Public domain. https://commons.wikimedia.org/wiki/File:Bombardier.challenger.300.lx-pma.arp.jpg. Resized.\n\nBombardier Challenger 350: kitmasterbloke. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:CS-CHF_Bombardier_Challenger_350_STN_310126.jpg. Resized.\n\nBombardier Challenger 604: kitmasterbloke. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:AP-HSU_Canadair_CL-600-2B16_Challenger_605_STN_280123_A.jpg. Resized.\n\nGulfstream IV: Planephotoman. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Gulfstream_G-400.jpg. Resized.\n\nGulfstream V: Coldstreamer20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N211DR_-_KHPN_-_8-5-24.jpg. Resized.\n\nGulfstream G650: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Gulfstream_G650_departs_Bristol_23rdAug2014_arp.jpg. Resized.\n\nBombardier Global Express: Ronnie Macdonald. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Bombardier_Global_Express_5D4_8759_(52255484597).jpg. Resized.\n\nEmbraer Phenom 300: Ronnie Macdonald. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Embraer_Phenom_300_%26_Boeing_747_(29213882252).jpg. Resized.\n\nEmbraer Legacy 450: DUNCAN KIRK. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:C-FASF_Legacy_450,_Scottsdale_01-25-26_(55095902930).jpg. Resized.\n\nLearjet 45: Coldstreamer20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N356K_-_KSWF_-_11-12-24.jpg. Resized.\n\nHawker 800: Marek Ślusarczyk. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:39_Hawker_800_800XP_business_jet_-_twinjet_corporate_aircraft.jpg. Resized.\n\nDassault Falcon 7X: Dmitry A. Mottl. Public domain. https://commons.wikimedia.org/wiki/File:Dassault_Falcon_7X.jpg. Resized.\n\nPilatus PC-24: Steve Knight. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N282AF_-_Pilatus_PC-24_-_PlaneSense_BOS_280723.jpg. Resized.\n\nEurocopter EC135: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:DRF_Eurocopter_EC135_Christoph_44_D-HDRK_Göttingen_2017_03.jpg. Resized.\n\nEurocopter EC145: Steve Lynes. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:EGWC_-_Eurocopter_EC145_-_G-RMAA_(43673025532).jpg. Resized.\n\nEurocopter EC130: Tony Hisgett. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:VH-XEV_-_Eurocopter_EC130_B4_(30670101030).jpg. Resized.\n\nEurocopter AS350: Mark Wagner. CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/). https://commons.wikimedia.org/wiki/File:Eurocopter_AS350_B2_20080503.jpg. Resized.\n\nBell 206: Matthew Field. CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/). https://commons.wikimedia.org/wiki/File:LAPD_Bell_206_Jetranger.jpg. Resized.\n\nBell 407: stuart.mike. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Bell_407_-N23986.jpg. Resized.\n\nBell 429: Bspor.88. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Bell_429_(N917PD),_NYPD,_August_2024.jpg. Resized.\n\nRobinson R44: Ministerstwo Spraw Wewnętrznych i Administracji. CC BY 3.0 pl (https://creativecommons.org/licenses/by/3.0/pl/). https://commons.wikimedia.org/wiki/File:Robinson_R44_Straż_Graniczna_Polish_Border_Guard.jpg. Resized.\n\nSikorsky S-76: San Diego Air & Space Museum Archives. Public domain. https://commons.wikimedia.org/wiki/File:01_00095416_SDASM_Aircraft_Image_-_Sikorsky_S-76_(53958632386).jpg. Resized.\n\nSikorsky UH-60 Black Hawk: U.S. Air Force photo by Wolfram M. Stumpf. Public domain. https://commons.wikimedia.org/wiki/File:Jordanian_Air_Force_UH-60_Black_Hawk_helicopter_(cropped).jpg. Resized.\n\nLockheed C-130 Hercules: Balon Greyjoy. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:20180512_C-130J_Super_Hercules_Dyess_AFB_Air_Show_2018_1.jpg. Resized.\n\nLockheed C-130J Super Hercules: Balon Greyjoy. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:20180512_C-130J_Super_Hercules_Dyess_AFB_Air_Show_2018_1.jpg. Resized.\n\nBoeing C-17 Globemaster III: U.S. Air Force photo. Public domain. https://commons.wikimedia.org/wiki/File:C-17_test_sortie.jpg. Resized.\n\nBoeing KC-135 Stratotanker: U.S. Air Force photo by Staff Sgt. Randy Mallard. Public domain. https://commons.wikimedia.org/wiki/File:Boeing_KC-135_Stratotanker_DGNP_990412-F-1312M-004.jpg. Resized.\n\nAntonov An-124: Dtom. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:An_124_forward.jpg. Resized.\n\nBoeing B-52 Stratofortress: U.S. Air Force photo by Senior Airman Keifer Bowes. Public domain. https://commons.wikimedia.org/wiki/File:A_Boeing_B-52H_Stratofortress_in_flight_over_the_Persian_Gulf_(190521-F-XN348-9173).jpg. Resized.\n\nBoeing E-3 Sentry: Qwexcxewq. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Boeing_Sentry.jpg. Resized.\n\nBoeing P-8 Poseidon: Balon Greyjoy. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:20190206_P-8_Poseidon_Kadena_AB-12.jpg. Resized.\n\nCessna Citation Bravo: Martin Oertle. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:GLS_-_General_Logistics_Systems_(Airlink)_Cessna_550B_Citation_Bravo_OE-GLG_(21985155552).jpg. Resized.\n\nCessna Citation Ultra: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N444GG_Citation_Ultra,_McGregor_Executive_12-09-25_(55080790988).jpg. Resized.\n\nCessna 206 Stationair: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cessna.206h.stationair2.arp.jpg. Resized.\n\nCessna 150: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_150_(D-ETKR)_02.jpg. Resized.\n\nMooney M20: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Mooney_M20_(D-EPPP)_01.jpg. Resized.\n\nBeechcraft V35 Bonanza: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N30ED_Beech_V35_Bonanza,_Chino_10-26-21_(55325238017).jpg. Resized.\n\nPiper Super Cub: Felix König. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-18_Super_Cub_Löchgau_2012.JPG. Resized.\n\nAeronca Champion: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Aeronca.7ac.champion.kemble.arp.jpg. Resized.\n\nPiper Tri-Pacer: Ian Kirk. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:1955_Piper_PA-22-150_Tri-Pacer_Caribbean_G-BRNX_(8708314780).jpg. Resized.\n\nCessna 180 Skywagon: Rennett Stowe. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_180_(3033819308).jpg. Resized.\n\nPiper Comanche: Jeroen Stroes Aviation Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N5411P_(46143128751).jpg. Resized.\n\nCessna T206 Stationair: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_T206H_Stationair_TC_(G-CHJK)_01.jpg. Resized.\n\nCessna 170: Designism. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:N1646D,_Cessna_170B,_Zelienople_Municipal_Airport_(1).jpg. Resized.\n\nPiper PA-32 Cherokee Six: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Piper.pa32.cherokee.six.g-bxwp.arp.jpg. Resized.\n\nVan's RV-6: BWard 1997. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:G-ORVG_Vans_RV-6_Duxford_28-6-2025.jpg. Resized.\n\nPiper Saratoga SP: kitmasterbloke. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:G-OPSL_Piper_PA-32R-301_Saratoga_SP_Chester_050925.jpg. Resized.\n\nGrumman AA-5 Tiger: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Grumman_AA-5B_Tiger_(D-ENFL)_03.jpg. Resized.\n\nCessna 140: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_140_(NC89109)_08.jpg. Resized.\n\nCessna 152: Joao Carlos Medau. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_152_PR-EJN_(8475961209).jpg. Resized.\n\nBoeing-Stearman Kaydet: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Boeing_PT-17_Kaydet_A75N1_D-EQXL_OTT_2013_03.jpg. Resized.\n\nCessna 310: Mark Harkin. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-BODY_Cessna_310R_(13272136325).jpg. Resized.\n\nVan's RV-7: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Vans.rv-7.g-kels.arp.jpg. Resized.\n\nErcoupe: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Ercoupe_415-C_(N415A).jpg. Resized.\n\nLuscombe Silvaire: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Luscombe.8e.g-lust.arp.jpg. Resized.\n\nCirrus SR20: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cirrus.sr20.g-cdly.arp.jpg. Resized.\n\nCessna 185 Skywagon: D. Miller. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_A185F_Skywagon_(N4934E)_(3864970861).jpg. Resized.\n\nCessna 210 Centurion: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cessna.210.centurion.d-ebws.arp.jpg. Resized.\n\nTaylorcraft BC: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Taylorcraft_BC12-D_(N96440).jpg. Resized.\n\nChampion Citabria: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Bellanca.citabria.arp.jpg. Resized.\n\nVan's RV-8: D. Miller. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Van's_Aircraft_RV-8_(5879668232).jpg. Resized.\n\nCessna T182 Skylane: Ian Kirk. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-IZZI_2001_Cessna_T182T_Skylane_at_Compton_Abbas_(8977582787).jpg. Resized.\n\nBeechcraft Baron 58: ZLEA. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_58_Baron_(N38020,_cn_TH-1208)_(4-13-2024).jpg. Resized.\n\nStinson 108 Voyager: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N108KD_Stinson_108-3_Voyager,_Sky_Meadows_Airpark_06-21-26.jpg. Resized.\n\nBeechcraft Travel Air: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_Travel_Air_(N100BH).jpg. Resized.\n\nPiper Cherokee 235: Jeroen Stroes Aviation Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-28-235_Cherokee_D-EMCO_(26430865787).jpg. Resized.\n\nCessna 177 Cardinal: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:Cessna177BCardinal05.jpg. Resized.\n\nCessna T210 Centurion: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:XB-QIX_Cessna_T210N,_Toluca_03-04-26_(55161236561).jpg. Resized.\n\nPiper Apache: Godromil. Public domain. https://commons.wikimedia.org/wiki/File:Piper_PA-23_Apache_-_Venezia.jpg. Resized.\n\nPiper Super Cruiser: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-12_Super_Cruiser_(D-ELTE)_01.jpg. Resized.\n\nAmerican Champion Super Decathlon: ZLEA. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:American_Champion_8KCAB_Super_Decathlon_(N26GK,_cn_1214-2024)_(4-10-2024).jpg. Resized.\n\nCessna R182 Skylane RG: Doodybutch. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:N9106CAboveClouds.jpg. Resized.\n\nCessna TR182 Skylane RG: Gerard van der Schaaf. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:D-EIZV_(9431925599).jpg. Resized.\n\nKitfox: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Kitfox_III_(N27DN).jpg. Resized.\n\nCessna 172RG Cutlass: Curimedia Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_172RG_Cutlass_RG_D-EMHH_(9290220123).jpg. Resized.\n\nAviat Husky: Jim Sorbie. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Aviat_A-1C-180_Husky_(N87HU)_(36015748262).jpg. Resized.\n\nPiper Seneca: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-34-220T_Seneca_V_(D-GEFI)_02.jpg. Resized.\n\nVan's RV-4: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Van's_RV_4_(D-ERVX)_00.jpg. Resized.\n\nPiper Navajo: RuthAS. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-31-325_C-GDFR_BC_West_Chilli_12.04.08R_edited-2.jpg. Resized.\n\nBeechcraft Musketeer: Jeroen Stroes Aviation Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_Sundowner_D-EARR_(29787147368).jpg. Resized.\n\nPiper Malibu Mirage: Steve Lynes. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:EGLK_-_Piper_PA-46-350P_Malibu_Mirage_-_N394SE_(43168875555).jpg. Resized.\n\nPiper Twin Comanche: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:Piper_PA-30_Twin_Comanche_C-FQPK_01.JPG. Resized.\n\nCessna 175 Skylark: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cessna.175c.g-arws.arp.jpg. Resized.\n\nPiper Cub Special: Fyg.medialab. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-11_Aero_Club_Chivilcoy_2025.jpg. Resized.\n\nNavion: Jerry Gunner. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N36D,_1950_Navion_NAVION_B_in_bogus_USCG_marks_(3832646606).jpg. Resized.\n\nRobinson R22: Kansai explorer. CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/). https://commons.wikimedia.org/wiki/File:Robinson_R22_BetaII_in_Yao_Airport02.JPG. Resized.\n\nCirrus Vision Jet: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N776Y_Vision_Jet,_Scottsdale_03-25-26_(55176239221).jpg. Resized.\n\nSocata TBM 700: Kambui. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Untitled_Socata_TBM-700_N492B_(27538908515).jpg. Resized.\n\nVan's RV-9: kitmasterbloke. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-RVIW_Vans_RV-9_Rougham_Fly_In_180921.jpg. Resized.\n\nCessna 177RG Cardinal: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_177RG_Cardinal_RG_(HB-CNM)_02.jpg. Resized.\n\nCessna 421 Golden Eagle: Duncan Kirk. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:N421DM_Cessna_421C,_Brenham_12-07-25_(55080654366).jpg. Resized.\n\nPiper Meridian: Ronnie Macdonald. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-46_Malibu_Meridian_G-KIMI_5D4_2594_(32662875857).jpg. Resized.\n\nAeronca Chief: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Aeronca_11ac_chief_g-ivor_1940_arp.jpg. Resized.\n\nMD 500: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Md_helicopters_md-500e_g-sscl_arp.jpg. Resized.\n\nCessna 340: Bob Harrington. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_340A_N7022G_BFI_3-20-06_04.jpg. Resized.\n\nGrumman AA-1 Yankee: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Grumman.aa-1b.trainer.g-bdnx.arp.jpg. Resized.\n\nAir Tractor AT-802: Mussi Katz. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Air_Tractor_AT-802_4X-AFY.jpg. Resized.\n\nNorth American T-6 Texan: Ktkvtsh. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:North_American_T-6_Texan_at_Vicksburg-Tallulah_Regional_Airport_October_2025.jpg. Resized.\n\nMaule M-7: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:Maule_M-7-260C_Orion_C-GZAU_01.JPG. Resized.\n\nCessna 120: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cessna.120.g-btbw.arp.jpg. Resized.\n\nGlasair: Ian Kirk. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Stoddard-Hamilton_Glasair_I_Compton_Abbas_30th_June_2013_(9215814791).jpg. Resized.\n\nCessna 414 Chancellor: Steve Knight. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:D-IBFH_Cessna_414_Chancellor_Biggin_Air_Fair_1984_(51875060848).jpg. Resized.\n\nPiper Seminole: Durksteel. Public domain. https://commons.wikimedia.org/wiki/File:Piper_PA44-180_aircraft.jpg. Resized.\n\nGrumman Ag Cat: TJM. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G164B_AgCat.jpg. Resized.\n\nDassault Falcon 2000: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Dassault.falcon.2000.vp-bdl.arp.jpg. Resized.\n\nGlobe Swift: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:TEMCO_GC-1B_Swift_03.JPG. Resized.\n\nPitts S-1: Ronnie Macdonald. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Pitts_S-1T_Special_N687RB_(34614480462).jpg. Resized.\n\nBell 47G: Valder137. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Bell_47G_RSideFront_KAM_11Aug2010_(14983588322).jpg. Resized.\n\nBell UH-1 Huey: Christopher Griner. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Bell_Huey_UH-1H_Iroquois_-_ZU-ELP.jpg. Resized.\n\nCessna 400 Corvalis TT: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Cessna_Corvalis_TT_(N136TT).jpg. Resized.\n\nRockwell Commander 114: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Rockwell_Commander_114_(built_1976)_Cotswold_Airport_arp.jpg. Resized.\n\nGlaStar: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Stoddard-hamilton.glastar.g-gery.arp.jpg. Resized.\n\nBeechcraft King Air 300: Alf van Beem. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:HB-GPI_Technomag_AG_Beech_300_Super_King_Air.JPG. Resized.\n\nDassault Falcon 900: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Dassault.falcon900.cs-dfh.arp.jpg. Resized.\n\nSchweizer 300: Alf van Beem. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:PH-DIB_Schweizer_269C-300C_at_Hilversum_Airport_(ICAO_EHHV),_photo1.JPG. Resized.\n\nRobinson R66: Waerfelu. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Robinson_R66_N66MV_in_2011.jpg. Resized.\n\nCessna P210 Centurion: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_P210N_(D-EEHW)_02.jpg. Resized.\n\nZenith Zodiac CH 601: David Álvarez López. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:ULM_La_Morgal._Zenair_XL._Festival_aéreo_internacional_de_Gijón_2024._(53887392028)_(cropped).jpg. Resized.\n\nPiper Pawnee: Mankymuncle. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Piper_Pawnee_VH-SSO_conducting_a_landing_at_the_Bacchus_Marsh_ALA.jpg. Resized.\n\nBeechcraft Baron 55: Jeroen Stroes Aviation Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N743P_(30246136817).jpg. Resized.\n\nPiper Tomahawk: Ian Kirk. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-38_Tomahawk_Compton_Abbas_30th_June_2013_(9218587756).jpg. Resized.\n\nRutan Long-EZ: NOAA. Public domain. https://commons.wikimedia.org/wiki/File:NOAA-Long-EZ.jpg. Resized.\n\nCessna 195: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Cessna_195_businessliner_g-btbj_of_1952_arp.jpg. Resized.\n\nPiper Aerostar: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Piper_pa-60-600_aerostar_n70vb_arp.jpg. Resized.\n\nBeechjet 400: Karelj. Public domain. https://commons.wikimedia.org/wiki/File:Hawker_400XP_Prague_airport_2015_1.jpg. Resized.\n\nWaco UPF-7: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Waco_UPF-7_(G-UPFS)_arrives_RIAT_Fairford_10thJuly2014_arp.jpg. Resized.\n\nCessna 337 Skymaster: Julian Herzog. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Cessna_337D_Super_Skymaster_N991DM_OTT_2013_01.jpg. Resized.\n\nDe Havilland Beaver: Tony Hisgett. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:De_Havilland_Canada_DHC-2_Beaver,_C-FFHQ_(8027517572).jpg. Resized.\n\nZenith STOL CH 750: Ahunt. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Zenair_STOL_CH750_C-IKIM_1716.JPG. Resized.\n\nCubCrafters Carbon Cub: James Abbott. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Pitt_Meadows_Airport_Days_2018-06-02_173-LR_(42553121611).jpg. Resized.\n\nCessna Citation Sovereign: kitmasterbloke. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:D-CAWX_-_Cessna_680_Citation_Sovereign%2B_BHX_301024.jpg. Resized.\n\nBeechcraft Turbo Bonanza: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_B36TC_Bonanza_(N65044)_01.jpg. Resized.\n\nZenith STOL CH 701: Jerry Gunner. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Red_Sky_Stol_CH_701_-_N5169B_dating_from_2004_(3832951168).jpg. Resized.\n\nDiamond DA20 Katana: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Diamond_DV20_Katana_(D-EOOY)_03.jpg. Resized.\n\nPitts S-2: Brett Goldsmith. CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/). https://commons.wikimedia.org/wiki/File:Pitts_S-2C_in_Flight.jpg. Resized.\n\nSeaRey: Valder137. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Progressive_Aerodyne_SeaRey_N165CB_Taxi_03_SNFSI_FOF_15April2010_(14443921747).jpg. Resized.\n\nBeechcraft Model 18: D. Miller. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Beech_18,_C-45_or_Twin_Beech_(2142825857).jpg. Resized.\n\nGulfstream G280: Zalasem1. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:SP-NVM,_Gulfstream_G280.jpg. Resized.\n\nMaule M-5: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:Maule_M-5-235C_C-GPYC_01.JPG. Resized.\n\nFlight Design CT: Ronnie Macdonald. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Flight_Design_CTLS_G-CONA_5D4_2751_(32831658997).jpg. Resized.\n\nBeechcraft Sierra: Linda Thomas. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Beechcraft_Sierra_2n.jpg. Resized.\n\nCessna Citation X: K. Krallis. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). https://commons.wikimedia.org/wiki/File:Hellenic_Civil_Aviation_Authority_Cessna_Citation_X_(SX-ECI)_@_ATH,_June_2020.jpg. Resized.\n\nCessna 188 AgWagon: RuthAS. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_A188A_Agwagon_N9961G_Minden_NV_27.10.05R_edited-2.jpg. Resized.\n\nExtra 300: Curimedia Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Extra_300L_D-EXTRA_(9290078221).jpg. Resized.\n\nCessna Citation Mustang: Juergen Lehle. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Cessna_Citation_Mustang_N416CM.jpg. Resized.\n\nPiper Pacer: Armchair Aviator's. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-20_Pacer_(N8973C).jpg. Resized.\n\nBellanca Cruisair: Bzuk. Public domain. https://commons.wikimedia.org/wiki/File:Bellanca_Cruissair.jpg. Resized.\n\nLancair 360: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:Lancair_320-360_C-FKRO_04.JPG. Resized.\n\nLearjet 60: Lars Henseleit. Public domain. https://commons.wikimedia.org/wiki/File:Learjet_60_D-CKKK.jpg. Resized.\n\nLake Buccaneer: Jeroen Stroes Aviation Photography. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:N6163V_(45318821252).jpg. Resized.\n\nDiamond DA42 Twin Star: Kuba Bożanowski. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:Diamond_DA42_Twin_Star_SP-NBA_--_static_(3318015925).jpg. Resized.\n\nPiper J-3 Cub: kitmasterbloke. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-NCUB_Piper_J-3C-65_Cub_-_52507216285.jpg. Resized.\n\nCirrus SR22T: Dakins. Public domain. https://commons.wikimedia.org/wiki/File:ChicagoCirrus.JPG. Resized.\n\nPiper Arrow: Huhu Uet. CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). https://commons.wikimedia.org/wiki/File:Piper_PA-28R-201_Arrow_(D-EXXD)_01.jpg. Resized.\n\nBeechcraft Bonanza 33: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Beech.bonanza.takeoff.arp.jpg. Resized.\n\nBeechcraft King Air 350: Steve Lynes. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:EGLK_-_Beech_300_Super_King_Air_350_-_SE-LLU_(40431918920).jpg. Resized.\n\nSonex: Adrian Pingstone. Public domain. https://commons.wikimedia.org/wiki/File:Sonex_Aircraft_Sonex_(G-CIDX)_at_Cotswold_Airport_England_18Jun2016_arp.jpg. Resized.\n\nVan's RV-3: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:VansRV-301.jpg. Resized.\n\nRans S-7 Courier: Doubleh63. CC0 (https://creativecommons.org/publicdomain/zero/1.0/). https://commons.wikimedia.org/wiki/File:Rans_S-7_Courier_with_damaged_propeller_at_Brioude_aerodrome.jpg. Resized.\n\nVan's RV-10: Ahunt. Public domain. https://commons.wikimedia.org/wiki/File:VansRV-10N104CD.jpg. Resized.\n\nVan's RV-12: Mark Harkin. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-RMPS_(8532178590).jpg. Resized.\n\nBellanca Viking: happy days photos and art. CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/). https://commons.wikimedia.org/wiki/File:G-VIKE_Bellanca_17-30A_Super_Viking_(7344507090).jpg. Resized.\n\nBeechcraft A36 Bonanza: Davidi Vardi. CC BY 2.5 (https://creativecommons.org/licenses/by/2.5/). https://commons.wikimedia.org/wiki/File:140024_parking_in_rosh_pina_PikiWiki_Israel.jpg. Resized.\n\nBoeing KC-46 Pegasus: U.S. Air Force photo by Airman 1st Class Cody Dowell. Public domain. https://commons.wikimedia.org/wiki/File:Coming_soon_to_a_base_near_you_KC-46A_Pegasus.jpg. Resized.\n\n## Software\n\n@mapbox/vector-tile 2.0.5 and pbf 4.0.2 (BSD-3-Clause):\n\nCopyright (c) 2024, Mapbox\n\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without modification,\nare permitted provided that the following conditions are met:\n\n    * Redistributions of source code must retain the above copyright notice,\n      this list of conditions and the following disclaimer.\n    * Redistributions in binary form must reproduce the above copyright notice,\n      this list of conditions and the following disclaimer in the documentation\n      and/or other materials provided with the distribution.\n    * Neither the name of Mapbox nor the names of its contributors\n      may be used to endorse or promote products derived from this software\n      without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR\nCONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,\nEXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,\nPROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR\nPROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\nLIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING\nNEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\n@mapbox/point-geometry 1.1.0 (ISC):\n\nCopyright (c) 2024, Mapbox\n\nPermission to use, copy, modify, and/or distribute this software for any\npurpose with or without fee is hereby granted, provided that the above\ncopyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES\nWITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF\nMERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR\nANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES\nWHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN\nACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF\nOR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\n\nqrcode-generator 2.0.4 (MIT):\n\nCopyright (c) 2009 Kazuhiko Arase\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\nParts of this app (the feed selection and route matching, aircraft types and silhouettes) are adapted from an open-source aircraft display by Alex Miller (MIT):\n\nCopyright (c) 2026 Alex Miller\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\n## App framework\n\nThe app shell is built with React Native for Vega. It includes these packages (515), each under the license named; the license texts follow.\n\n@amazon-devices/kepler-media-controls 1.0.25: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/kepler-media-types 1.0.0: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/keplermediadescriptor 1.1.17: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/keplerscript-turbomodule-api 1.2.5: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/react-native-kepler 4.0.1: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/react-native-w3cmedia 2.3.2: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@amazon-devices/webview 4.0.2: Amazon Program Materials License. Copyright 2025 Amazon.com, Inc. or its affiliates.  All rights reserved.\n\n@babel/code-frame 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/compat-data 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/core 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/generator 7.29.8: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-annotate-as-pure 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-compilation-targets 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-create-class-features-plugin 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-create-regexp-features-plugin 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-define-polyfill-provider 0.6.8: MIT. Copyright (c) 2014-present Nicolò Ribaudo and other contributors\n\n@babel/helper-globals 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-member-expression-to-functions 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-module-imports 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-module-transforms 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-optimise-call-expression 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-plugin-utils 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-remap-async-to-generator 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-replace-supers 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-skip-transparent-expression-wrappers 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-string-parser 7.29.11: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-validator-identifier 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-validator-option 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helper-wrap-function 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/helpers 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/parser 7.29.11: MIT. Copyright (C) 2012-2014 by various contributors (see AUTHORS)\n\n@babel/plugin-bugfix-firefox-class-in-computed-class-key 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-bugfix-safari-class-field-initializer-scope 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-bugfix-safari-rest-destructuring-rhs-array 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-bugfix-v8-static-class-fields-redefine-readonly 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-proposal-class-properties 7.18.6: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-proposal-nullish-coalescing-operator 7.18.6: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-proposal-optional-chaining 7.21.0: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-proposal-private-property-in-object 7.21.0-placeholder-for-preset-env.2: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-async-generators 7.8.4: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-bigint 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-class-properties 7.12.13: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-class-static-block 7.14.5: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-flow 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-import-assertions 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-import-attributes 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-import-meta 7.10.4: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-json-strings 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-jsx 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-logical-assignment-operators 7.10.4: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-nullish-coalescing-operator 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-numeric-separator 7.10.4: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-object-rest-spread 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-optional-catch-binding 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-optional-chaining 7.8.3: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-private-property-in-object 7.14.5: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-top-level-await 7.14.5: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-typescript 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-syntax-unicode-sets-regex 7.18.6: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-arrow-functions 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-async-generator-functions 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-async-to-generator 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-block-scoped-functions 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-block-scoping 7.29.11: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-class-properties 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-class-static-block 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-classes 7.29.11: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-computed-properties 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-destructuring 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-dotall-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-duplicate-keys 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-duplicate-named-capturing-groups-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-dynamic-import 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-explicit-resource-management 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-exponentiation-operator 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-export-namespace-from 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-flow-strip-types 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-for-of 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-function-name 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-json-strings 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-literals 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-logical-assignment-operators 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-member-expression-literals 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-modules-amd 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-modules-commonjs 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-modules-systemjs 7.29.8: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-modules-umd 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-named-capturing-groups-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-new-target 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-nullish-coalescing-operator 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-numeric-separator 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-object-rest-spread 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-object-super 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-optional-catch-binding 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-optional-chaining 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-parameters 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-private-methods 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-private-property-in-object 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-property-literals 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-regenerator 7.29.8: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-regexp-modifiers 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-reserved-words 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-shorthand-properties 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-spread 7.29.11: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-sticky-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-template-literals 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-typeof-symbol 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-typescript 7.29.9: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-unicode-escapes 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-unicode-property-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-unicode-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/plugin-transform-unicode-sets-regex 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/preset-env 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/preset-flow 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/preset-modules 0.1.6-no-external-plugins: MIT. Copyright (c) 2020 Babel\n\n@babel/preset-typescript 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/register 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/runtime 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/template 7.29.7: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/traverse 7.29.10: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@babel/types 7.29.11: MIT. Copyright (c) 2014-present Sebastian McKenzie and other contributors\n\n@isaacs/ttlcache 1.4.1: ISC. Copyright (c) 2022-2023 - Isaac Z. Schlueter and Contributors\n\n@istanbuljs/load-nyc-config 1.1.0: ISC. Copyright (c) 2019, Contributors\n\n@istanbuljs/schema 0.1.6: MIT. Copyright (c) 2019 CFWare, LLC\n\n@jest/create-cache-key-function 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jest/environment 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jest/fake-timers 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jest/schemas 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jest/transform 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jest/types 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\n@jridgewell/gen-mapping 0.3.13: MIT. Copyright 2024 Justin Ridgewell <justin@ridgewell.name>\n\n@jridgewell/remapping 2.3.5: MIT. Copyright 2024 Justin Ridgewell <justin@ridgewell.name>\n\n@jridgewell/resolve-uri 3.1.2: MIT. Copyright 2019 Justin Ridgewell <jridgewell@google.com>\n\n@jridgewell/source-map 0.3.11: MIT. Copyright 2024 Justin Ridgewell <justin@ridgewell.name>\n\n@jridgewell/sourcemap-codec 1.6.0: MIT. Copyright 2024 Justin Ridgewell <justin@ridgewell.name>\n\n@jridgewell/trace-mapping 0.3.31: MIT. Copyright 2024 Justin Ridgewell <justin@ridgewell.name>\n\n@microsoft/api-extractor 7.47.0: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@microsoft/api-extractor-model 7.29.2: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@microsoft/tsdoc 0.15.1: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@microsoft/tsdoc-config 0.17.1: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@react-native/assets-registry 0.83.0: MIT\n\n@react-native/codegen 0.83.0: MIT\n\n@react-native/community-cli-plugin 0.83.0: MIT\n\n@react-native/debugger-frontend 0.83.0: BSD-3-Clause\n\n@react-native/debugger-shell 0.83.0: MIT\n\n@react-native/dev-middleware 0.83.0: MIT\n\n@react-native/gradle-plugin 0.83.0: MIT\n\n@react-native/js-polyfills 0.83.0: MIT\n\n@react-native/js-polyfills 0.83.0: MIT\n\n@react-native/normalize-colors 0.83.0: MIT\n\n@react-native/virtualized-lists 0.83.0: MIT\n\n@rushstack/node-core-library 5.4.1: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@rushstack/rig-package 0.5.2: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@rushstack/terminal 0.13.0: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@rushstack/ts-command-line 4.22.0: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@sinclair/typebox 0.27.12: MIT. Copyright (c) 2017-2023 Haydn Paterson (sinclair) <haydn.developer@gmail.com>\n\n@sinonjs/commons 3.0.1: BSD-3-Clause. Copyright (c) 2018, Sinon.JS\n\n@sinonjs/fake-timers 10.3.0: BSD-3-Clause. Copyright (c) 2010-2014, Christian Johansen, christian@cjohansen.no. All rights reserved.\n\n@types/argparse 1.0.38: MIT. Copyright (c) Microsoft Corporation. All rights reserved.\n\n@types/babel__core 7.20.5: MIT. Copyright (c) Microsoft Corporation.\n\n@types/babel__generator 7.27.0: MIT. Copyright (c) Microsoft Corporation.\n\n@types/babel__template 7.4.4: MIT. Copyright (c) Microsoft Corporation.\n\n@types/babel__traverse 7.28.0: MIT. Copyright (c) Microsoft Corporation.\n\n@types/graceful-fs 4.1.9: MIT. Copyright (c) Microsoft Corporation.\n\n@types/istanbul-lib-coverage 2.0.6: MIT. Copyright (c) Microsoft Corporation.\n\n@types/istanbul-lib-report 3.0.3: MIT. Copyright (c) Microsoft Corporation.\n\n@types/istanbul-reports 3.0.4: MIT. Copyright (c) Microsoft Corporation.\n\n@types/node 26.6.5: MIT. Copyright (c) Microsoft Corporation.\n\n@types/react 19.3.0: MIT. Copyright (c) Microsoft Corporation.\n\n@types/stack-utils 2.0.3: MIT. Copyright (c) Microsoft Corporation.\n\n@types/yargs 17.0.35: MIT. Copyright (c) Microsoft Corporation.\n\n@types/yargs-parser 21.0.3: MIT. Copyright (c) Microsoft Corporation.\n\nabort-controller 3.0.0: MIT. Copyright (c) 2017 Toru Nagashima\n\naccepts 2.0.0: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nacorn 8.19.0: MIT. Copyright (C) 2012-2022 by various contributors (see AUTHORS)\n\nagent-base 7.1.4: MIT. Copyright (c) 2013 Nathan Rajlich <nathan@tootallnate.net>\n\najv 8.12.0: MIT. Copyright (c) 2015-2021 Evgeny Poberezkin\n\najv 8.13.0: MIT. Copyright (c) 2015-2021 Evgeny Poberezkin\n\najv-draft-04 1.0.0: MIT. Copyright (c) 2021 Evgeny Poberezkin\n\najv-formats 3.0.1: MIT. Copyright (c) 2020 Evgeny Poberezkin\n\nanser 1.4.10: MIT. Copyright (c) 2012-20 Ionică Bizău <bizauionica@gmail.com> (https://ionicabizau.net)\n\nansi-regex 5.0.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nansi-styles 4.3.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nansi-styles 5.2.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nanymatch 3.1.3: ISC. Copyright (c) 2019 Elan Shanker, Paul Miller (https://paulmillr.com)\n\nargparse 1.0.10: MIT. Copyright (C) 2012 by Vitaly Puzrin\n\nasap 2.0.6: MIT. Copyright 2009–2014 Contributors. All rights reserved.\n\nast-types 0.15.2: MIT. Copyright (c) 2013 Ben Newman <bn@cs.stanford.edu>\n\nbabel-core 7.0.0-bridge.0: MIT\n\nbabel-jest 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nbabel-plugin-istanbul 6.1.1: BSD-3-Clause. Copyright (c) 2016, Istanbul Code Coverage\n\nbabel-plugin-jest-hoist 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nbabel-plugin-polyfill-corejs2 0.4.17: MIT. Copyright (c) 2014-present Nicolò Ribaudo and other contributors\n\nbabel-plugin-polyfill-corejs3 0.14.2: MIT. Copyright (c) 2014-present Nicolò Ribaudo and other contributors\n\nbabel-plugin-polyfill-regenerator 0.6.8: MIT. Copyright (c) 2014-present Nicolò Ribaudo and other contributors\n\nbabel-plugin-syntax-hermes-parser 0.32.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nbabel-plugin-syntax-hermes-parser 0.32.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nbabel-preset-current-node-syntax 1.2.0: MIT. Copyright (c) 2020 Nicolò Ribaudo and other contributors\n\nbabel-preset-jest 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nbalanced-match 1.0.2: MIT. Copyright (c) 2013 Julian Gruber &lt;julian@juliangruber.com&gt;\n\nbase64-js 1.5.1: MIT. Copyright (c) 2014 Jameson Little\n\nbaseline-browser-mapping 2.11.33: Apache-2.0\n\nbrace-expansion 1.1.21: MIT. Copyright (c) 2013 Julian Gruber <julian@juliangruber.com>\n\nbraces 3.0.3: MIT. Copyright (c) 2014-present, Jon Schlinkert.\n\nbrowserslist 4.29.5: MIT. Copyright 2014 Andrey Sitnik <andrey@sitnik.es> and other contributors\n\nbser 2.1.2: MIT. Copyright (c) Meta Platforms, Inc. and its affiliates.\n\nbuffer-from 1.1.2: MIT. Copyright (c) 2016, 2018 Linus Unnebäck\n\ncamelcase 5.3.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\ncamelcase 6.3.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\ncaniuse-lite 1.0.30001819: CC-BY-4.0\n\nchalk 4.1.2: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nchrome-launcher 0.15.2: Apache-2.0. Copyright 2014 Google Inc.\n\nchromium-edge-launcher 0.2.0: Apache-2.0. Copyright 2014 Google Inc.\n\nci-info 2.0.0: MIT. Copyright (c) 2016-2018 Thomas Watson Steen\n\nci-info 3.9.0: MIT. Copyright (c) 2016 Thomas Watson Steen\n\ncliui 8.0.1: ISC. Copyright (c) 2015, Contributors\n\nclone-deep 4.0.1: MIT. Copyright (c) 2014-2018, Jon Schlinkert.\n\ncolor-convert 2.0.1: MIT. Copyright (c) 2011-2016 Heather Arthur <fayearthur@gmail.com>\n\ncolor-name 1.1.4: MIT. Copyright (c) 2015 Dmitry Ivanov\n\ncommander 12.1.0: MIT. Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca>\n\ncommander 2.20.3: MIT. Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca>\n\ncommondir 1.0.1: MIT. Copyright (c) 2013 James Halliday (mail@substack.net)\n\nconcat-map 0.0.1: MIT\n\nconnect 3.7.0: MIT. Copyright (c) 2010 Sencha Inc.\n\ncontent-type 2.1.0: MIT. Copyright (c) 2015 Douglas Christopher Wilson\n\nconvert-source-map 2.0.0: MIT. Copyright 2013 Thorsten Lorenz.\n\ncore-js-compat 3.51.0: MIT. Copyright (c) 2013–2025 Denis Pushkarev (zloirock.ru)\n\ncross-spawn 7.0.6: MIT. Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio>\n\ncsstype 3.2.3: MIT. Copyright (c) 2017-2018 Fredrik Nicol\n\ndebug 2.6.9: MIT. Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca>\n\ndebug 2.6.9: MIT. Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca>\n\ndebug 2.6.9: MIT. Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca>\n\ndebug 2.6.9: MIT. Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca>\n\ndebug 4.4.3: MIT. Copyright (c) 2014-2017 TJ Holowaychuk <tj@vision-media.ca>\n\ndepd 2.0.0: MIT. Copyright (c) 2014-2018 Douglas Christopher Wilson\n\ndestroy 1.2.0: MIT. Copyright (c) 2014 Jonathan Ong me@jongleberry.com\n\nee-first 1.1.1: MIT. Copyright (c) 2014 Jonathan Ong me@jongleberry.com\n\nelectron-to-chromium 1.5.465: ISC. Copyright 2018 Kilian Valkhof\n\nemoji-regex 8.0.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nencodeurl 1.0.2: MIT. Copyright (c) 2016 Douglas Christopher Wilson\n\nencodeurl 2.0.0: MIT. Copyright (c) 2016 Douglas Christopher Wilson\n\nencodeurl 2.0.0: MIT. Copyright (c) 2016 Douglas Christopher Wilson\n\nerror-stack-parser 2.1.4: MIT. Copyright (c) 2017 Eric Wendelin and other contributors\n\nes-errors 1.3.0: MIT. Copyright (c) 2024 Jordan Harband\n\nescalade 3.2.0: MIT. Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)\n\nescape-html 1.0.3: MIT. Copyright (c) 2012-2013 TJ Holowaychuk\n\nescape-string-regexp 2.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nescape-string-regexp 4.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nesprima 4.0.1: BSD-2-Clause. Copyright JS Foundation and other contributors, https://js.foundation/\n\nesutils 2.0.3: BSD-2-Clause\n\netag 1.8.1: MIT. Copyright (c) 2014-2016 Douglas Christopher Wilson\n\nevent-target-shim 5.0.1: MIT. Copyright (c) 2015 Toru Nagashima\n\neventemitter3 4.0.7: MIT. Copyright (c) 2014 Arnout Kazemier\n\nexponential-backoff 3.1.3: Apache-2.0. Copyright 2019 Coveo Solutions Inc.\n\nfast-deep-equal 3.1.3: MIT. Copyright (c) 2017 Evgeny Poberezkin\n\nfast-json-stable-stringify 2.1.0: MIT. Copyright (c) 2017 Evgeny Poberezkin\n\nfb-dotslash 0.5.8: (MIT OR Apache-2.0)\n\nfb-watchman 2.0.4: MIT. Copyright (c) Meta Platforms, Inc. and its affiliates.\n\nfill-range 7.1.1: MIT. Copyright (c) 2014-present, Jon Schlinkert.\n\nfinalhandler 1.1.2: MIT. Copyright (c) 2014-2017 Douglas Christopher Wilson <doug@somethingdoug.com>\n\nfind-cache-dir 2.1.0: MIT. Copyright (c) James Talmage <james@talmage.io> (github.com/jamestalmage)\n\nfind-up 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nfind-up 4.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nflow-enums-runtime 0.0.6: MIT. Copyright (c) Facebook, Inc. and its affiliates.\n\nflow-parser 0.206.0: MIT\n\nfresh 0.5.2: MIT. Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>\n\nfs-extra 7.0.1: MIT. Copyright (c) 2011-2017 JP Richardson\n\nfs.realpath 1.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nfsevents 2.3.3: MIT. Copyright (C) 2010-2020 by Philipp Dunkel, Ben Noordhuis, Elan Shankar, Paul Miller\n\nfunction-bind 1.1.2: MIT. Copyright (c) 2013 Raynos.\n\ngensync 1.0.0-beta.2: MIT. Copyright 2018 Logan Smyth <loganfsmyth@gmail.com>\n\nget-caller-file 2.0.5: ISC. Copyright 2018 Stefan Penner\n\nget-package-type 0.1.0: MIT. Copyright (c) 2020 CFWare, LLC\n\nglob 7.2.3: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\ngraceful-fs 4.2.11: ISC. Copyright (c) 2011-2022 Isaac Z. Schlueter, Ben Noordhuis, and Contributors\n\nhas-flag 4.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nhasown 2.0.4: MIT. Copyright (c) Jordan Harband and contributors\n\nhermes-compiler 0.14.0: MIT\n\nhermes-estree 0.32.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhermes-estree 0.35.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhermes-estree 0.35.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhermes-parser 0.32.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhermes-parser 0.35.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhermes-parser 0.35.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nhttp-errors 2.0.1: MIT. Copyright (c) 2014 Jonathan Ong me@jongleberry.com\n\nhttps-proxy-agent 7.0.6: MIT. Copyright (c) 2013 Nathan Rajlich <nathan@tootallnate.net>\n\nimport-lazy 4.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nimurmurhash 0.1.4: MIT\n\ninflight 1.0.6: ISC. Copyright (c) Isaac Z. Schlueter\n\ninherits 2.0.4: ISC. Copyright (c) Isaac Z. Schlueter\n\ninvariant 2.2.4: MIT. Copyright (c) 2013-present, Facebook, Inc.\n\nis-core-module 2.17.0: MIT. Copyright (c) 2014 Dave Justice\n\nis-docker 2.2.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nis-fullwidth-code-point 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nis-number 7.0.0: MIT. Copyright (c) 2014-present, Jon Schlinkert.\n\nis-plain-object 2.0.4: MIT. Copyright (c) 2014-2017, Jon Schlinkert.\n\nis-wsl 2.2.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nisexe 2.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nisobject 3.0.1: MIT. Copyright (c) 2014-2017, Jon Schlinkert.\n\nistanbul-lib-coverage 3.2.2: BSD-3-Clause. Copyright 2012-2015 Yahoo! Inc.\n\nistanbul-lib-instrument 5.2.1: BSD-3-Clause. Copyright 2012-2015 Yahoo! Inc.\n\njest-environment-node 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-get-type 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-haste-map 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-message-util 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-mock 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-regex-util 29.6.3: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-util 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-validate 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njest-worker 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\njju 1.4.0: MIT. Copyright (c) 2013 Alex Kocharin\n\njs-tokens 4.0.0: MIT. Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell\n\njs-yaml 3.15.2: MIT. Copyright (C) 2011-2015 by Vitaly Puzrin\n\njsc-safe-url 0.2.4: 0BSD\n\njscodeshift 0.14.0: MIT. Copyright (c) Facebook, Inc. and its affiliates.\n\njsesc 3.1.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\njson-schema-traverse 1.0.0: MIT. Copyright (c) 2017 Evgeny Poberezkin\n\njson5 2.2.3: MIT. Copyright (c) 2012-2018 Aseem Kishore, and [others].\n\njsonfile 4.0.0: MIT. Copyright (c) 2012-2015, JP Richardson <jprichardson@gmail.com>\n\nkind-of 6.0.3: MIT. Copyright (c) 2014-2017, Jon Schlinkert.\n\nleven 3.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nlighthouse-logger 1.4.2: Apache-2.0. Copyright 2014 Google Inc.\n\nlocate-path 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nlocate-path 5.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nlodash 4.17.21: MIT. Copyright OpenJS Foundation and other contributors <https://openjsf.org/>\n\nlodash.debounce 4.0.8: MIT. Copyright jQuery Foundation and other contributors <https://jquery.org/>\n\nlodash.throttle 4.1.1: MIT. Copyright jQuery Foundation and other contributors <https://jquery.org/>\n\nloose-envify 1.4.0: MIT. Copyright (c) 2015 Andres Suarez <zertosh@gmail.com>\n\nlru-cache 5.1.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nlru-cache 6.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nlru-cache 6.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nmake-dir 2.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nmake-dir 2.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nmakeerror 1.0.12: BSD-3-Clause. Copyright (c) 2014, Naitik Shah. All rights reserved.\n\nmarky 1.3.0: Apache-2.0. Copyright 2016 Nolan Lawson\n\nmemoize-one 5.2.1: MIT. Copyright (c) 2019 Alexander Reardon\n\nmerge-stream 2.0.0: MIT. Copyright (c) Stephen Sugden <me@stephensugden.com> (stephensugden.com)\n\nmetro 0.83.8: MIT\n\nmetro-babel-transformer 0.83.8: MIT\n\nmetro-cache 0.83.8: MIT\n\nmetro-cache-key 0.83.8: MIT\n\nmetro-config 0.83.8: MIT\n\nmetro-core 0.83.8: MIT\n\nmetro-file-map 0.83.8: MIT\n\nmetro-minify-terser 0.83.8: MIT\n\nmetro-resolver 0.83.8: MIT\n\nmetro-runtime 0.83.8: MIT\n\nmetro-source-map 0.83.8: MIT\n\nmetro-symbolicate 0.83.8: MIT\n\nmetro-transform-plugins 0.83.8: MIT\n\nmetro-transform-worker 0.83.8: MIT\n\nmicromatch 4.0.8: MIT. Copyright (c) 2014-present, Jon Schlinkert.\n\nmime 1.6.0: MIT. Copyright (c) 2010 Benjamin Thomas, Robert Kieffer\n\nmime-db 1.54.0: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nmime-types 3.0.2: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nminimatch 3.0.8: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nminimatch 3.1.5: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nmkdirp 1.0.4: MIT. Copyright James Halliday (mail@substack.net) and Isaac Z. Schlueter (i@izs.me)\n\nms 2.0.0: MIT. Copyright (c) 2016 Zeit, Inc.\n\nms 2.0.0: MIT. Copyright (c) 2016 Zeit, Inc.\n\nms 2.0.0: MIT. Copyright (c) 2016 Zeit, Inc.\n\nms 2.0.0: MIT. Copyright (c) 2016 Zeit, Inc.\n\nms 2.1.3: MIT. Copyright (c) 2020 Vercel, Inc.\n\nnegotiator 1.1.0: MIT. Copyright (c) 2012-2014 Federico Romero\n\nneo-async 2.6.2: MIT. Copyright (c) 2014-2018 Suguru Motegi\n\nnode-dir 0.1.17: MIT. Copyright (c) 2012 Nathan Cartwright <fshost@yahoo.com>\n\nnode-int64 0.4.0: MIT. Copyright (c) 2014 Robert Kieffer\n\nnode-releases 2.0.60: MIT. Copyright (c) 2017 Sergey Rubanov (https://github.com/chicoxyzzy)\n\nnormalize-path 3.0.0: MIT. Copyright (c) 2014-2018, Jon Schlinkert.\n\nnullthrows 1.1.1: MIT. Copyright (c) 2016 Andres Suarez\n\nob1 0.83.8: MIT\n\non-finished 2.3.0: MIT. Copyright (c) 2013 Jonathan Ong <me@jongleberry.com>\n\non-finished 2.4.2: MIT. Copyright (c) 2013 Jonathan Ong <me@jongleberry.com>\n\nonce 1.4.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nopen 7.4.2: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\np-limit 2.3.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\np-limit 2.3.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\np-locate 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\np-locate 4.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\np-try 2.2.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nparseurl 1.3.3: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\npath-exists 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npath-exists 4.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npath-is-absolute 1.0.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npath-key 3.1.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npath-parse 1.0.7: MIT. Copyright (c) 2015 Javier Blanco\n\npicocolors 1.1.1: ISC. Copyright (c) 2021-2024 Oleksii Raspopov, Kostiantyn Denysov, Anton Verinov\n\npicomatch 2.3.2: MIT. Copyright (c) 2017-present, Jon Schlinkert.\n\npify 4.0.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npify 4.0.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npirates 4.0.7: MIT. Copyright (c) 2016-2018 Ari Porad\n\npkg-dir 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\npretty-format 29.7.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\npromise 8.3.0: MIT. Copyright (c) 2014 Forbes Lindesay\n\npunycode 2.3.1: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nrange-parser 1.2.1: MIT. Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>\n\nreact 19.2.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nreact-devtools-core 6.1.5: MIT\n\nreact-is 18.3.1: MIT. Copyright (c) Facebook, Inc. and its affiliates.\n\nreact-native 0.83.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nreact-refresh 0.14.2: MIT. Copyright (c) Facebook, Inc. and its affiliates.\n\nrecast 0.21.5: MIT. Copyright (c) 2012 Ben Newman <bn@cs.stanford.edu>\n\nregenerate 1.5.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nregenerate-unicode-properties 10.3.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nregenerator-runtime 0.13.11: MIT. Copyright (c) 2014-present, Facebook, Inc.\n\nregexpu-core 6.5.3: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nregjsgen 0.8.0: MIT. Copyright 2014-2020 Benjamin Tan <https://ofcr.se/>\n\nregjsparser 0.13.4: BSD-2-Clause. Copyright (c) Julian Viereck and Contributors, All Rights Reserved.\n\nrequire-directory 2.1.1: MIT. Copyright (c) 2011 Troy Goode <troygoode@gmail.com>\n\nrequire-from-string 2.0.2: MIT. Copyright (c) Vsevolod Strukchinsky <floatdrop@gmail.com> (github.com/floatdrop)\n\nresolve 1.22.13: MIT. Copyright (c) 2012 James Halliday\n\nresolve-from 5.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nrimraf 2.6.3: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nrimraf 3.0.2: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nscheduler 0.27.0: MIT. Copyright (c) Meta Platforms, Inc. and affiliates.\n\nsemver 5.7.2: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 5.7.2: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 6.3.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 7.5.4: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 7.5.4: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsemver 7.7.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nsend 0.19.2: MIT. Copyright (c) 2012 TJ Holowaychuk\n\nserialize-error 2.1.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nserve-static 1.16.3: MIT. Copyright (c) 2010 Sencha Inc.\n\nsetprototypeof 1.2.0: ISC. Copyright (c) 2015, Wes Todd\n\nshallow-clone 3.0.1: MIT. Copyright (c) 2015-present, Jon Schlinkert.\n\nshebang-command 2.0.0: MIT. Copyright (c) Kevin Mårtensson <kevinmartensson@gmail.com> (github.com/kevva)\n\nshebang-regex 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nshell-quote 1.12.0: MIT. Copyright (c) 2013 James Halliday (mail@substack.net)\n\nsignal-exit 3.0.7: ISC. Copyright (c) 2015, Contributors\n\nslash 3.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nsource-map 0.5.7: BSD-3-Clause. Copyright (c) 2009-2011, Mozilla Foundation and contributors\n\nsource-map 0.5.7: BSD-3-Clause. Copyright (c) 2009-2011, Mozilla Foundation and contributors\n\nsource-map 0.5.7: BSD-3-Clause. Copyright (c) 2009-2011, Mozilla Foundation and contributors\n\nsource-map 0.6.1: BSD-3-Clause. Copyright (c) 2009-2011, Mozilla Foundation and contributors\n\nsource-map-support 0.5.21: MIT. Copyright (c) 2014 Evan Wallace\n\nsource-map-support 0.5.21: MIT. Copyright (c) 2014 Evan Wallace\n\nsprintf-js 1.0.3: BSD-3-Clause. Copyright (c) 2007-2014, Alexandru Marasteanu <hello [at) alexei (dot] ro>\n\nstack-utils 2.0.6: MIT. Copyright (c) 2016-2022 Isaac Z. Schlueter <i@izs.me>, James Talmage <james@talmage.io> (github.com/jamestalmage), and Contributors\n\nstackframe 1.3.4: MIT. Copyright (c) 2017 Eric Wendelin and other contributors\n\nstacktrace-parser 0.1.11: MIT. Copyright (c) 2014-2019 Georg Tavonius\n\nstatuses 1.5.0: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nstatuses 2.0.2: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nstatuses 2.0.2: MIT. Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>\n\nstring-argv 0.3.2: MIT. Copyright 2014 Anthony McCormick\n\nstring-width 4.2.3: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nstrip-ansi 6.0.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nstrip-json-comments 3.1.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nsupports-color 7.2.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\nsupports-color 8.1.1: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nsupports-preserve-symlinks-flag 1.0.0: MIT. Copyright (c) 2022 Inspect JS\n\ntemp 0.8.4: MIT. Copyright (c) 2010-2014 Bruce Williams\n\nterser 5.51.2: BSD-2-Clause. Copyright 2012-2018 (c) Mihai Bazon <mihai.bazon@gmail.com>\n\ntest-exclude 6.0.0: ISC. Copyright (c) 2016, Contributors\n\nthroat 5.0.0: MIT. Copyright (c) 2013 Forbes Lindesay\n\ntmpl 1.0.5: BSD-3-Clause. Copyright (c) 2014, Naitik Shah. All rights reserved.\n\nto-regex-range 5.0.1: MIT. Copyright (c) 2015-present, Jon Schlinkert.\n\ntoidentifier 1.0.1: MIT. Copyright (c) 2016 Douglas Christopher Wilson <doug@somethingdoug.com>\n\ntslib 2.8.1: 0BSD. Copyright (c) Microsoft Corporation.\n\ntype-detect 4.0.8: MIT. Copyright (c) 2013 Jake Luer <jake@alogicalparadox.com> (http://alogicalparadox.com)\n\ntype-fest 0.7.1: (MIT OR CC0-1.0). Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)\n\ntypescript 5.4.2: Apache-2.0\n\nundici-types 8.9.0: MIT. Copyright (c) Matteo Collina and Undici contributors\n\nunicode-canonical-property-names-ecmascript 2.0.1: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nunicode-match-property-ecmascript 2.0.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nunicode-match-property-value-ecmascript 2.2.1: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nunicode-property-aliases-ecmascript 2.2.0: MIT. Copyright Mathias Bynens <https://mathiasbynens.be/>\n\nuniversalify 0.1.2: MIT. Copyright (c) 2017, Ryan Zimmerman <opensrc@ryanzim.com>\n\nunpipe 1.0.0: MIT. Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com>\n\nupdate-browserslist-db 1.3.4: MIT. Copyright 2022 Andrey Sitnik <andrey@sitnik.es> and other contributors\n\nuri-js 4.4.1: BSD-2-Clause. Copyright 2011 Gary Court. All rights reserved.\n\nutils-merge 1.0.1: MIT. Copyright (c) 2013-2017 Jared Hanson\n\nvlq 1.0.1: MIT. Copyright (c) 2017 [these people](https://github.com/Rich-Harris/vlq/graphs/contributors)\n\nwalker 1.0.8: Apache-2.0. Copyright 2013 Naitik Shah\n\nwhatwg-fetch 3.6.20: MIT. Copyright (c) 2014-2023 GitHub, Inc.\n\nwhich 2.0.2: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nwrap-ansi 7.0.0: MIT. Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nwrappy 1.0.2: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nwrite-file-atomic 2.4.3: ISC. Copyright (c) 2015, Rebecca Turner\n\nwrite-file-atomic 4.0.2: ISC. Copyright (c) 2015, Rebecca Turner\n\nws 7.5.13: MIT. Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>\n\ny18n 5.0.8: ISC. Copyright (c) 2015, Contributors\n\nyallist 3.1.1: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nyallist 4.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nyallist 4.0.0: ISC. Copyright (c) Isaac Z. Schlueter and Contributors\n\nyaml 2.9.1: ISC. Copyright Eemeli Aro <eemeli@gmail.com>\n\nyargs 17.7.3: MIT. Copyright 2010 James Halliday (mail@substack.net); Modified work Copyright 2014 Contributors (ben@npmjs.com)\n\nyargs-parser 21.1.1: ISC. Copyright (c) 2016, Contributors\n\n## MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\n## ISC License\n\nPermission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\n\n## BSD-2-Clause and BSD-3-Clause\n\nRedistribution and use in source and binary forms, with or without modification,\nare permitted provided that the following conditions are met:\n\n    * Redistributions of source code must retain the above copyright notice,\n      this list of conditions and the following disclaimer.\n    * Redistributions in binary form must reproduce the above copyright notice,\n      this list of conditions and the following disclaimer in the documentation\n      and/or other materials provided with the distribution.\n    * Neither the name of Mapbox nor the names of its contributors\n      may be used to endorse or promote products derived from this software\n      without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR\nCONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,\nEXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,\nPROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR\nPROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\nLIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING\nNEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\n## Apache-2.0 license text\n\nApache License\n\nVersion 2.0, January 2004\n\nhttp://www.apache.org/licenses/ \n\nTERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n1. Definitions.\n\n\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.\n\n\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.\n\n\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.\n\n\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.\n\n\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.\n\n\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.\n\n\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).\n\n\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.\n\n\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"\n\n\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.\n\n2. Grant of Copyright License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, sublicense, and distribute the Work and such Derivative Works in Source or Object form.\n\n3. Grant of Patent License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, where such license applies only to those patent claims licensable by such Contributor that are necessarily infringed by their Contribution(s) alone or by combination of their Contribution(s) with the Work to which such Contribution(s) was submitted. If You institute patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Work or a Contribution incorporated within the Work constitutes direct or contributory patent infringement, then any patent licenses granted to You under this License for that Work shall terminate as of the date such litigation is filed.\n\n4. Redistribution. You may reproduce and distribute copies of the Work or Derivative Works thereof in any medium, with or without modifications, and in Source or Object form, provided that You meet the following conditions:\n\nYou must give any other recipients of the Work or Derivative Works a copy of this License; and\n\nYou must cause any modified files to carry prominent notices stating that You changed the files; and\n\nYou must retain, in the Source form of any Derivative Works that You distribute, all copyright, patent, trademark, and attribution notices from the Source form of the Work, excluding those notices that do not pertain to any part of the Derivative Works; and\n\nIf the Work includes a \"NOTICE\" text file as part of its distribution, then any Derivative Works that You distribute must include a readable copy of the attribution notices contained within such NOTICE file, excluding those notices that do not pertain to any part of the Derivative Works, in at least one of the following places: within a NOTICE text file distributed as part of the Derivative Works; within the Source form or documentation, if provided along with the Derivative Works; or, within a display generated by the Derivative Works, if and wherever such third-party notices normally appear. The contents of the NOTICE file are for informational purposes only and do not modify the License. You may add Your own attribution notices within Derivative Works that You distribute, alongside or as an addendum to the NOTICE text from the Work, provided that such additional attribution notices cannot be construed as modifying the License. You may add Your own copyright statement to Your modifications and may provide additional or different license terms and conditions for use, reproduction, or distribution of Your modifications, or for any such Derivative Works as a whole, provided Your use, reproduction, and distribution of the Work otherwise complies with the conditions stated in this License.\n\n5. Submission of Contributions. Unless You explicitly state otherwise, any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions. Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement you may have executed with Licensor regarding such Contributions.\n\n6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file.\n\n7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.\n\n8. Limitation of Liability. In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, unless required by applicable law (such as deliberate and grossly negligent acts) or agreed to in writing, shall any Contributor be liable to You for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of this License or out of the use or inability to use the Work (including but not limited to damages for loss of goodwill, work stoppage, computer failure or malfunction, or any and all other commercial damages or losses), even if such Contributor has been advised of the possibility of such damages.\n\n9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.\n\nEND OF TERMS AND CONDITIONS\n\n## CC-BY-4.0 license text\n\nAttribution 4.0 International\n\n=======================================================================\n\nCreative Commons Corporation (\"Creative Commons\") is not a law firm and\ndoes not provide legal services or legal advice. Distribution of\nCreative Commons public licenses does not create a lawyer-client or\nother relationship. Creative Commons makes its licenses and related\ninformation available on an \"as-is\" basis. Creative Commons gives no\nwarranties regarding its licenses, any material licensed under their\nterms and conditions, or any related information. Creative Commons\ndisclaims all liability for damages resulting from their use to the\nfullest extent possible.\n\nUsing Creative Commons Public Licenses\n\nCreative Commons public licenses provide a standard set of terms and\nconditions that creators and other rights holders may use to share\noriginal works of authorship and other material subject to copyright\nand certain other rights specified in the public license below. The\nfollowing considerations are for informational purposes only, are not\nexhaustive, and do not form part of our licenses.\n\n     Considerations for licensors: Our public licenses are\n     intended for use by those authorized to give the public\n     permission to use material in ways otherwise restricted by\n     copyright and certain other rights. Our licenses are\n     irrevocable. Licensors should read and understand the terms\n     and conditions of the license they choose before applying it.\n     Licensors should also secure all rights necessary before\n     applying our licenses so that the public can reuse the\n     material as expected. Licensors should clearly mark any\n     material not subject to the license. This includes other CC-\n     licensed material, or material used under an exception or\n     limitation to copyright. More considerations for licensors:\n\twiki.creativecommons.org/Considerations_for_licensors\n\n     Considerations for the public: By using one of our public\n     licenses, a licensor grants the public permission to use the\n     licensed material under specified terms and conditions. If\n     the licensor's permission is not necessary for any reason--for\n     example, because of any applicable exception or limitation to\n     copyright--then that use is not regulated by the license. Our\n     licenses grant only permissions under copyright and certain\n     other rights that a licensor has authority to grant. Use of\n     the licensed material may still be restricted for other\n     reasons, including because others have copyright or other\n     rights in the material. A licensor may make special requests,\n     such as asking that all changes be marked or described.\n     Although not required by our licenses, you are encouraged to\n     respect those requests where reasonable. More_considerations\n     for the public: \n\twiki.creativecommons.org/Considerations_for_licensees\n\n=======================================================================\n\nCreative Commons Attribution 4.0 International Public License\n\nBy exercising the Licensed Rights (defined below), You accept and agree\nto be bound by the terms and conditions of this Creative Commons\nAttribution 4.0 International Public License (\"Public License\"). To the\nextent this Public License may be interpreted as a contract, You are\ngranted the Licensed Rights in consideration of Your acceptance of\nthese terms and conditions, and the Licensor grants You such rights in\nconsideration of benefits the Licensor receives from making the\nLicensed Material available under these terms and conditions.\n\nSection 1 -- Definitions.\n\n  a. Adapted Material means material subject to Copyright and Similar\n     Rights that is derived from or based upon the Licensed Material\n     and in which the Licensed Material is translated, altered,\n     arranged, transformed, or otherwise modified in a manner requiring\n     permission under the Copyright and Similar Rights held by the\n     Licensor. For purposes of this Public License, where the Licensed\n     Material is a musical work, performance, or sound recording,\n     Adapted Material is always produced where the Licensed Material is\n     synched in timed relation with a moving image.\n\n  b. Adapter's License means the license You apply to Your Copyright\n     and Similar Rights in Your contributions to Adapted Material in\n     accordance with the terms and conditions of this Public License.\n\n  c. Copyright and Similar Rights means copyright and/or similar rights\n     closely related to copyright including, without limitation,\n     performance, broadcast, sound recording, and Sui Generis Database\n     Rights, without regard to how the rights are labeled or\n     categorized. For purposes of this Public License, the rights\n     specified in Section 2(b)(1)-(2) are not Copyright and Similar\n     Rights.\n\n  d. Effective Technological Measures means those measures that, in the\n     absence of proper authority, may not be circumvented under laws\n     fulfilling obligations under Article 11 of the WIPO Copyright\n     Treaty adopted on December 20, 1996, and/or similar international\n     agreements.\n\n  e. Exceptions and Limitations means fair use, fair dealing, and/or\n     any other exception or limitation to Copyright and Similar Rights\n     that applies to Your use of the Licensed Material.\n\n  f. Licensed Material means the artistic or literary work, database,\n     or other material to which the Licensor applied this Public\n     License.\n\n  g. Licensed Rights means the rights granted to You subject to the\n     terms and conditions of this Public License, which are limited to\n     all Copyright and Similar Rights that apply to Your use of the\n     Licensed Material and that the Licensor has authority to license.\n\n  h. Licensor means the individual(s) or entity(ies) granting rights\n     under this Public License.\n\n  i. Share means to provide material to the public by any means or\n     process that requires permission under the Licensed Rights, such\n     as reproduction, public display, public performance, distribution,\n     dissemination, communication, or importation, and to make material\n     available to the public including in ways that members of the\n     public may access the material from a place and at a time\n     individually chosen by them.\n\n  j. Sui Generis Database Rights means rights other than copyright\n     resulting from Directive 96/9/EC of the European Parliament and of\n     the Council of 11 March 1996 on the legal protection of databases,\n     as amended and/or succeeded, as well as other essentially\n     equivalent rights anywhere in the world.\n\n  k. You means the individual or entity exercising the Licensed Rights\n     under this Public License. Your has a corresponding meaning.\n\nSection 2 -- Scope.\n\n  a. License grant.\n\n       1. Subject to the terms and conditions of this Public License,\n          the Licensor hereby grants You a worldwide, royalty-free,\n          non-sublicensable, non-exclusive, irrevocable license to\n          exercise the Licensed Rights in the Licensed Material to:\n\n            a. reproduce and Share the Licensed Material, in whole or\n               in part; and\n\n            b. produce, reproduce, and Share Adapted Material.\n\n       2. Exceptions and Limitations. For the avoidance of doubt, where\n          Exceptions and Limitations apply to Your use, this Public\n          License does not apply, and You do not need to comply with\n          its terms and conditions.\n\n       3. Term. The term of this Public License is specified in Section\n          6(a).\n\n       4. Media and formats; technical modifications allowed. The\n          Licensor authorizes You to exercise the Licensed Rights in\n          all media and formats whether now known or hereafter created,\n          and to make technical modifications necessary to do so. The\n          Licensor waives and/or agrees not to assert any right or\n          authority to forbid You from making technical modifications\n          necessary to exercise the Licensed Rights, including\n          technical modifications necessary to circumvent Effective\n          Technological Measures. For purposes of this Public License,\n          simply making modifications authorized by this Section 2(a)\n          (4) never produces Adapted Material.\n\n       5. Downstream recipients.\n\n            a. Offer from the Licensor -- Licensed Material. Every\n               recipient of the Licensed Material automatically\n               receives an offer from the Licensor to exercise the\n               Licensed Rights under the terms and conditions of this\n               Public License.\n\n            b. No downstream restrictions. You may not offer or impose\n               any additional or different terms or conditions on, or\n               apply any Effective Technological Measures to, the\n               Licensed Material if doing so restricts exercise of the\n               Licensed Rights by any recipient of the Licensed\n               Material.\n\n       6. No endorsement. Nothing in this Public License constitutes or\n          may be construed as permission to assert or imply that You\n          are, or that Your use of the Licensed Material is, connected\n          with, or sponsored, endorsed, or granted official status by,\n          the Licensor or others designated to receive attribution as\n          provided in Section 3(a)(1)(A)(i).\n\n  b. Other rights.\n\n       1. Moral rights, such as the right of integrity, are not\n          licensed under this Public License, nor are publicity,\n          privacy, and/or other similar personality rights; however, to\n          the extent possible, the Licensor waives and/or agrees not to\n          assert any such rights held by the Licensor to the limited\n          extent necessary to allow You to exercise the Licensed\n          Rights, but not otherwise.\n\n       2. Patent and trademark rights are not licensed under this\n          Public License.\n\n       3. To the extent possible, the Licensor waives any right to\n          collect royalties from You for the exercise of the Licensed\n          Rights, whether directly or through a collecting society\n          under any voluntary or waivable statutory or compulsory\n          licensing scheme. In all other cases the Licensor expressly\n          reserves any right to collect such royalties.\n\nSection 3 -- License Conditions.\n\nYour exercise of the Licensed Rights is expressly made subject to the\nfollowing conditions.\n\n  a. Attribution.\n\n       1. If You Share the Licensed Material (including in modified\n          form), You must:\n\n            a. retain the following if it is supplied by the Licensor\n               with the Licensed Material:\n\n                 i. identification of the creator(s) of the Licensed\n                    Material and any others designated to receive\n                    attribution, in any reasonable manner requested by\n                    the Licensor (including by pseudonym if\n                    designated);\n\n                ii. a copyright notice;\n\n               iii. a notice that refers to this Public License;\n\n                iv. a notice that refers to the disclaimer of\n                    warranties;\n\n                 v. a URI or hyperlink to the Licensed Material to the\n                    extent reasonably practicable;\n\n            b. indicate if You modified the Licensed Material and\n               retain an indication of any previous modifications; and\n\n            c. indicate the Licensed Material is licensed under this\n               Public License, and include the text of, or the URI or\n               hyperlink to, this Public License.\n\n       2. You may satisfy the conditions in Section 3(a)(1) in any\n          reasonable manner based on the medium, means, and context in\n          which You Share the Licensed Material. For example, it may be\n          reasonable to satisfy the conditions by providing a URI or\n          hyperlink to a resource that includes the required\n          information.\n\n       3. If requested by the Licensor, You must remove any of the\n          information required by Section 3(a)(1)(A) to the extent\n          reasonably practicable.\n\n       4. If You Share Adapted Material You produce, the Adapter's\n          License You apply must not prevent recipients of the Adapted\n          Material from complying with this Public License.\n\nSection 4 -- Sui Generis Database Rights.\n\nWhere the Licensed Rights include Sui Generis Database Rights that\napply to Your use of the Licensed Material:\n\n  a. for the avoidance of doubt, Section 2(a)(1) grants You the right\n     to extract, reuse, reproduce, and Share all or a substantial\n     portion of the contents of the database;\n\n  b. if You include all or a substantial portion of the database\n     contents in a database in which You have Sui Generis Database\n     Rights, then the database in which You have Sui Generis Database\n     Rights (but not its individual contents) is Adapted Material; and\n\n  c. You must comply with the conditions in Section 3(a) if You Share\n     all or a substantial portion of the contents of the database.\n\nFor the avoidance of doubt, this Section 4 supplements and does not\nreplace Your obligations under this Public License where the Licensed\nRights include other Copyright and Similar Rights.\n\nSection 5 -- Disclaimer of Warranties and Limitation of Liability.\n\n  a. UNLESS OTHERWISE SEPARATELY UNDERTAKEN BY THE LICENSOR, TO THE\n     EXTENT POSSIBLE, THE LICENSOR OFFERS THE LICENSED MATERIAL AS-IS\n     AND AS-AVAILABLE, AND MAKES NO REPRESENTATIONS OR WARRANTIES OF\n     ANY KIND CONCERNING THE LICENSED MATERIAL, WHETHER EXPRESS,\n     IMPLIED, STATUTORY, OR OTHER. THIS INCLUDES, WITHOUT LIMITATION,\n     WARRANTIES OF TITLE, MERCHANTABILITY, FITNESS FOR A PARTICULAR\n     PURPOSE, NON-INFRINGEMENT, ABSENCE OF LATENT OR OTHER DEFECTS,\n     ACCURACY, OR THE PRESENCE OR ABSENCE OF ERRORS, WHETHER OR NOT\n     KNOWN OR DISCOVERABLE. WHERE DISCLAIMERS OF WARRANTIES ARE NOT\n     ALLOWED IN FULL OR IN PART, THIS DISCLAIMER MAY NOT APPLY TO YOU.\n\n  b. TO THE EXTENT POSSIBLE, IN NO EVENT WILL THE LICENSOR BE LIABLE\n     TO YOU ON ANY LEGAL THEORY (INCLUDING, WITHOUT LIMITATION,\n     NEGLIGENCE) OR OTHERWISE FOR ANY DIRECT, SPECIAL, INDIRECT,\n     INCIDENTAL, CONSEQUENTIAL, PUNITIVE, EXEMPLARY, OR OTHER LOSSES,\n     COSTS, EXPENSES, OR DAMAGES ARISING OUT OF THIS PUBLIC LICENSE OR\n     USE OF THE LICENSED MATERIAL, EVEN IF THE LICENSOR HAS BEEN\n     ADVISED OF THE POSSIBILITY OF SUCH LOSSES, COSTS, EXPENSES, OR\n     DAMAGES. WHERE A LIMITATION OF LIABILITY IS NOT ALLOWED IN FULL OR\n     IN PART, THIS LIMITATION MAY NOT APPLY TO YOU.\n\n  c. The disclaimer of warranties and limitation of liability provided\n     above shall be interpreted in a manner that, to the extent\n     possible, most closely approximates an absolute disclaimer and\n     waiver of all liability.\n\nSection 6 -- Term and Termination.\n\n  a. This Public License applies for the term of the Copyright and\n     Similar Rights licensed here. However, if You fail to comply with\n     this Public License, then Your rights under this Public License\n     terminate automatically.\n\n  b. Where Your right to use the Licensed Material has terminated under\n     Section 6(a), it reinstates:\n\n       1. automatically as of the date the violation is cured, provided\n          it is cured within 30 days of Your discovery of the\n          violation; or\n\n       2. upon express reinstatement by the Licensor.\n\n     For the avoidance of doubt, this Section 6(b) does not affect any\n     right the Licensor may have to seek remedies for Your violations\n     of this Public License.\n\n  c. For the avoidance of doubt, the Licensor may also offer the\n     Licensed Material under separate terms or conditions or stop\n     distributing the Licensed Material at any time; however, doing so\n     will not terminate this Public License.\n\n  d. Sections 1, 5, 6, 7, and 8 survive termination of this Public\n     License.\n\nSection 7 -- Other Terms and Conditions.\n\n  a. The Licensor shall not be bound by any additional or different\n     terms or conditions communicated by You unless expressly agreed.\n\n  b. Any arrangements, understandings, or agreements regarding the\n     Licensed Material not stated herein are separate from and\n     independent of the terms and conditions of this Public License.\n\nSection 8 -- Interpretation.\n\n  a. For the avoidance of doubt, this Public License does not, and\n     shall not be interpreted to, reduce, limit, restrict, or impose\n     conditions on any use of the Licensed Material that could lawfully\n     be made without permission under this Public License.\n\n  b. To the extent possible, if any provision of this Public License is\n     deemed unenforceable, it shall be automatically reformed to the\n     minimum extent necessary to make it enforceable. If the provision\n     cannot be reformed, it shall be severed from this Public License\n     without affecting the enforceability of the remaining terms and\n     conditions.\n\n  c. No term or condition of this Public License will be waived and no\n     failure to comply consented to unless expressly agreed to by the\n     Licensor.\n\n  d. Nothing in this Public License constitutes or may be interpreted\n     as a limitation upon, or waiver of, any privileges and immunities\n     that apply to the Licensor or You, including from the legal\n     processes of any jurisdiction or authority.\n\n=======================================================================\n\nCreative Commons is not a party to its public\nlicenses. Notwithstanding, Creative Commons may elect to apply one of\nits public licenses to material it publishes and in those instances\nwill be considered the “Licensor.” The text of the Creative Commons\npublic licenses is dedicated to the public domain under the CC0 Public\nDomain Dedication. Except for the limited purpose of indicating that\nmaterial is shared under a Creative Commons public license or as\notherwise permitted by the Creative Commons policies published at\ncreativecommons.org/policies, Creative Commons does not authorize the\nuse of the trademark \"Creative Commons\" or any other trademark or logo\nof Creative Commons without its prior written consent including,\nwithout limitation, in connection with any unauthorized modifications\nto any of its public licenses or any other arrangements,\nunderstandings, or agreements concerning use of licensed material. For\nthe avoidance of doubt, this paragraph does not form part of the\npublic licenses.\n\nCreative Commons may be contacted at creativecommons.org.\n\n## Fonts\n\nB612 Mono: Copyright 2012 The B612 Project Authors (https://github.com/polarsys/b612)\n\nBarlow Condensed: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)\n\nEB Garamond: Copyright 2017 The EB Garamond Project Authors (https://github.com/octaviopardo/EBGaramond12)\n\nInter: Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)\n\nJetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)\n\nMichroma: Copyright 2011 The Michroma Project Authors (https://github.com/googlefonts/Michroma-font)\n\nOrbitron: Copyright 2018 The Orbitron Project Authors (https://github.com/theleagueof/orbitron)\n\nThese fonts are licensed under the SIL Open Font License, Version 1.1:\n\nSIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\r\n-----------------------------------------------------------\r\n\r\nPREAMBLE\r\nThe goals of the Open Font License (OFL) are to stimulate worldwide\r\ndevelopment of collaborative font projects, to support the font creation\r\nefforts of academic and linguistic communities, and to provide a free and\r\nopen framework in which fonts may be shared and improved in partnership\r\nwith others.\r\n\r\nThe OFL allows the licensed fonts to be used, studied, modified and\r\nredistributed freely as long as they are not sold by themselves. The\r\nfonts, including any derivative works, can be bundled, embedded,\r\nredistributed and/or sold with any software provided that any reserved\r\nnames are not used by derivative works. The fonts and derivatives,\r\nhowever, cannot be released under any other type of license. The\r\nrequirement for fonts to remain under this license does not apply\r\nto any document created using the fonts or their derivatives.\r\n\r\nDEFINITIONS\r\n\"Font Software\" refers to the set of files released by the Copyright\r\nHolder(s) under this license and clearly marked as such. This may\r\ninclude source files, build scripts and documentation.\r\n\r\n\"Reserved Font Name\" refers to any names specified as such after the\r\ncopyright statement(s).\r\n\r\n\"Original Version\" refers to the collection of Font Software components as\r\ndistributed by the Copyright Holder(s).\r\n\r\n\"Modified Version\" refers to any derivative made by adding to, deleting,\r\nor substituting -- in part or in whole -- any of the components of the\r\nOriginal Version, by changing formats or by porting the Font Software to a\r\nnew environment.\r\n\r\n\"Author\" refers to any designer, engineer, programmer, technical\r\nwriter or other person who contributed to the Font Software.\r\n\r\nPERMISSION & CONDITIONS\r\nPermission is hereby granted, free of charge, to any person obtaining\r\na copy of the Font Software, to use, study, copy, merge, embed, modify,\r\nredistribute, and sell modified and unmodified copies of the Font\r\nSoftware, subject to the following conditions:\r\n\r\n1) Neither the Font Software nor any of its individual components,\r\nin Original or Modified Versions, may be sold by itself.\r\n\r\n2) Original or Modified Versions of the Font Software may be bundled,\r\nredistributed and/or sold with any software, provided that each copy\r\ncontains the above copyright notice and this license. These can be\r\nincluded either as stand-alone text files, human-readable headers or\r\nin the appropriate machine-readable metadata fields within text or\r\nbinary files as long as those fields can be easily viewed by the user.\r\n\r\n3) No Modified Version of the Font Software may use the Reserved Font\r\nName(s) unless explicit written permission is granted by the corresponding\r\nCopyright Holder. This restriction only applies to the primary font name as\r\npresented to the users.\r\n\r\n4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font\r\nSoftware shall not be used to promote, endorse or advertise any\r\nModified Version, except to acknowledge the contribution(s) of the\r\nCopyright Holder(s) and the Author(s) or with their explicit written\r\npermission.\r\n\r\n5) The Font Software, modified or unmodified, in part or in whole,\r\nmust be distributed entirely under this license, and must not be\r\ndistributed under any other license. The requirement for fonts to\r\nremain under this license does not apply to any document created\r\nusing the Font Software.\r\n\r\nTERMINATION\r\nThis license becomes null and void if any of the above conditions are\r\nnot met.\r\n\r\nDISCLAIMER\r\nTHE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\r\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\r\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\r\nOF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE\r\nCOPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,\r\nINCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL\r\nDAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\r\nFROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM\r\nOTHER DEALINGS IN THE FONT SOFTWARE.\n"};
 (()=>{
 const __modules={};
 window.__whatsupModules=__modules;
@@ -15,6 +17,49 @@ const CONFIG = Object.freeze({
 });
 
 return {CONFIG};
+})();
+// ---- profile.mjs
+__modules["profile.mjs"]=(()=>{
+
+// Build profile (scripts/build-web.mjs, WHATSUP_PROFILE): which services this build talks
+// to. Everything the user is told (first-run consent, Privacy, search screen, credits) is
+// written from the same entry, so it always matches what the build really contacts.
+//  - personal (default): the developer's own TV. adsb.fi positions (adsb.lol's while adsb.fi
+//    isn't answering), Planespotters photos, EOX imagery outside the US, Nominatim for
+//    addresses outside the US.
+//  - store: the public app, same services; its own privacy policy. The switches stay so a
+//    service can be turned off for the store build alone (photos, eox, nominatim).
+// The store build draws the whole screen at STORE_STAGE_SCALE of the TV's size, centred, with
+// the margin in the layout's own background, so no text sits in the outer 5% of any edge
+// (Amazon's overscan guidance: a TV left on overscan crops the edges). 0.9 puts the stage's own
+// edge exactly 5% in, so text clears the margin wherever a layout places it: the fixed text
+// would allow 0.911 (scripts/check-safe-area.mjs measures it), but plane tags in Sectional and
+// Synthwave and Radar's data blocks may sit 2-4 px from the stage edge.
+const STORE_STAGE_SCALE=0.9;
+const PROFILES={
+  personal:{
+    id:'personal',
+    stageScale:1, // full screen: the developer's TV shows the whole picture
+    feed:'adsb.fi',
+    feedUrl:(lat,lon,nm)=>`https://opendata.adsb.fi/api/v3/lat/${lat.toFixed(2)}/lon/${lon.toFixed(2)}/dist/${nm}`,
+    // Backup positions, only while adsb.fi isn't answering (web/live.mjs).
+    backup:'adsb.lol',
+    backupUrl:(lat,lon,nm)=>`https://api.adsb.lol/v2/lat/${lat.toFixed(2)}/lon/${lon.toFixed(2)}/dist/${nm}`,
+    photos:true,eox:true,nominatim:true,
+    creditFlash:'Aircraft adsb.fi',
+    backupCreditFlash:'Aircraft and routes ADSB.lol', // the opening credit line while adsb.lol stands in
+    consent:'To show planes near you, this app sends your approximate location, rounded to a few miles, to public flight and map services (adsb.fi, or ADSB.lol while adsb.fi is down, OpenFreeMap, Open-Meteo, USGS, EOX). It looks up the planes it shows with ADSB.lol and Planespotters. Your first city guess comes from your internet address (GeoJS). What you type in search goes to Open-Meteo, the U.S. Census Bureau or OpenStreetMap to find the place. Every service also sees your TV’s internet address. Your settings and history are saved only on this TV. No accounts, ads or analytics. You can erase it all in Settings.',
+    searchAlts:['Search uses Open-Meteo, the U.S. Census Bureau and OpenStreetMap.','Search: Open-Meteo, U.S. Census Bureau, OpenStreetMap'],
+  },
+  // The public app: the same services as the personal build (adsb.fi agreed to this app;
+  // photos credited as Planespotters asks). It differs only in its final privacy policy
+  // (web/privacy-store.txt), also published at privacyUrl and shown as a QR on the Privacy page.
+  store:{id:'store',privacyUrl:'https://spacelydigital.github.io/Whats-Up/privacy/',stageScale:STORE_STAGE_SCALE},
+};
+const profileFor=id=>({...PROFILES.personal,...PROFILES[id]});
+const PROFILE=profileFor(globalThis.__whatsupProfile);
+
+return {STORE_STAGE_SCALE,profileFor,PROFILE};
 })();
 // ---- core.mjs
 __modules["core.mjs"]=(()=>{
@@ -67,7 +112,7 @@ function mapGeometry(home,radius,width,height) {
     radiusPx:radius*1609.344/mpp,outerPx:(radius+2)*1609.344/mpp};
 }
 
-const clean = v => typeof v==='string' ? v.trim().slice(0,24) : '';
+const clean = v => typeof v==='string' ? v.replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF]/g,'').trim().slice(0,24) : '';
 const flightLabel = a => clean(a.callsign)||clean(a.registration)||clean(a.hex).toUpperCase();
 // Airline callsigns read as published flight numbers ("UAL0696" -> "UA 696");
 // registrations, charter and military callsigns stay as broadcast.
@@ -99,9 +144,11 @@ function airlineLogo(a,logos) {
   const call=clean(a.callsign).toUpperCase(),code=call.slice(0,3);
   return /^[A-Z]{3}[0-9]/.test(call)&&logos.has(code)?code:'';
 }
+// Longitude difference the short way round (across the date line too), in degrees.
+const dLon=(lon,home)=>((lon-home+540)%360)-180;
 function distanceMiles(home,a) {
   const r=Math.PI/180;
-  const x=(a.longitude-home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
+  const x=dLon(a.longitude,home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
   const y=(a.latitude-home.latitude)*r;
   return Math.hypot(x,y)*3958.7613;
 }
@@ -116,11 +163,12 @@ function airspace(states,now,connected) {
   const byHex=new Map();
   for(const a of fresh&&Array.isArray(raw)?raw:[]) {
     if(!a||typeof a.hex!=='string'||!(/^[a-f0-9]{6}$/i.test(a.hex))||
-      !coordinates(a.lat,a.lon)||!number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||
+      !coordinates(a.lat,a.lon)||!number(a.alt_baro)||a.alt_baro>60000||a.alt_baro<-1500||!number(a.seen_pos)||a.seen_pos<0||
       age+a.seen_pos<0||age+a.seen_pos>20)continue;
-    const record={hex:a.hex.toLowerCase(),callsign:clean(a.flight),registration:clean(a.r),
+    const record={hex:a.hex.toLowerCase(),callsign:clean(a.flight).slice(0,10),registration:clean(a.r).slice(0,12), // real ones are 8 and ~10
       aircraft_type:clean(a.t),category:clean(a.category),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,
-      speed_kt:number(a.gs)&&a.gs>=0?a.gs:null,heading:number(a.track)?((a.track%360)+360)%360:null,
+      // Impossible readings are no reading.
+      speed_kt:number(a.gs)&&a.gs>=0&&a.gs<=1500?a.gs:null,heading:number(a.track)?((a.track%360)+360)%360:null,
       position_timestamp:stamp-a.seen_pos};
     record.distance_mi=distanceMiles(home,record);
     record.inside=record.distance_mi<=radius;
@@ -184,8 +232,8 @@ function placeLabels(points,width,height,scale=1) {
 
 // Alert zone. 'circle': within `radius` miles all around. 'window': a wedge of compass
 // bearings from `from` to `to` degrees (clockwise; 300 -> 40 crosses north), out to `miles`,
-// for a view from one window; a plane within OVERHEAD_MI is counted either way.
-const OVERHEAD_MI=1;
+// for a view from one window; a plane within ABOVE_MI is counted either way.
+const ABOVE_MI=1;
 const norm=deg=>((deg%360)+360)%360;
 function inBearings(bearing,from,to){
   const b=norm(bearing),f=norm(from),t=norm(to);
@@ -194,7 +242,7 @@ function inBearings(bearing,from,to){
 function inZone(zone,x,y){
   const d=Math.hypot(x,y);
   if(zone?.kind!=='window')return d<=(zone?.radius??3);
-  return d<=OVERHEAD_MI||d<=zone.miles&&inBearings(Math.atan2(x,y)*180/Math.PI,zone.from,zone.to);
+  return d<=ABOVE_MI||d<=zone.miles&&inBearings(Math.atan2(x,y)*180/Math.PI,zone.from,zone.to);
 }
 // The zone's outline as [x,y] miles east/north of home (a closed ring).
 function zoneOutline(zone,steps=64){
@@ -217,7 +265,19 @@ function chimeGate(state,count,now,fresh,quiet=60000){
   return {state:{ready:true,count,emptySince},ring};
 }
 
-return {IDS,number,coordinates,localClock,observation,project,mapGeometry,flightLabel,flightNumber,typeName,iconIndex,aircraftIcon,airlineLogo,distanceMiles,airspace,recentSightings,placeLabels,OVERHEAD_MI,norm,inBearings,inZone,zoneOutline,chimeGate};
+// Data minimization: every coordinate that leaves the TV (feed queries, the time-zone
+// lookup, the map and satellite tile sets) is the home snapped to a fixed 0.05 degree grid
+// (about 3.5 mi north-south), so a request only reveals the grid cell. The home itself
+// can be up to half a cell's diagonal from the snapped point, so query areas grow by
+// that much and the app filters by true distance on the TV.
+const GRID_DEG=0.05;
+const snapDeg=v=>Math.round(Number(v)/GRID_DEG)*GRID_DEG;
+const snapped=p=>({latitude:Math.max(-85,Math.min(85,snapDeg(p.latitude))),longitude:((snapDeg(p.longitude)+540)%360)-180});
+// Half the cell's diagonal, at most (at the equator): sqrt(2)*0.025 deg*60 NM/deg = 2.12 NM.
+const GRID_PAD_NM=2.2;
+const GRID_PAD_MI=GRID_PAD_NM*1.15078;
+
+return {IDS,number,coordinates,localClock,observation,project,mapGeometry,flightLabel,flightNumber,typeName,iconIndex,aircraftIcon,airlineLogo,dLon,distanceMiles,airspace,recentSightings,placeLabels,ABOVE_MI,norm,inBearings,inZone,zoneOutline,chimeGate,GRID_DEG,snapDeg,snapped,GRID_PAD_NM,GRID_PAD_MI};
 })();
 // ---- silhouettes.mjs
 __modules["silhouettes.mjs"]=(()=>{
@@ -2968,30 +3028,64 @@ return {AIRCRAFT_TYPES,AIRCRAFT_ICONS};
 })();
 // ---- live.mjs
 __modules["live.mjs"]=(()=>{
-const {IDS,number,coordinates,inZone}=__modules["core.mjs"];
+const {PROFILE}=__modules["profile.mjs"];
+const {IDS,number,coordinates,inZone,snapped,GRID_PAD_NM,dLon}=__modules["core.mjs"];
 // Standalone data source: builds the HA-shaped `states` the display already
-// reads, from adsb.fi positions and ADSB.lol standing routes. Ports the
-// selection/history template in home_assistant/packages/aircraft-package.yaml
-// and the free (ADSB.lol) part of custom_components/office_aircraft_routes/model.py.
+// reads, from adsb.fi positions (adsb.lol's while adsb.fi isn't answering) and ADSB.lol
+// standing routes. Ports the selection/history template in
+// home_assistant/packages/aircraft-package.yaml and the free (ADSB.lol) part of
+// custom_components/office_aircraft_routes/model.py.
 
-const HOUR=3600,SIX_HOURS=6*HOUR;
+
+const HOUR=3600,SIX_HOURS=6*HOUR,DAY=24*HOUR;
 const HISTORY_KEY='whatsup.history.v1',LEDGER_KEY='whatsup.ledger.v1';
-// adsb.fi serves at most 250 NM around a point.
+// adsb.fi serves at most 250 NM around a point (adsb.lol the same).
 const MAX_NM=250;
-const FEED_URL=(lat,lon,nm)=>`https://opendata.adsb.fi/api/v3/lat/${lat.toFixed(2)}/lon/${lon.toFixed(2)}/dist/${nm}`;
+// Positions: adsb.fi, and adsb.lol only while adsb.fi isn't answering (startLive).
+const FEED_URL=(lat,lon,nm)=>PROFILE.feedUrl(lat,lon,nm);
+const BACKUP_URL=(lat,lon,nm)=>PROFILE.backupUrl(lat,lon,nm);
+// The feed query for home: the snapped grid point, the distance widened to still cover
+// everything around the true home (filtered by true distance on the TV), at most MAX_NM.
+// Null when anything is malformed, so nothing odd is ever sent. `url`: FEED_URL or BACKUP_URL.
+function feedUrlFor(home,nm,url=FEED_URL){
+  const c=snapped(home),d=Math.min(MAX_NM,Math.ceil(Number(nm)+GRID_PAD_NM));
+  if(!coordinates(c.latitude,c.longitude)||!(d>0))return null;
+  return url(c.latitude,c.longitude,d);
+}
+// A feed reply: a JSON object with the aircraft list. adsb.fi's is used as it comes.
+const feedReply=p=>p&&typeof p==='object'&&!Array.isArray(p)&&Array.isArray(p.ac)?p:null;
+// adsb.lol's v2 reply is readsb's, like adsb.fi's v3: the same field names and units (`now` is
+// in ms in both; feedStamp also takes seconds). Only the fields the app reads from adsb.fi are
+// kept. adsb.lol sends no owner (ownOp) or build year, so while it stands in, Amazon's cargo
+// flights are told by callsign alone and no year is shown. Null: not a feed reply.
+const BACKUP_FIELDS=['hex','flight','r','t','category','lat','lon','alt_baro','gs','track','baro_rate','geom_rate',
+  'squawk','emergency','dbFlags','seen','seen_pos'];
+function fromBackup(payload){
+  const p=feedReply(payload);if(!p)return null;
+  const own=(a,k)=>Object.prototype.hasOwnProperty.call(a,k);
+  return {now:p.now,ac:p.ac.filter(a=>a&&typeof a==='object').map(a=>Object.fromEntries(BACKUP_FIELDS.filter(k=>own(a,k)).map(k=>[k,a[k]])))};
+}
 const ROUTE_URL=call=>`https://vrs-standing-data.adsb.lol/routes/${call.slice(0,2)}/${call}.json`;
 const HEX=/^[0-9a-f]{6}$/;
 
 // --- Network: through the Vega app when present (adsb.fi sends no CORS header),
 // otherwise the browser's own fetch. Resolves {status, payload}; never throws.
-const pending=new Map();let nextRequest=0;
+// Ids start at a random point: a late reply meant for the page before a reload (Erase) must
+// not answer this page's requests.
+const pending=new Map();let nextRequest=Math.floor(Math.random()*1e9);
 if(typeof window!=='undefined')window.__whatsupReply=(id,status,text)=>{
   const done=pending.get(id);if(done){pending.delete(id);done(status,text);}
 };
+// OpenFreeMap requests (TileJSON too) share the tile slots below.
 function getJson(url,timeoutMs=8000){
+  if(/^https:\/\/[\w.-]*openfreemap\.org\//.test(url))return tileSlot().then(()=>rawGetJson(url,timeoutMs)).finally(tileFree);
+  return rawGetJson(url,timeoutMs);
+}
+function rawGetJson(url,timeoutMs){
   const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
+  // Non-200: `retryAfter` is the service's Retry-After in seconds, when it sent one.
   const parse=(status,text)=>{
-    if(status!==200)return {status,payload:null};
+    if(status!==200)return {status,payload:null,retryAfter:Number(text)||0};
     try{return {status,payload:JSON.parse(text)};}catch{return {status:'invalid',payload:null};}
   };
   if(bridge)return new Promise(resolve=>{
@@ -3001,36 +3095,68 @@ function getJson(url,timeoutMs=8000){
   });
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   return fetch(url,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal})
-    .then(async r=>parse(r.status,r.status===200?await r.text():''))
+    .then(async r=>parse(r.status,r.status===200?await r.text():r.headers.get('retry-after')||''))
     .catch(()=>({status:'connection_error',payload:null}))
     .finally(()=>clearTimeout(timer));
 }
 
-// Binary GET for map tiles: plain fetch first (OpenFreeMap sends CORS headers),
-// then the app bridge, which returns the body base64-encoded. Resolves bytes or null.
+// Binary GET for map tiles. On the TV through the app bridge, so every request carries the
+// app's own User-Agent (OpenFreeMap's terms); the page's fetch (CORS) only where there is no
+// bridge (desktop tests). At most TILE_PARALLEL in flight across the whole app, and after a
+// 429, 403 or 5xx every tile request waits out a shared cooldown (1 min, doubling to 10 min);
+// the maps then keep what's saved. Resolves bytes or null.
+const TILE_PARALLEL=4;
+let tileSlots=TILE_PARALLEL,tileCooldown=0,tileStrikes=0;const tileQueue=[];
+const tileSlot=()=>tileSlots>0?(tileSlots--,Promise.resolve()):new Promise(r=>tileQueue.push(r));
+const tileFree=()=>{const next=tileQueue.shift();if(next)next();else tileSlots++;};
+const tileStats={inFlight:0,peak:0,requests:0,bytes:0};
+function tileStatus(status){
+  if(status===200){tileStrikes=0;return;}
+  if(status===429||status===403||(typeof status==='number'&&status>=500)){
+    tileCooldown=Date.now()+Math.min(600000,60000*2**tileStrikes++);
+  }
+}
 async function getBytes(url,timeoutMs=10000){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+  if(Date.now()<tileCooldown)return null;
+  await tileSlot();
+  tileStats.inFlight++;tileStats.peak=Math.max(tileStats.peak,tileStats.inFlight);tileStats.requests++;
   try{
-    const r=await fetch(url,{credentials:'omit',signal:controller.signal});
-    if(r.status===200)return new Uint8Array(await r.arrayBuffer());
-  }catch{/* try the bridge */}finally{clearTimeout(timer);}
-  const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
-  if(!bridge)return null;
-  return new Promise(resolve=>{
-    const id=++nextRequest,timer=setTimeout(()=>{pending.delete(id);resolve(null);},timeoutMs+2000);
-    pending.set(id,(status,text)=>{
-      clearTimeout(timer);
-      try{resolve(status===200?Uint8Array.from(atob(text),c=>c.charCodeAt(0)):null);}catch{resolve(null);}
+    if(Date.now()<tileCooldown)return null;
+    const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
+    if(bridge)return await new Promise(resolve=>{
+      const id=++nextRequest,timer=setTimeout(()=>{pending.delete(id);resolve(null);},timeoutMs+2000);
+      pending.set(id,(status,text)=>{
+        clearTimeout(timer);tileStatus(status);
+        try{const b=status===200?Uint8Array.from(atob(text),c=>c.charCodeAt(0)):null;if(b)tileStats.bytes+=b.length;resolve(b);}catch{resolve(null);}
+      });
+      try{bridge.postMessage(JSON.stringify({type:'get',id,url,timeoutMs,binary:true}));}catch{pending.delete(id);clearTimeout(timer);resolve(null);}
     });
-    try{bridge.postMessage(JSON.stringify({type:'get',id,url,timeoutMs,binary:true}));}catch{pending.delete(id);clearTimeout(timer);resolve(null);}
-  });
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const r=await fetch(url,{credentials:'omit',signal:controller.signal});tileStatus(r.status);
+      if(r.status!==200)return null;
+      const b=new Uint8Array(await r.arrayBuffer());tileStats.bytes+=b.length;return b;
+    }catch{return null;}finally{clearTimeout(timer);}
+  }finally{tileStats.inFlight--;tileFree();}
 }
 
 // --- Storage: localStorage when available, else memory for this launch only.
 const memory=new Map();
+// seal(): after Erase nothing may be written again (the reload's pagehide flush, a map
+// build finishing during unload).
+let sealed=false,freeing=false;
 const store={
+  seal(){sealed=true;memory.clear();},
+  get sealed(){return sealed;},
   get(k){try{const v=localStorage.getItem(k);if(v!==null)return JSON.parse(v);}catch{/* memory */}return memory.get(k)??null;},
-  set(k,v){memory.set(k,v);try{localStorage.setItem(k,JSON.stringify(v));}catch{/* memory only */}},
+  // Full: the saved maps make room (mapgen sets onFull), then one more try.
+  set(k,v){
+    if(sealed)return false;memory.set(k,v);const json=JSON.stringify(v);
+    try{localStorage.setItem(k,json);return true;}catch{/* full */}
+    if(!this.onFull||freeing)return false;
+    freeing=true;try{this.onFull();}catch{/* nothing to free */}finally{freeing=false;}
+    try{localStorage.setItem(k,json);return true;}catch{console.error('not saved: storage full');return false;}
+  },
   remove(k){memory.delete(k);try{localStorage.removeItem(k);}catch{/* memory only */}},
 };
 
@@ -3053,10 +3179,10 @@ function selection(ac,stamp,home,radius,now){
   for(const a of fresh&&Array.isArray(ac)?ac:[]){
     if(!a||typeof a!=='object'||!position(a.lat,a.lon)||typeof a.hex!=='string'||!/^[a-fA-F0-9]{6}$/.test(a.hex)||
       !number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||a.seen_pos+age<0||a.seen_pos+age>20)continue;
-    const x=(a.lon-home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
+    const x=dLon(a.lon,home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
     const miles=Math.sqrt(x*x+y*y)*3958.7613;
-    const record={hex:a.hex,callsign:typeof a.flight==='string'?a.flight.trim():'',registration:a.r??'',
-      aircraft_type:a.t??'',latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,speed_kt:a.gs??null,
+    const record={hex:a.hex,callsign:text(a.flight,10),registration:text(a.r,12),
+      aircraft_type:text(a.t,6),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,speed_kt:a.gs??null,
       heading:a.track??null,distance_mi:Math.round(miles*100)/100,position_timestamp:stamp-a.seen_pos};
     const inAlert=typeof radius==='object'?inZone(radius,x*3958.7613,y*3958.7613):miles<=radius;
     if(inAlert){inside.push(record);if(miles<best){nearest=record;best=miles;}}
@@ -3086,6 +3212,7 @@ function provider(a){
 }
 const key=a=>`${a.hex}:${ident(a.callsign)||ident(a.registration)}`;
 
+// `radius`: miles (the circle) or a Window view zone {kind:'window',...} as in selection().
 function observations(raw,stamp,home,radius,history,now){
   if(!(now-stamp>=0&&now-stamp<=15)||!position(home.latitude,home.longitude))return [];
   const found=new Map();
@@ -3097,9 +3224,11 @@ function observations(raw,stamp,home,radius,history,now){
     const {lat,lon}=a,seen=a.seen_pos??999,hex=String(a.hex??'').toLowerCase();
     if(!HEX.test(hex)||!position(lat,lon)||!number(seen)||now-stamp+seen<0||now-stamp+seen>20||!number(a.alt_baro))continue;
     const rate=finite(a.baro_rate)?a.baro_rate:a.geom_rate;
+    const miles=haversine(home.latitude,home.longitude,lat,lon),r=0.017453292519943295;
+    const x=dLon(lon,home.longitude)*r*Math.cos((home.latitude+lat)/2*r)*3958.7613,y=(lat-home.latitude)*r*3958.7613;
     found.set(hex,{hex,callsign:ident(a.flight),registration:ident(a.r),latitude:lat,longitude:lon,
       heading:a.track,speed_kt:a.gs,altitude_ft:a.alt_baro,vertical_rate:finite(rate)?rate:null,
-      observed:stamp-seen,live:true,inside:haversine(home.latitude,home.longitude,lat,lon)<=radius});
+      observed:stamp-seen,live:true,miles,inside:typeof radius==='object'?inZone(radius,x,y):miles<=radius});
   }
   const rank=a=>Number(!(a.live&&a.inside));
   return [...found.values()].sort((a,b)=>rank(a)-rank(b)||b.observed-a.observed);
@@ -3164,27 +3293,52 @@ function commercialRoute(payload,a,previous=null){
     from:place(selected.start,selected.origin),to:place(selected.end,selected.destination)};
 }
 
-// Keep only what route selection reads; standing-data payloads carry airport names etc.
-const slim=p=>({callsign:p.callsign,_airports:Array.isArray(p._airports)?p._airports.slice(0,12).map(x=>
-  ({iata:x?.iata,icao:x?.icao,name:x?.name,location:x?.location,lat:x?.lat,lon:x?.lon})):[]});
+// Keep only what route selection reads, bounded: a route reply is remote data that is
+// cached for hours and saved, so every field is typed and length-capped.
+// Community-sourced text: control, formatting and invisible characters (bidi overrides,
+// zero-width) are dropped, spaces collapsed, then capped. Airport codes are 3-4 of A-Z, 0-9.
+const INVISIBLE=/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB]/g;
+const text=(v,n)=>typeof v==='string'?v.replace(INVISIBLE,'').replace(/\s+/g,' ').trim().slice(0,n).trim():'';
+const code=v=>{const s=String(v||'').trim().toUpperCase();return /^[A-Z0-9]{3,4}$/.test(s)?s:'';};
+const slim=p=>({callsign:text(p.callsign,10),_airports:Array.isArray(p._airports)?p._airports.slice(0,12).map(x=>
+  ({iata:code(x?.iata),icao:code(x?.icao),name:text(x?.name,60),location:text(x?.location,40),
+    lat:finite(x?.lat)?x.lat:null,lon:finite(x?.lon)?x.lon:null})):[]});
 
 // The integration's SQLite cache, as an expiring key/value map in localStorage.
+const LOL_MAX=800;
 class Ledger {
   constructor(saved=null){
-    this.rows=new Map(Object.entries(saved&&typeof saved==='object'?saved:{}));this.dirty=false;
+    // Only well-formed rows are kept: one damaged row in storage must not stop the feed. Nothing
+    // here lasts more than a day, so a row expiring later is damage (or a TV clock that jumped
+    // back): kept, it would hold a cached answer or a route-lookup pause for years.
+    const latest=Date.now()/1000+25*3600;
+    this.rows=new Map(Object.entries(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}).filter(([,r])=>r&&typeof r==='object'&&Number.isFinite(r.expires)&&r.expires<=latest));this.dirty=false;
   }
   get(k,now){const row=this.rows.get(k);return row&&row.expires>now?row.value:undefined;}
   put(k,value,expires,now){
     this.rows.set(k,{expires,value});this.dirty=true;
-    for(const [key,row] of this.rows)if(!row||!(row.expires>now))this.rows.delete(key);
+    // Expired rows go at most once a minute (a busy feed puts hundreds of rows a poll).
+    if(!(now-this.pruned<60)){
+      this.pruned=now;for(const [key,row] of this.rows)if(!row||!(row.expires>now))this.rows.delete(key);
+      // Route lookups are kept a day; past LOL_MAX the ones expiring soonest go.
+      const lol=[...this.rows].filter(([key])=>key.startsWith('lol:'));
+      if(lol.length>LOL_MAX)for(const [key] of lol.sort((a,b)=>a[1].expires-b[1].expires).slice(0,lol.length-LOL_MAX))this.rows.delete(key);
+    }
   }
   delete(k){if(this.rows.delete(k))this.dirty=true;}
+  // Live routes and past routes (for 'Recently above') each have their own quota, so a
+  // busy wide map can't push the past ones out.
   routes(now){
-    return [...this.rows].filter(([k,row])=>(k.startsWith('route:')||k.startsWith('past-route:'))&&row.expires>now)
-      .sort((a,b)=>b[1].expires-a[1].expires).slice(0,100).map(([,row])=>row.value);
+    const pick=prefix=>[...this.rows].filter(([k,row])=>k.startsWith(prefix)&&row.expires>now).sort((a,b)=>b[1].expires-a[1].expires);
+    return [...pick('past-route:').slice(0,40),...pick('route:').slice(0,100)].map(([,row])=>row.value);
   }
   toJSON(){return Object.fromEntries(this.rows);}
 }
+
+// The plane picked with Left/Right, once it has stayed on the card about a second (app.mjs,
+// browse.mjs): its route is the next one asked for.
+let routeFocus=()=>'';
+const setRouteFocus=fn=>{routeFocus=fn;};
 
 class Enricher {
   constructor(ledger,request){this.ledger=ledger;this.request=request;this.status='idle';}
@@ -3219,17 +3373,20 @@ class Enricher {
     for(const a of free){
       const cached=L.get('lol:'+ident(a.callsign),now);
       if(cached===undefined)missing.push(a);
-      else if(cached._airports)this.publish(a,commercialRoute(cached,a,this.previous(a,now)),now);
+      else if(cached._airports)this.publish(a,commercialRoute(slim(cached),a,this.previous(a,now)),now); // older caches were checked less
     }
-    // At most one ADSB.lol request every 5 seconds; hits cached 1 h, misses 30 min.
+    // At most one ADSB.lol request every 5 seconds; answers, misses and 404s cached 24 h; 15 min
+    // pause after a 429, 1 min after other errors. The one asked for: the plane picked with
+    // Left/Right (held), then inside the zone, then the nearest (the plane on the card).
     if(missing.length&&!L.get('cooldown:adsblol',now)){
       L.put('cooldown:adsblol',true,now+5,now);
-      const a=missing[0],call=ident(a.callsign);
+      const f=routeFocus();
+      const a=missing.sort((x,y)=>Number(y.hex===f)-Number(x.hex===f)||Number(!x.inside)-Number(!y.inside)||(x.miles??1e9)-(y.miles??1e9))[0],call=ident(a.callsign);
       const {status,payload}=await this.request(ROUTE_URL(call));
       this.status=String(status);
       if((status===200&&payload&&typeof payload==='object')||status===404){
         const data=payload&&typeof payload==='object'&&payload.callsign===call?slim(payload):{};
-        L.put('lol:'+call,data,now+(data._airports?HOUR:1800),now);
+        L.put('lol:'+call,data,now+DAY,now);
         this.publish(a,commercialRoute(data,a,this.previous(a,now)),now);
       }else L.put('cooldown:adsblol',true,now+(status===429?900:60),now);
     }
@@ -3238,13 +3395,32 @@ class Enricher {
 }
 
 // --- The live source the display subscribes to.
+// Backup positions (PROFILE.backup, adsb.lol), asked only while adsb.fi isn't answering: the
+// same rounded point and distance, never on the same poll as adsb.fi, and at most once every
+// 10 s (adsb.fi's interval when that is longer): adsb.lol answers a 5 s pace with a 429.
+//  - Over to the backup after two failed adsb.fi polls in a row, or 15 s of failures (a long
+//    back-off ahead). A failure: an error, no reply in time, any status but 200, or a reply
+//    that isn't a feed (not JSON, or no aircraft list).
+//  - On the backup, adsb.fi is asked about once a minute, in place of that poll's adsb.lol
+//    request and never before its back-off and Retry-After allow. Its first good reply ends it.
+//  - adsb.lol's errors back off as adsb.fi's do. A 429 waits out its Retry-After (at least
+//    60 s) and slows adsb.lol to one request every 15, then 20 s; a 429 at 20 s, or any other
+//    4xx, pauses its positions for 15 minutes (saved with the route lookups' pause). The pace
+//    goes back to 10 s when adsb.fi returns. No receiver-coverage check on it.
+// The outage outlives a feed restart (place, radius or zone changed): while adsb.fi is known to
+// be down, the new feed starts on the backup with both back-offs kept.
+const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20];
+const BACKUP_COOLDOWN='cooldown:adsblol-positions';
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:0};
+const outage={...CLEAR};
+const resetOutage=()=>Object.assign(outage,CLEAR); // tests
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles.
 function startLive(onUpdate,config){
   const home={latitude:config.latitude,longitude:config.longitude};
   const radius=Math.max(1,Math.min(10,Number(config.radiusMiles)||3));
   const ledger=new Ledger(store.get(LEDGER_KEY)),enricher=new Enricher(ledger,url=>getJson(url,8000));
   let history=store.get(HISTORY_KEY)||[],routes=ledger.routes(Date.now()/1000),enriching=false,timer=null,stopped=false;
-  // Recently above: in Window view only planes that passed through the window (or overhead).
+  // Recently above: in Window view only planes that passed through the window (or right above).
   const zone=config.zone?.kind==='window'?config.zone:radius;
   let states=build(null,0,selection([],0,home,zone,0));
   function build(ac,stamp,sel){
@@ -3259,49 +3435,129 @@ function startLive(onUpdate,config){
       [IDS.routes]:{state:String(routes.length),attributes:{routes}},
     };
   }
-  async function enrich(ac,stamp,now){
-    if(enriching)return;
+  async function enrich(ac,stamp,now,feedNow=now){
+    if(enriching||stopped)return;
     enriching=true;
     try{
-      routes=await enricher.tick(observations(ac,stamp,home,radius,history,now),now);
+      routes=await enricher.tick(observations(ac,stamp,home,zone,history,feedNow),now);
+      if(stopped)return; // a stopped feed (place or zone changed) must not render or save
       states={...states,[IDS.routes]:{state:String(routes.length),attributes:{routes}}};
       if(ledger.dirty){ledger.dirty=false;store.set(LEDGER_KEY,ledger);}
       onUpdate(states,true);
     }catch{/* Routes stay as they were; retried next poll. */}
     finally{enriching=false;}
   }
-  // Receiver coverage: when the feed has nothing around home, ask once (per 30 min) for
+  // Receiver coverage: when the feed has nothing around home, ask (at most every 2 h) for
   // the widest area adsb.fi serves; nothing there either means no feeders, not quiet skies.
   let coverage={none:false,checked:0};
   async function checkCoverage(nowMs){
-    if(nowMs-coverage.checked<1800000)return;
+    if(nowMs-coverage.checked<7200000)return;
     coverage.checked=nowMs;
-    const {status,payload}=await getJson(FEED_URL(home.latitude,home.longitude,MAX_NM),8000);
+    const url=feedUrlFor(home,MAX_NM);if(!url)return;
+    const {status,payload}=await getJson(url,8000);
     if(status===200&&payload&&typeof payload==='object')coverage.none=!(Array.isArray(payload.ac)&&payload.ac.length);
   }
+  // Back-off (adsb.fi etiquette; adsb.lol's errors too): network errors and 5xx double the wait
+  // (with jitter) up to 5 min; a 429 waits at least 60 s and its Retry-After; any other 4xx
+  // waits 5 min. `fails` counts this failure. Polling (and with it routes, the coverage probe
+  // and the checks on adsb.fi) pauses while the app is hidden.
+  const backoff=(status,retryAfter,fails)=>{
+    const jitter=t=>Math.round(t*(.8+Math.random()*.4));
+    if(status===429)return Math.min(300000,Math.max(60000,retryAfter*1000,jitter(config.pollSeconds*1000*2**fails)));
+    if(typeof status==='number'&&status>=400&&status<500)return 300000;
+    return Math.min(300000,Math.max(retryAfter*1000,jitter(config.pollSeconds*1000*2**(fails-1))));
+  };
+  // A restart with adsb.fi up asks it at once, as before; on the backup, the outage carries on.
+  if(!outage.down)Object.assign(outage,{fails:0,since:0,retryAt:0});
+  let paused=false,gen=0,good=false; // gen: a poll started before a pause/resume is dropped; good: the last data came in
+  // When each feed may be asked next (ms). On the backup, adsb.fi about once a minute.
+  const fiAt=()=>outage.down?Math.max(outage.retryAt,outage.lastAsked+PROBE_MS):outage.retryAt;
+  // adsb.lol: one request every 10 s at most (15 or 20 s after its 429s; adsb.fi's interval if longer).
+  const backupGap=()=>Math.max(config.pollSeconds,BACKUP_STEPS_S[outage.backupStep]||BACKUP_STEPS_S.at(-1))*1000;
+  // The saved pause is remote-free local data, but storage can be damaged: a value that isn't a
+  // time, or one further off than the longest pause the app sets (an hour), counts as none.
+  const pausedUntil=t=>{const v=Number(ledger.get(BACKUP_COOLDOWN,t/1000))*1000;return Number.isFinite(v)&&v<=t+3600000?v:0;};
+  const backupAt=t=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap(),pausedUntil(t));
+  // The one feed this poll asks, or null when neither may be asked yet.
+  function pick(t){
+    if(!outage.down&&outage.fails&&t-outage.since>=FAILOVER_MS)outage.down=true; // 15 s of failures
+    if(t>=fiAt())return 'adsb.fi';
+    return outage.down&&t>=backupAt(t)?'adsb.lol':null;
+  }
+  // The next poll: a poll interval after this one started (at least 1 s from now), and not
+  // before a feed may be asked: while adsb.fi is failing, its retry (or the 15 s mark); on the
+  // backup, the next check on adsb.fi or adsb.lol's next turn, whichever comes first.
+  function schedule(started){
+    const now=Date.now();
+    const allowed=outage.down?Math.min(fiAt(),backupAt(now)):outage.fails?Math.min(outage.retryAt,outage.since+FAILOVER_MS):0;
+    const at=outage.fails&&!outage.down?allowed:Math.max(now+1000,started+config.pollSeconds*1000,allowed);
+    clearTimeout(timer);timer=setTimeout(poll,Math.max(0,at-now));
+    return at;
+  }
+  // No data this poll: the display keeps its last picture a while, then counts down to `at`.
+  const failed=at=>{good=false;states={...states,retryAt:at};onUpdate(states,false);};
   async function poll(){
-    if(stopped)return;
-    const started=Date.now();
-    const {status,payload}=await getJson(FEED_URL(home.latitude,home.longitude,config.searchNm),4000);
-    if(stopped)return;
-    if(status===200&&payload&&typeof payload==='object'){
-      const now=Date.now()/1000,stamp=feedStamp(payload),ac=Array.isArray(payload.ac)?payload.ac:[];
-      const sel=selection(ac,stamp,home,zone,now);
+    if(stopped||paused)return;
+    const my=gen,started=Date.now(),feed=pick(started);
+    if(!feed){schedule(started);return;}
+    const backup=feed!=='adsb.fi';
+    const url=feedUrlFor(home,config.searchNm,backup?BACKUP_URL:FEED_URL);
+    if(backup)outage.lastBackupAt=started;else outage.lastAsked=started;
+    // Wide areas are big replies: more time to arrive (4 s up to 25 NM, 12 s at 250).
+    const {status,payload,retryAfter}=url?await getJson(url,Math.min(12000,4000+config.searchNm*32)):{status:0};
+    if(stopped||paused||my!==gen)return;
+    const body=status===200?(backup?fromBackup(payload):feedReply(payload)):null;
+    if(body){
+      const now=Date.now()/1000,stamp=feedStamp(body),ac=body.ac;
+      // The TV's clock can be off by seconds, minutes or days: positions are judged against
+      // the feed's own clock (it was just received), and the offset goes to the display. Up to
+      // a week either way is trusted (a TV left with a wrong date); beyond that the stamp is
+      // treated as nonsense, so a broken feed can't move the logbook's day far.
+      const skew=Math.abs(stamp-now)<7*86400?stamp-now:0,feedNow=now+skew;
+      const sel=selection(ac,stamp,home,zone,feedNow);
       if(sel.inside.length){history=mergeHistory(history,sel.inside);store.set(HISTORY_KEY,history);}
-      if(ac.length)coverage.none=false;else await checkCoverage(Date.now());
+      // The coverage check is adsb.fi's widest query: never sent to the backup, which can't
+      // tell "no receivers here" either.
+      if(ac.length)coverage.none=false;else if(!backup)await checkCoverage(Date.now());
       if(stopped)return;
-      states={...build(ac,stamp,sel),coverage:{none:coverage.none}};
+      if(backup)outage.backupFails=0;else Object.assign(outage,{down:false,fails:0,since:0,retryAt:0,backupFails:0,backupStep:0});
+      good=true;
+      states={...build(ac,stamp,sel),coverage:{none:!backup&&coverage.none},skew,source:feed};
       onUpdate(states,true);
-      enrich(ac,stamp,now);
-    }else onUpdate(states,false);
-    timer=setTimeout(poll,Math.max(1000,config.pollSeconds*1000-(Date.now()-started)));
+      enrich(ac,stamp,now,feedNow);
+      schedule(started);
+    }else if(backup){
+      const now=Date.now();
+      // A 429: wait out its Retry-After (at least 60 s, at most an hour), then one request every
+      // 15, then 20 s. A 429 at 20 s, or any other 4xx: no adsb.lol positions for 15 minutes (or
+      // a longer Retry-After, up to an hour), as for its route lookups (kept here for a feed
+      // restart, and saved for the next launch).
+      const wait=Math.min(3600,Number(retryAfter)||0);
+      if(status===429&&outage.backupStep<BACKUP_STEPS_S.length-1){
+        outage.backupStep++;outage.backupRetryAt=now+Math.max(60,wait)*1000;
+      }else if(typeof status==='number'&&status>=400&&status<500){
+        const until=now/1000+Math.max(BACKUP_PAUSE_S,wait);outage.backupRetryAt=until*1000;
+        ledger.put(BACKUP_COOLDOWN,until,until,now/1000);ledger.dirty=false;store.set(LEDGER_KEY,ledger);
+      }else outage.backupRetryAt=now+backoff(status,retryAfter||0,++outage.backupFails);
+      failed(schedule(started));
+    }else{
+      if(!outage.fails)outage.since=started;
+      outage.retryAt=Date.now()+backoff(status,retryAfter||0,++outage.fails);
+      if(outage.fails>=2)outage.down=true; // two in a row
+      const at=schedule(started);
+      // A failed check on adsb.fi while adsb.lol's positions are coming in changes nothing shown.
+      if(!(outage.down&&good))failed(at);
+    }
   }
   onUpdate(states,false);
   poll();
-  return {stop(){stopped=true;clearTimeout(timer);}};
+  return {stop(){stopped=true;clearTimeout(timer);},
+    pause(){paused=true;gen++;clearTimeout(timer);},
+    // Back on screen: poll now, unless the service asked to wait (back-off kept).
+    resume(){if(!paused)return;paused=false;gen++;clearTimeout(timer);timer=setTimeout(poll,Math.max(0,(states.retryAt||0)-Date.now()));}};
 }
 
-return {HISTORY_KEY,MAX_NM,FEED_URL,ROUTE_URL,getJson,getBytes,store,haversine,feedStamp,selection,mergeHistory,ident,provider,observations,commercialRoute,Ledger,Enricher,startLive};
+return {HISTORY_KEY,MAX_NM,FEED_URL,BACKUP_URL,feedUrlFor,fromBackup,ROUTE_URL,getJson,tileStats,getBytes,store,haversine,feedStamp,selection,mergeHistory,ident,provider,observations,commercialRoute,text,Ledger,setRouteFocus,Enricher,FAILOVER_MS,outage,resetOutage,startLive};
 })();
 // ---- models.mjs
 __modules["models.mjs"]=(()=>{
@@ -3366,8 +3622,8 @@ const MODELS={
   "C208":{model:"Cessna 208 Caravan",author:"Robbie Klinkenberg",license:"CC BY 4.0"},
   "C172":{model:"Cessna 172",author:"TRTPUWU",license:"CC BY 4.0"},
   "C182":{model:"Cessna 182",author:"Sudan Envoy",license:"CC BY 2.0"},
-  "PA28":{model:"Piper PA-28 Cherokee",author:"Adrian Pingstone",license:"Public domain"},
-  "SR22":{model:"Cirrus SR22",author:"unknown",license:"Public domain"},
+  "P28A":{model:"Piper PA-28 Cherokee",author:"Adrian Pingstone",license:"Public domain"},
+  "SR22":{model:"Cirrus SR22",author:"Author unknown",license:"Public domain"},
   "DA40":{model:"Diamond DA40",author:"Weißnichtmiristlangweilig",license:"CC BY 4.0"},
   "C25A":{model:"Cessna Citation CJ2",author:"Kambui",license:"CC BY 2.0"},
   "C25B":{model:"Cessna Citation CJ3",author:"simon butler",license:"CC BY 2.0"},
@@ -3379,7 +3635,7 @@ const MODELS={
   "CL60":{model:"Bombardier Challenger 604",author:"kitmasterbloke",license:"CC BY 2.0"},
   "GLF4":{model:"Gulfstream IV",author:"Planephotoman",license:"CC BY 2.0"},
   "GLF5":{model:"Gulfstream V",author:"Coldstreamer20",license:"CC BY 4.0"},
-  "GLF6":{model:"Gulfstream G650",author:"Myself .",license:"Public domain"},
+  "GLF6":{model:"Gulfstream G650",author:"Adrian Pingstone",license:"Public domain"},
   "GLEX":{model:"Bombardier Global Express",author:"Ronnie Macdonald",license:"CC BY 2.0"},
   "E55P":{model:"Embraer Phenom 300",author:"Ronnie Macdonald",license:"CC BY 2.0"},
   "E545":{model:"Embraer Legacy 450",author:"DUNCAN KIRK",license:"CC BY 4.0"},
@@ -3396,67 +3652,241 @@ const MODELS={
   "B429":{model:"Bell 429",author:"Bspor.88",license:"CC0"},
   "R44":{model:"Robinson R44",author:"Ministerstwo Spraw Wewnętrznych i Administracji",license:"CC BY 3.0 pl"},
   "S76":{model:"Sikorsky S-76",author:"San Diego Air & Space Museum Archives",license:"Public domain"},
-  "UH60":{model:"Sikorsky UH-60 Black Hawk",author:"Wolfram M. Stumpf, U.S. Air Force",license:"Public domain"},
+  "H60":{model:"Sikorsky UH-60 Black Hawk",author:"U.S. Air Force photo by Wolfram M. Stumpf",license:"Public domain"},
   "C130":{model:"Lockheed C-130 Hercules",author:"Balon Greyjoy",license:"CC0"},
   "C30J":{model:"Lockheed C-130J Super Hercules",author:"Balon Greyjoy",license:"CC0"},
-  "C17":{model:"Boeing C-17 Globemaster III",author:"U.S. Air Force",license:"Public domain"},
-  "K35R":{model:"Boeing KC-135 Stratotanker",author:"Staff Sgt. Randy Mallard, U.S. Air Force",license:"Public domain"},
-  "KC46":{model:"Boeing KC-46 Pegasus",author:"Airman 1st Class Cody Dowell",license:"Public domain"},
+  "C17":{model:"Boeing C-17 Globemaster III",author:"U.S. Air Force photo",license:"Public domain"},
+  "K35R":{model:"Boeing KC-135 Stratotanker",author:"U.S. Air Force photo by Staff Sgt. Randy Mallard",license:"Public domain"},
   "A124":{model:"Antonov An-124",author:"Dtom",license:"CC BY 3.0"},
-  "B52":{model:"Boeing B-52 Stratofortress",author:"Senior Airman Keifer Bowes",license:"Public domain"},
+  "B52":{model:"Boeing B-52 Stratofortress",author:"U.S. Air Force photo by Senior Airman Keifer Bowes",license:"Public domain"},
   "E3TF":{model:"Boeing E-3 Sentry",author:"Qwexcxewq",license:"CC BY 4.0"},
-  "P8":{model:"Boeing P-8 Poseidon",author:"Balon Greyjoy",license:"CC0"}
+  "P8":{model:"Boeing P-8 Poseidon",author:"Balon Greyjoy",license:"CC0"},
+  "C550":{model:"Cessna Citation Bravo",author:"Martin Oertle",license:"CC BY 2.0"},
+  "C560":{model:"Cessna Citation Ultra",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "C206":{model:"Cessna 206 Stationair",author:"Adrian Pingstone",license:"Public domain"},
+  "C150":{model:"Cessna 150",author:"Huhu Uet",license:"CC BY 3.0"},
+  "M20P":{model:"Mooney M20",author:"Huhu Uet",license:"CC BY 3.0"},
+  "BE35":{model:"Beechcraft V35 Bonanza",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "PA18":{model:"Piper Super Cub",author:"Felix König",license:"CC BY 3.0"},
+  "CH7A":{model:"Aeronca Champion",author:"Adrian Pingstone",license:"Public domain"},
+  "PA22":{model:"Piper Tri-Pacer",author:"Ian Kirk",license:"CC BY 2.0"},
+  "C180":{model:"Cessna 180 Skywagon",author:"Rennett Stowe",license:"CC BY 2.0"},
+  "PA24":{model:"Piper Comanche",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
+  "T206":{model:"Cessna T206 Stationair",author:"Huhu Uet",license:"CC BY 3.0"},
+  "C170":{model:"Cessna 170",author:"Designism",license:"CC0"},
+  "PA32":{model:"Piper PA-32 Cherokee Six",author:"Adrian Pingstone",license:"Public domain"},
+  "RV6":{model:"Van's RV-6",author:"BWard 1997",license:"CC BY 4.0"},
+  "P32R":{model:"Piper Saratoga SP",author:"kitmasterbloke",license:"CC BY 4.0"},
+  "AA5":{model:"Grumman AA-5 Tiger",author:"Huhu Uet",license:"CC BY 3.0"},
+  "C140":{model:"Cessna 140",author:"Huhu Uet",license:"CC BY 3.0"},
+  "C152":{model:"Cessna 152",author:"Joao Carlos Medau",license:"CC BY 2.0"},
+  "ST75":{model:"Boeing-Stearman Kaydet",author:"Julian Herzog",license:"CC BY 4.0"},
+  "C310":{model:"Cessna 310",author:"Mark Harkin",license:"CC BY 2.0"},
+  "RV7":{model:"Van's RV-7",author:"Adrian Pingstone",license:"Public domain"},
+  "ERCO":{model:"Ercoupe",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "L8":{model:"Luscombe Silvaire",author:"Adrian Pingstone",license:"Public domain"},
+  "SR20":{model:"Cirrus SR20",author:"Adrian Pingstone",license:"Public domain"},
+  "C185":{model:"Cessna 185 Skywagon",author:"D. Miller",license:"CC BY 2.0"},
+  "C210":{model:"Cessna 210 Centurion",author:"Adrian Pingstone",license:"Public domain"},
+  "TAYB":{model:"Taylorcraft BC",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "CH7B":{model:"Champion Citabria",author:"Adrian Pingstone",license:"Public domain"},
+  "RV8":{model:"Van's RV-8",author:"D. Miller",license:"CC BY 2.0"},
+  "C82S":{model:"Cessna T182 Skylane",author:"Ian Kirk",license:"CC BY 2.0"},
+  "BE58":{model:"Beechcraft Baron 58",author:"ZLEA",license:"CC BY 4.0"},
+  "S108":{model:"Stinson 108 Voyager",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "BE95":{model:"Beechcraft Travel Air",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "P28B":{model:"Piper Cherokee 235",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
+  "C177":{model:"Cessna 177 Cardinal",author:"Ahunt",license:"Public domain"},
+  "T210":{model:"Cessna T210 Centurion",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "PA23":{model:"Piper Apache",author:"Godromil",license:"Public domain"},
+  "PA12":{model:"Piper Super Cruiser",author:"Huhu Uet",license:"CC BY 3.0"},
+  "BL8":{model:"American Champion Super Decathlon",author:"ZLEA",license:"CC BY 4.0"},
+  "C82R":{model:"Cessna R182 Skylane RG",author:"Doodybutch",license:"CC0"},
+  "C82T":{model:"Cessna TR182 Skylane RG",author:"Gerard van der Schaaf",license:"CC BY 2.0"},
+  "FOX":{model:"Kitfox",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "C72R":{model:"Cessna 172RG Cutlass",author:"Curimedia Photography",license:"CC BY 2.0"},
+  "HUSK":{model:"Aviat Husky",author:"Jim Sorbie",license:"CC BY 2.0"},
+  "PA34":{model:"Piper Seneca",author:"Huhu Uet",license:"CC BY 3.0"},
+  "RV4":{model:"Van's RV-4",author:"Huhu Uet",license:"CC BY 3.0"},
+  "PA31":{model:"Piper Navajo",author:"RuthAS",license:"CC BY 3.0"},
+  "BE23":{model:"Beechcraft Musketeer",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
+  "PA46":{model:"Piper Malibu Mirage",author:"Steve Lynes",license:"CC BY 2.0"},
+  "PA30":{model:"Piper Twin Comanche",author:"Ahunt",license:"Public domain"},
+  "C175":{model:"Cessna 175 Skylark",author:"Adrian Pingstone",license:"Public domain"},
+  "PA11":{model:"Piper Cub Special",author:"Fyg.medialab",license:"CC BY 4.0"},
+  "NAVI":{model:"Navion",author:"Jerry Gunner",license:"CC BY 2.0"},
+  "R22":{model:"Robinson R22",author:"Kansai explorer",license:"CC BY 2.5"},
+  "SF50":{model:"Cirrus Vision Jet",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "TBM7":{model:"Socata TBM 700",author:"Kambui",license:"CC BY 2.0"},
+  "RV9":{model:"Van's RV-9",author:"kitmasterbloke",license:"CC BY 2.0"},
+  "C77R":{model:"Cessna 177RG Cardinal",author:"Huhu Uet",license:"CC BY 3.0"},
+  "C421":{model:"Cessna 421 Golden Eagle",author:"Duncan Kirk",license:"CC BY 4.0"},
+  "P46T":{model:"Piper Meridian",author:"Ronnie Macdonald",license:"CC BY 2.0"},
+  "AR11":{model:"Aeronca Chief",author:"Adrian Pingstone",license:"Public domain"},
+  "H500":{model:"MD 500",author:"Adrian Pingstone",license:"Public domain"},
+  "C340":{model:"Cessna 340",author:"Bob Harrington",license:"CC BY 2.0"},
+  "AA1":{model:"Grumman AA-1 Yankee",author:"Adrian Pingstone",license:"Public domain"},
+  "AT8T":{model:"Air Tractor AT-802",author:"Mussi Katz",license:"CC0"},
+  "T6":{model:"North American T-6 Texan",author:"Ktkvtsh",license:"CC BY 4.0"},
+  "M7":{model:"Maule M-7",author:"Ahunt",license:"Public domain"},
+  "C120":{model:"Cessna 120",author:"Adrian Pingstone",license:"Public domain"},
+  "GLAS":{model:"Glasair",author:"Ian Kirk",license:"CC BY 2.0"},
+  "C414":{model:"Cessna 414 Chancellor",author:"Steve Knight",license:"CC BY 2.0"},
+  "PA44":{model:"Piper Seminole",author:"Durksteel",license:"Public domain"},
+  "G164":{model:"Grumman Ag Cat",author:"TJM",license:"CC BY 2.0"},
+  "F2TH":{model:"Dassault Falcon 2000",author:"Adrian Pingstone",license:"Public domain"},
+  "GC1":{model:"Globe Swift",author:"Ahunt",license:"Public domain"},
+  "PTS1":{model:"Pitts S-1",author:"Ronnie Macdonald",license:"CC BY 2.0"},
+  "B47G":{model:"Bell 47G",author:"Valder137",license:"CC BY 2.0"},
+  "UH1":{model:"Bell UH-1 Huey",author:"Christopher Griner",license:"CC BY 2.0"},
+  "COL4":{model:"Cessna 400 Corvalis TT",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "AC11":{model:"Rockwell Commander 114",author:"Adrian Pingstone",license:"Public domain"},
+  "GLST":{model:"GlaStar",author:"Adrian Pingstone",license:"Public domain"},
+  "BE30":{model:"Beechcraft King Air 300",author:"Alf van Beem",license:"CC0"},
+  "F900":{model:"Dassault Falcon 900",author:"Adrian Pingstone",license:"Public domain"},
+  "H269":{model:"Schweizer 300",author:"Alf van Beem",license:"CC0"},
+  "R66":{model:"Robinson R66",author:"Waerfelu",license:"CC BY 3.0"},
+  "P210":{model:"Cessna P210 Centurion",author:"Huhu Uet",license:"CC BY 3.0"},
+  "CH60":{model:"Zenith Zodiac CH 601",author:"David Álvarez López",license:"CC BY 2.0"},
+  "PA25":{model:"Piper Pawnee",author:"Mankymuncle",license:"CC0"},
+  "BE55":{model:"Beechcraft Baron 55",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
+  "PA38":{model:"Piper Tomahawk",author:"Ian Kirk",license:"CC BY 2.0"},
+  "LGEZ":{model:"Rutan Long-EZ",author:"NOAA",license:"Public domain"},
+  "C195":{model:"Cessna 195",author:"Adrian Pingstone",license:"Public domain"},
+  "AEST":{model:"Piper Aerostar",author:"Adrian Pingstone",license:"Public domain"},
+  "BE40":{model:"Beechjet 400",author:"Karelj",license:"Public domain"},
+  "WACF":{model:"Waco UPF-7",author:"Adrian Pingstone",license:"Public domain"},
+  "C337":{model:"Cessna 337 Skymaster",author:"Julian Herzog",license:"CC BY 4.0"},
+  "DHC2":{model:"De Havilland Beaver",author:"Tony Hisgett",license:"CC BY 2.0"},
+  "CH75":{model:"Zenith STOL CH 750",author:"Ahunt",license:"CC0"},
+  "CC11":{model:"CubCrafters Carbon Cub",author:"James Abbott",license:"CC BY 2.0"},
+  "C680":{model:"Cessna Citation Sovereign",author:"kitmasterbloke",license:"CC BY 2.0"},
+  "BT36":{model:"Beechcraft Turbo Bonanza",author:"Huhu Uet",license:"CC BY 3.0"},
+  "CH70":{model:"Zenith STOL CH 701",author:"Jerry Gunner",license:"CC BY 2.0"},
+  "DV20":{model:"Diamond DA20 Katana",author:"Huhu Uet",license:"CC BY 3.0"},
+  "PTS2":{model:"Pitts S-2",author:"Brett Goldsmith",license:"CC BY 2.5"},
+  "SREY":{model:"SeaRey",author:"Valder137",license:"CC BY 2.0"},
+  "BE18":{model:"Beechcraft Model 18",author:"D. Miller",license:"CC BY 2.0"},
+  "G280":{model:"Gulfstream G280",author:"Zalasem1",license:"CC BY 4.0"},
+  "M5":{model:"Maule M-5",author:"Ahunt",license:"Public domain"},
+  "FDCT":{model:"Flight Design CT",author:"Ronnie Macdonald",license:"CC BY 2.0"},
+  "BE24":{model:"Beechcraft Sierra",author:"Linda Thomas",license:"CC0"},
+  "C750":{model:"Cessna Citation X",author:"K. Krallis",license:"CC BY 4.0"},
+  "C188":{model:"Cessna 188 AgWagon",author:"RuthAS",license:"CC BY 3.0"},
+  "E300":{model:"Extra 300",author:"Curimedia Photography",license:"CC BY 2.0"},
+  "C510":{model:"Cessna Citation Mustang",author:"Juergen Lehle",license:"CC BY 3.0"},
+  "PA20":{model:"Piper Pacer",author:"Armchair Aviator's",license:"CC BY 2.0"},
+  "B14A":{model:"Bellanca Cruisair",author:"Bzuk",license:"Public domain"},
+  "LNC2":{model:"Lancair 360",author:"Ahunt",license:"Public domain"},
+  "LJ60":{model:"Learjet 60",author:"Lars Henseleit",license:"Public domain"},
+  "LA4":{model:"Lake Buccaneer",author:"Jeroen Stroes Aviation Photography",license:"CC BY 2.0"},
+  "DA42":{model:"Diamond DA42 Twin Star",author:"Kuba Bożanowski",license:"CC BY 2.0"},
+  "J3":{model:"Piper J-3 Cub",author:"kitmasterbloke",license:"CC BY 2.0"},
+  "S22T":{model:"Cirrus SR22T",author:"Dakins",license:"Public domain"},
+  "P28R":{model:"Piper Arrow",author:"Huhu Uet",license:"CC BY 3.0"},
+  "BE33":{model:"Beechcraft Bonanza 33",author:"Adrian Pingstone",license:"Public domain"},
+  "B350":{model:"Beechcraft King Air 350",author:"Steve Lynes",license:"CC BY 2.0"},
+  "SONX":{model:"Sonex",author:"Adrian Pingstone",license:"Public domain"},
+  "RV3":{model:"Van's RV-3",author:"Ahunt",license:"Public domain"},
+  "CRER":{model:"Rans S-7 Courier",author:"Doubleh63",license:"CC0"},
+  "RV10":{model:"Van's RV-10",author:"Ahunt",license:"Public domain"},
+  "RV12":{model:"Van's RV-12",author:"Mark Harkin",license:"CC BY 2.0"},
+  "BL17":{model:"Bellanca Viking",author:"happy days photos and art",license:"CC BY 2.0"},
+  "BE36":{model:"Beechcraft A36 Bonanza",author:"Davidi Vardi",license:"CC BY 2.5"}
 };
-const modelPhoto=a=>{const t=String(a?.aircraft_type||'').toUpperCase(),m=MODELS[t];return m?{...m,src:`models/${t}.jpg`}:null;};
+// By type code, for military aircraft only: adsb.fi reports KC-46 tankers as B762.
+const MILITARY_MODELS={
+  "B762":{model:"Boeing KC-46 Pegasus",author:"U.S. Air Force photo by Airman 1st Class Cody Dowell",license:"Public domain",file:"KC46"},
+};
+const modelPhoto=a=>{const t=String(a?.aircraft_type||'').toUpperCase(),mil=a?.military&&MILITARY_MODELS[t],m=mil||MODELS[t];
+  return m?{model:m.model,author:m.author,license:m.license,src:`models/${mil?m.file:t}.jpg`}:null;};
 
-return {MODELS,modelPhoto};
+return {MODELS,MILITARY_MODELS,modelPhoto};
 })();
 // ---- photos.mjs
 __modules["photos.mjs"]=(()=>{
-const {getJson}=__modules["live.mjs"];
+const {getJson,store}=__modules["live.mjs"];
 const {modelPhoto}=__modules["models.mjs"];
+const {PROFILE}=__modules["profile.mjs"];
 // Aircraft pictures for the hero card, best first:
 // 1. a photo of that exact aircraft from Planespotters.net (by hex, else registration),
 // 2. a bundled photo of the model (assets/models/, from Wikimedia Commons, models.mjs),
 // 3. the drawn silhouette (silhouettes.mjs).
-// Planespotters' API terms: credit the photographer next to the photo; link back with an
-// on-screen QR code carrying the photo's link URL (no clickable surface on a TV); fetch the
-// image straight from their URL on this device, keep it only while shown, never store it;
-// URLs used unchanged; JSON may be cached up to 24 h; identify with a User-Agent (the app
-// bridge sends one). Lookups are cached per aircraft for this session, misses too.
+// Planespotters' API terms: credit the photographer next to the photo ("Photo © name /
+// Planespotters.net"; no photographer, no photo); link back with an on-screen QR code
+// carrying the API's link URL unchanged (no clickable surface on a TV); show the thumbnail
+// whole; fetch the image straight from their URL on this device, keep it only while shown,
+// never store it; JSON cached at most 24 h; identify with a User-Agent (the app bridge
+// sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen (one picked
+// with Left/Right once it has stayed on the card about a second, browse.mjs), at most
+// one every 1.5 s; "no photo" kept 24 h, failures 5 min; a 429 waits out Retry-After, a 403
+// stops lookups for 6 h (kept across restarts). Store profile: no lookups at all.
+
 
 
 
 const PHOTO_URL=(kind,id)=>`https://api.planespotters.net/pub/photos/${kind}/${id}`;
 const IMG=/^https:\/\/(cdn\.planespotters\.net|[a-z0-9-]+\.plnspttrs\.net)\/[^\s"'<>]+\.(jpe?g|png|webp)$/i;
-const LINK=/^https:\/\/www\.planespotters\.net\/photo\/[^\s"'<>]+$/;
-const cache=new Map(),DAY=86400000;
+const LINK=/^https:\/\/www\.planespotters\.net\/photo\/[^\s"'<>]{1,200}$/; // length-capped: it becomes a QR code
+const cache=new Map(),DAY=86400000,PAUSE_KEY='whatsup.photos.pause',GAP_MS=1500;
 
 // A photo record {src,width,height,link,photographer} from an API reply, or null.
 function parsePhoto(payload){
   const p=Array.isArray(payload?.photos)?payload.photos[0]:null;
   const t=p?.thumbnail_large?.src?p.thumbnail_large:p?.thumbnail;
   if(!t||!IMG.test(String(t.src))||!LINK.test(String(p.link)))return null;
-  const photographer=String(p.photographer||'').trim().slice(0,60);
+  const photographer=typeof p.photographer==='string'?p.photographer.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,'').trim().slice(0,60):'';
+  if(!photographer)return null; // the credit is required: no name, no photo
   return {src:t.src,width:Number(t.size?.width)||0,height:Number(t.size?.height)||0,link:p.link,photographer};
 }
 
-// Resolves the photo for an aircraft, or null (none, failure, or slower than 3 s).
+// One lookup at a time, GAP_MS apart; null while paused.
+let chain=Promise.resolve(),last=0;
+// A saved pause further off than the longest the app sets (a 403's 6 hours) is damage, or a TV
+// clock that jumped back: it counts as none rather than stopping photos for years.
+const pausedUntil=()=>{const until=Number(store.get(PAUSE_KEY)?.until)||0;return until>Date.now()+6*3600000?0:Math.max(until,0);};
+function lookup(url){
+  const run=chain.then(async()=>{
+    if(Date.now()<pausedUntil())return {status:'paused'};
+    const wait=last+GAP_MS-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
+    last=Date.now();
+    const r=await getJson(url,3000);
+    if(r.status===403)store.set(PAUSE_KEY,{until:Date.now()+6*3600000});
+    if(r.status===429)store.set(PAUSE_KEY,{until:Date.now()+1000*Math.max(60,Math.min(3600,Number(r.retryAfter)||60))});
+    return r;
+  });
+  chain=run.catch(()=>{});
+  return run;
+}
+
+// While Left/Right browse the planes, the app's gate holds a lookup (and a cached photo's
+// image) until the plane has stayed on the card, and answers false for one passed over:
+// nothing is sent or cached for it.
+let gate=()=>Promise.resolve(true);
+const setPhotoGate=fn=>{gate=fn;};
+
+// Resolves the photo for an aircraft, or null (none, paused, failure, passed over, or slower than 3 s).
 function photoFor(a){
+  if(!PROFILE.photos)return Promise.resolve(null);
   const hex=String(a?.hex||'').toLowerCase();
   if(!/^[0-9a-f]{6}$/.test(hex))return Promise.resolve(null);
+  return gate(hex).then(ok=>ok?lookupPhoto(a,hex):null);
+}
+function lookupPhoto(a,hex){
   const hit=cache.get(hex);
-  if(hit&&Date.now()-hit.at<DAY)return hit.promise;
+  if(hit&&Date.now()<hit.until)return hit.promise;
   const reg=String(a.registration||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
-  const promise=(async()=>{
-    let {status,payload}=await getJson(PHOTO_URL('hex',hex),3000);
+  const entry={until:Date.now()+DAY};
+  entry.promise=(async()=>{
+    let {status,payload}=await lookup(PHOTO_URL('hex',hex));
     let photo=status===200?parsePhoto(payload):null;
-    if(!photo&&status===200&&reg.length>=2){({status,payload}=await getJson(PHOTO_URL('reg',reg),3000));photo=status===200?parsePhoto(payload):null;}
+    if(!photo&&status===200&&reg.length>=2){({status,payload}=await lookup(PHOTO_URL('reg',reg)));photo=status===200?parsePhoto(payload):null;}
+    if(status!==200&&status!==404)entry.until=Date.now()+300000; // a failure is asked again in 5 min
     return photo;
-  })().catch(()=>null);
-  cache.set(hex,{at:Date.now(),promise});
+  })().catch(()=>{entry.until=0;return null;});
+  cache.set(hex,entry);
   if(cache.size>300)cache.delete(cache.keys().next().value);
-  return promise;
+  return entry.promise;
 }
 
 // QR code (PNG data URL) for a photo's link, drawn by the bundled encoder (qr.js) in the
@@ -3490,12 +3920,12 @@ function qrFor(link,{dark='#000',light='#fff'}={}){
   }catch{return '';}
 }
 
-return {PHOTO_URL,parsePhoto,photoFor,qrColours,qrFor,modelPhoto};
+return {PHOTO_URL,parsePhoto,setPhotoGate,photoFor,qrColours,qrFor,modelPhoto};
 })();
 // ---- place.mjs
 __modules["place.mjs"]=(()=>{
-const {getJson,store}=__modules["live.mjs"];
-const {number}=__modules["core.mjs"];
+const {getJson,store,text}=__modules["live.mjs"];
+const {number,snapped}=__modules["core.mjs"];
 const {CONFIG}=__modules["config.js"];
 // Where the user is and how they like it shown. Saved on the device (localStorage).
 // First launch: approximate location from the connection's IP (GeoJS, free, no key).
@@ -3524,14 +3954,16 @@ const CA={Alberta:'AB','British Columbia':'BC',Manitoba:'MB','New Brunswick':'NB
   'Northwest Territories':'NT',Nunavut:'NU',Yukon:'YT'};
 const SHORT_COUNTRY={GB:'UK',US:'USA',AE:'UAE'};
 const STATE_NAME=Object.fromEntries(Object.entries(US).map(([name,code])=>[code,name]));
-const clean=(v,n=60)=>typeof v==='string'?v.trim().slice(0,n):'';
+// Service text: control and invisible characters (bidi overrides, zero-width) dropped, capped.
+const clean=(v,n=60)=>text(v,n);
 
 // "Cincinnati, OH", "Toronto, ON", "London, UK", "Lyon, France".
 function placeLabel(p){
   if(!p)return '';
   const cc=clean(p.countryCode,2).toUpperCase(),admin=clean(p.admin);
-  const region=cc==='US'?US[admin]:cc==='CA'?CA[admin]:'';
-  const country=SHORT_COUNTRY[cc]||(clean(p.country).length<=12?clean(p.country):cc);
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k)?o[k]:''; // a region called 'constructor' is no state
+  const region=cc==='US'?own(US,admin):cc==='CA'?own(CA,admin):'';
+  const country=own(SHORT_COUNTRY,cc)||(clean(p.country).length<=12?clean(p.country):cc);
   return [clean(p.name),region||country].filter(Boolean).join(', ');
 }
 const validTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true;}catch{return false;}};
@@ -3542,7 +3974,7 @@ function makePlace(o){
   return {name:clean(o.name)||'Unknown place',admin:clean(o.admin),country:clean(o.country),
     countryCode:clean(o.countryCode,2).toUpperCase(),latitude,longitude,timeZone,source:o.source,
     elevationM:number(Number(o.elevationM))?Number(o.elevationM):0,street:clean(o.street,80),
-    accuracyKm:number(Number(o.accuracyKm))?Number(o.accuracyKm):null};
+    accuracyKm:number(Number(o.accuracyKm))?Number(o.accuracyKm):null,...(o.tzGuess===true?{tzGuess:true}:{})};
 }
 
 // Window view reach (Settings > Window distance) and whole-degree bearings.
@@ -3559,16 +3991,18 @@ function loadSettings(){
   return {place:s.place?makePlace(s.place):null,mapMiles,
     radiusMiles:Math.max(1,Math.min(10,Math.round(Number(s.radiusMiles))||CONFIG.radiusMiles)),
     distance:s.distance==='km'?'km':'mi',altitude:s.altitude==='m'?'m':'ft',confirmed:!!s.confirmed,
-    keepAwake:s.keepAwake!==false, // Settings > Keep screen awake (on unless turned off)
+    keepAwake:s.keepAwake===true, // Settings > Keep screen awake (off unless turned on; a saved choice is kept)
     chime:['off','low','med','high'].includes(s.chime)?s.chime:'med', // Settings > Chime (a plane enters your zone)
     placeNames:['off','cities','hoods','both'].includes(s.placeNames)?s.placeNames:'cities', // Settings > Place names
     // Alert zone: 'circle' (all around, Alert radius) or 'window' (bearings from -> to, out to viewMiles).
     alertZone:s.alertZone==='window'?'window':'circle',
-    viewFrom:deg(s.viewFrom,90),viewTo:deg(s.viewTo,180),
+    // No saved window yet: an example window (ENE 74° to S 175°, 25 mi) to adjust from.
+    viewFrom:deg(s.viewFrom,74),viewTo:deg(s.viewTo,175),
     viewMiles:VIEW_MILES.includes(Number(s.viewMiles))?Number(s.viewMiles):25,
     layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-dark'};
 }
-const saveSettings=s=>store.set(KEY,s);
+// An unconfirmed location guess (from the IP address) is never stored; the rest is.
+const saveSettings=s=>store.set(KEY,s.confirmed?s:{...s,place:null});
 
 // Approximate place from the IP address. Null when the lookup fails.
 async function locateByIp(){
@@ -3578,34 +4012,87 @@ async function locateByIp(){
     latitude:p.latitude,longitude:p.longitude,timeZone:p.timezone,source:'ip',accuracyKm:p.accuracy});
 }
 
-// ZIP/postcode or place name -> up to 6 places, biggest first.
+// ZIP/postcode or place name -> up to 6 places, biggest first. Open-Meteo matches names
+// only, so "Rosemont, Illinois" or "Rosemont IL" finds nothing: then the leading words are
+// searched as the name and only places whose state, region or country matches the rest kept.
 async function searchPlaces(query){
   const q=clean(query,60);
   if(q.length<2)return [];
+  const found=await searchNames(q);
+  if(!found||found.length)return found;
+  const [name,rest]=q.includes(',')?[q.slice(0,q.indexOf(',')),q.slice(q.indexOf(',')+1)]:[q.replace(/\s+\S+$/,''),(q.match(/\s(\S+)$/)||['',''])[1]];
+  const r=rest.trim().toLowerCase().replace(/[.]/g,'');
+  if(!r||name.trim().length<2||name.trim()===q)return found;
+  const near=await searchNames(name.trim());
+  if(!near)return null;
+  const code=p=>p.countryCode==='US'?US[p.admin]:p.countryCode==='CA'?CA[p.admin]:'';
+  return near.filter(p=>[p.admin,p.country,code(p),p.countryCode,SHORT_COUNTRY[p.countryCode]].some(v=>v&&String(v).toLowerCase().replace(/[.]/g,'')===r)
+    ||String(p.admin).toLowerCase().startsWith(r)&&r.length>=3);
+}
+async function searchNames(q){
   const {status,payload}=await getJson(SEARCH_URL(q),6000);
   if(status!==200||!Array.isArray(payload?.results))return status===200?[]:null;
-  return payload.results.map(r=>makePlace({name:r.name,admin:r.admin1,country:r.country,countryCode:r.country_code,
+  return payload.results.slice(0,10).map(r=>makePlace({name:r.name,admin:r.admin1,country:r.country,countryCode:r.country_code,
     latitude:r.latitude,longitude:r.longitude,timeZone:r.timezone,elevationM:r.elevation,source:'search'})).filter(Boolean)
     // Same name in the same region (a city and its prefecture): keep the first, biggest.
     .filter((p,i,all)=>all.findIndex(q=>placeLabel(q)===placeLabel(p)&&q.admin===p.admin)===i);
 }
 
 // "123 Main St ..." or "10 Downing Street": a house number, then words.
+// A postal code: short, with at least one digit (UK "SW1A 2AA", Canada "M5V 3L9", "75008").
+const looksLikePostcode=q=>{const t=clean(q);return t.length<=10&&/\d/.test(t)&&/^[A-Z0-9][A-Z0-9 -]*$/i.test(t);};
 const looksLikeAddress=q=>/^\d+[A-Z]?\s+[A-Z]/i.test(clean(q))&&!/^\d{5}(-\d{4})?$/.test(clean(q));
+// A street address the U.S. Census geocoder covers: a house number and street, plus a U.S.
+// state, territory (Puerto Rico, Island Areas) or ZIP. Only such text is ever sent to it.
+const TERRITORIES={'Guam':'GU','U.S. Virgin Islands':'VI','Virgin Islands':'VI','American Samoa':'AS','Northern Mariana Islands':'MP'};
+const US_CODES=new Set([...Object.values(US),...Object.values(TERRITORIES)]);
+const US_NAMES=[...Object.keys(US),...Object.keys(TERRITORIES),'United States','USA'].map(n=>n.toLowerCase().replace(/[.,]/g,''));
+function looksLikeUSAddress(query){
+  const q=clean(query,120);
+  if(!looksLikeAddress(q))return false;
+  const rest=q.replace(/^\d+[A-Z]?\s+/i,'');
+  if(/\b\d{5}(-\d{4})?\s*$/.test(rest)||/,\s*\d{5}(-\d{4})?\b/.test(rest))return true; // a ZIP at the end or after a comma
+  const words=rest.replace(/[.]/g,'').split(/[\s,]+/).filter(Boolean);
+  const last=words.at(-1)?.toUpperCase()||'';
+  if(US_CODES.has(last)&&words.length>2)return true; // "... Cincinnati OH"
+  if([...rest.matchAll(/,\s*([A-Za-z]{2})\b/g)].some(m=>US_CODES.has(m[1].toUpperCase())))return true; // "..., OH ..."
+  const flat=` ${rest.toLowerCase().replace(/[.,]/g,' ').replace(/\s+/g,' ')} `;
+  return US_NAMES.some(n=>flat.includes(` ${n} `));
+}
 const title=s=>s.toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-// Time zone and elevation for a geocoded address (rounded coordinates only).
-async function addZone(p){
-  const {status,payload}=await getJson(TZ_URL(p.latitude,p.longitude),6000);
-  return makePlace({...p,timeZone:status===200?payload?.timezone:p.timeZone,elevationM:payload?.elevation});
+// Time zone and elevation for a geocoded address (the snapped grid point only). If the
+// lookup fails, the TV's own time zone stands in, marked tzGuess, and the app looks it up
+// again later (refineZone): a geocoder's default (New York, UTC) was saved for good.
+const deviceTz=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch{return '';}};
+// An address match: a stand-in time zone until the user picks it (the policy: Open-Meteo gets
+// "when you pick a street address, that place's rounded location"); refineZone then looks it up.
+const guessZone=p=>makePlace({...p,timeZone:validTz(deviceTz())?deviceTz():p.timeZone,tzGuess:true});
+// A saved place whose time zone was a stand-in: the looked-up one, or null.
+async function refineZone(p){
+  if(!p?.tzGuess)return null;
+  const g=snapped(p);
+  const {status,payload}=await getJson(TZ_URL(g.latitude,g.longitude),6000);
+  return status===200&&validTz(payload?.timezone)?makePlace({...p,timeZone:payload.timezone,elevationM:payload?.elevation??p.elevationM,tzGuess:false}):null;
 }
 
-// Street address -> matches. US Census first (US addresses; skipped when home is
-// clearly elsewhere), then Nominatim: one request per search, never as you type.
-async function searchAddress(query,{skipCensus=false}={}){
+// Street address -> matches: the U.S. Census geocoder for text that looks like a U.S.
+// address (census), then Nominatim where the profile allows it (nominatim); one request
+// per search, never as you type.
+// Results are kept per query for the session (Nominatim's usage policy asks apps to
+// cache); failures are not kept, so Try again asks again.
+const addressCache=new Map();
+async function searchAddress(query,opts={}){
+  const key=`${clean(query,120).toLowerCase()}|${!!opts.census}|${!!opts.nominatim}`;
+  if(addressCache.has(key))return addressCache.get(key);
+  const found=await searchAddressUncached(query,opts);
+  if(found){addressCache.set(key,found);if(addressCache.size>50)addressCache.delete(addressCache.keys().next().value);}
+  return found;
+}
+async function searchAddressUncached(query,{census=false,nominatim=false}={}){
   const q=clean(query,120);
   let failed=false;
-  if(!skipCensus){
+  if(census&&looksLikeUSAddress(q)){
     const {status,payload}=await getJson(CENSUS_URL(q),10000);
     const matches=status===200&&Array.isArray(payload?.result?.addressMatches)?payload.result.addressMatches:[];
     if(status!==200)failed=true;
@@ -3613,30 +4100,35 @@ async function searchAddress(query,{skipCensus=false}={}){
     for(const m of matches.slice(0,4)){
       const a=m.addressComponents||{},full=clean(m.matchedAddress,120);
       const street=title(full.split(',')[0]||'');
-      const p=await addZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
+      const p=guessZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
         latitude:m.coordinates?.y,longitude:m.coordinates?.x,timeZone:'America/New_York',street,source:'census',accuracyKm:.05});
       if(p)found.push(p);
     }
     if(found.length)return found;
   }
+  // Nominatim only for what the others couldn't find, never because Census couldn't answer:
+  // a failed Census search ends as "Search is unavailable", with Try again.
+  if(failed)return null;
+  if(!nominatim)return [];
   const {status,payload}=await getJson(NOMINATIM_URL(q),10000);
-  if(status!==200||!Array.isArray(payload))return failed||status!==200?null:[];
+  if(status!==200||!Array.isArray(payload))return status!==200?null:[];
   const found=[];
   for(const r of payload.slice(0,4)){
     const a=r.address||{};
     const street=[a.house_number,a.road].filter(Boolean).join(' ')||clean(r.name);
-    const p=await addZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
+    const p=guessZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
       countryCode:a.country_code,latitude:r.lat,longitude:r.lon,timeZone:'UTC',street,source:'nominatim',accuracyKm:.1});
     if(p)found.push(p);
   }
   return found;
 }
 
-return {IP_URL,SEARCH_URL,CENSUS_URL,NOMINATIM_URL,TZ_URL,placeLabel,VIEW_MILES,MAP_RADII,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,looksLikeAddress,searchAddress};
+return {IP_URL,SEARCH_URL,CENSUS_URL,NOMINATIM_URL,TZ_URL,placeLabel,VIEW_MILES,MAP_RADII,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,looksLikePostcode,looksLikeAddress,looksLikeUSAddress,refineZone,searchAddress};
 })();
 // ---- mapgen.mjs
 __modules["mapgen.mjs"]=(()=>{
 const {getJson,getBytes,store}=__modules["live.mjs"];
+const {snapped,GRID_PAD_MI}=__modules["core.mjs"];
 // Maps, built on the device for wherever home is. OpenMapTiles vector tiles from
 // OpenFreeMap (free, no key; attribution required) are decoded with
 // @mapbox/vector-tile + pbf (web/mvt.js) into plain arrays in miles east/north of
@@ -3647,10 +4139,14 @@ const {getJson,getBytes,store}=__modules["live.mjs"];
 //   rail, waterways, landuse, parks, aeroways and place names. Built only when a
 //   layout asks for it (Atlas, Glass, Blueprint, ...).
 
+
 const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
 const KEY='whatsup.map.v2',VERSION=4,MAX_AGE=30*86400000; // v3: airfields, v4: shore
+// Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
+// ahead) counts as old, so it is rebuilt rather than kept for ever.
+const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
 const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=4; // v2: shore, v3: whole-radius reach, v4: inner side streets
 // z10: one tile is ~19 mi wide at 40° latitude, so a 10-mile scope needs 4-9 tiles,
 // and z10 already carries runways and IATA-coded airport labels. Wider map radii use
@@ -3712,27 +4208,52 @@ const touches=(pts,lim)=>{
   return x1>=-lim&&x0<=lim&&y1>=-lim&&y0<=lim;
 };
 
+// The tile URL (it names the current planet build) is asked for once an hour, not per build.
+const templates=new Map(); // keyed by the fetch function (the app's is always the same)
 async function tileTemplate(net){
+  const known=templates.get(net.getJson);if(known&&Date.now()-known.at<3600000)return known.url;
   const {status,payload}=await net.getJson(TILEJSON,8000);
   const url=status===200&&Array.isArray(payload?.tiles)?payload.tiles[0]:'';
   if(!TILE_URL.test(url))throw new Error(`tilejson ${status}`);
+  templates.set(net.getJson,{url,at:Date.now()});
   return url;
 }
 
 // Calls fn(tile, helpers) for each tile at `zoom` covering `lim` miles around home.
 // Tiles are decoded one at a time so only one is in memory. Returns the number fetched.
-async function eachTile(home,lim,zoom,template,net,MVT,fn){
+// The tile set is chosen around the snapped grid point (core.mjs), widened to still cover
+// `lim` around the true home, so tile requests only reveal the grid cell; geometry is still
+// measured from the true home, and callers keep only what lies within `lim` of it.
+// A tile that fails twice fails the whole build (a map with a hole was saved for 30 days);
+// `alive()` false (the user moved on) stops it between tiles.
+const STALE='stale';
+const MAX_TILES=90;
+async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,requireData=false){
   const cos=Math.cos(home.latitude*DEG);
   const toMiles=(lon,lat)=>[(lon-home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
-  const dLat=lim/69,dLon=lim/(69.172*cos);
-  const x0=Math.floor(tileX(home.longitude-dLon,zoom)),x1=Math.floor(tileX(home.longitude+dLon,zoom));
-  const y0=Math.floor(tileY(home.latitude+dLat,zoom)),y1=Math.floor(tileY(home.latitude-dLat,zoom));
-  let fetched=0;
+  const c=snapped(home),wide=lim+GRID_PAD_MI,ccos=Math.cos(c.latitude*DEG);
+  const dLat=wide/69,dLon=wide/(69.172*ccos);
+  // Far north or south a mile spans more tiles: step down up to two zooms to stay within
+  // MAX_TILES (Alaska and Nordic homes asked for hundreds).
+  let x0,x1,y0,y1;
+  for(let z=zoom;;z--){
+    x0=Math.floor(tileX(c.longitude-dLon,z));x1=Math.floor(tileX(c.longitude+dLon,z));
+    y0=Math.floor(tileY(c.latitude+dLat,z));y1=Math.floor(tileY(c.latitude-dLat,z));
+    if((x1-x0+1)*(y1-y0+1)<=MAX_TILES||z<=Math.max(2,zoom-2)){zoom=z;break;}
+  }
+  const n=2**zoom;
+  let fetched=0,withData=0;
   for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++){
-    const bytes=await net.getBytes(template.replace('{z}',zoom).replace('{x}',tx).replace('{y}',ty));
-    if(!bytes)continue;
+    if(!alive())throw new Error(STALE);
+    // Across the date line the tile column wraps (geometry keeps the unwrapped column, so it
+    // still lands east or west of home correctly).
+    const url=template.replace('{z}',zoom).replace('{x}',((tx%n)+n)%n).replace('{y}',ty);
+    let bytes=await net.getBytes(url);
+    if(!bytes){await new Promise(r=>setTimeout(r,1500));if(!alive())throw new Error(STALE);bytes=await net.getBytes(url);}
+    if(!bytes)throw new Error('map tile unavailable'); // no tile numbers: they place the home
     fetched++;
     const tile=new MVT.VectorTile(new MVT.Pbf(bytes));
+    if(Object.keys(tile.layers).length)withData++;
     const each=(name,f)=>{const layer=tile.layers[name];if(layer)for(let i=0;i<layer.length;i++)f(layer.feature(i),layer.extent);};
     const geom=(f,extent)=>f.loadGeometry().map(ring=>ring.map(p=>toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom))));
     const point=(f,extent)=>{const [[p]]=f.loadGeometry();return toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom));};
@@ -3754,6 +4275,9 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn){
     };
     fn({each,geom,point,shore});
   }
+  // Every tile empty (even open sea carries a water layer): something answered 200 with
+  // nothing. That is a failed build, never a blank map saved for 30 days.
+  if(requireData&&fetched&&!withData)throw new Error('map tiles empty'); // main passes only: the small extra passes may be empty
   return fetched;
 }
 const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').slice(0,60);
@@ -3761,7 +4285,7 @@ const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').sli
 // Build the map for home; `range` in miles. Throws when tiles can't be fetched.
 // detail: a close-up street map (Adjust position) instead of the radar's major roads.
 // `net` and `MVT` are replaceable for tests.
-async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,zoom=zoomFor(range),detail=false}={}){
+async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,zoom=zoomFor(range),detail=false,alive=()=>true}={}){
   if(!MVT)throw new Error('mvt.js missing');
   // Wide layouts (Glass) show ~1.5x the radius sideways; the 10-mile map keeps its original reach.
   const lim=range<=10?range+1.5:range*1.5,k=Math.max(1,range/10); // simplify/clip coarser as the view widens
@@ -3819,19 +4343,17 @@ async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*100)/100,y:Math.round(y*100)/100});
     });
-  });
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   if(zoom<10&&range<=AIRFIELD_MAX_RANGE){
     const flim=range*.85; // Atlas, the layout that shows airfields, sees ~0.7x the radius sideways
-    try{
-      await eachTile(home,flim,10,template,net,MVT,({each,point})=>each('aerodrome_label',(f,e)=>{
-        if(f.type!==1)return;
-        const pr=f.properties,name=nameOf(pr),[x,y]=point(f,e);
-        if(!name||Math.abs(x)>flim||Math.abs(y)>flim||out.airfields.length>=200||out.airfields.some(a=>a.name===name))return;
-        out.airfields.push({name,code:String(pr.iata||pr.icao||'').toUpperCase(),iata:String(pr.iata||''),
-          kind:String(pr.class||''),x:Math.round(x*100)/100,y:Math.round(y*100)/100});
-      }));
-    }catch(e){/* the big airports from the map itself still show */}
+    await eachTile(home,flim,10,template,net,MVT,({each,point})=>each('aerodrome_label',(f,e)=>{
+      if(f.type!==1)return;
+      const pr=f.properties,name=nameOf(pr),[x,y]=point(f,e);
+      if(!name||Math.abs(x)>flim||Math.abs(y)>flim||out.airfields.length>=200||out.airfields.some(a=>a.name===name))return;
+      out.airfields.push({name,code:String(pr.iata||pr.icao||'').toUpperCase(),iata:String(pr.iata||''),
+        kind:String(pr.class||''),x:Math.round(x*100)/100,y:Math.round(y*100)/100});
+    }),alive);
   }
   out.shields=[...shields.values()].map(({ref,x,y})=>({ref,x:Math.round(x*100)/100,y:Math.round(y*100)/100}));
   const order={city:0,town:1,suburb:2};
@@ -3842,23 +4364,39 @@ async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window
   return out;
 }
 
-// Saved maps: one per map radius (each at its own tile zoom), the 3 most recently
-// used kept. A saved map near this home (within ~1 km: drawing shifts it), younger
-// than 30 days, else null. The 10-mile map keeps the original key, so maps saved
-// before map radius existed still count.
+// Saved maps: one per map radius (each at its own tile zoom), the current radius plus the
+// one before kept. A saved map near this home (within ~1 km: drawing shifts it), younger
+// than 30 days, else null; with {stale:true} an older one too (shown while a new one is
+// built, so an offline launch isn't blank). The 10-mile map keeps the original key, so
+// maps saved before map radius existed still count.
 const keyFor=range=>range===10?KEY:`${KEY}.r${range}`;
-const RECENT_KEY='whatsup.map.recent';
-function savedMap(home,range){
+const RECENT_KEY='whatsup.map.recent',KEEP_MAPS=2;
+const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[];}; // a damaged value counts as none
+function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
-    Math.abs(m.longitude-home.longitude)<.01&&Date.now()-m.built<MAX_AGE;
+    Math.abs(m.longitude-home.longitude)<.01&&(stale||freshMap(m));
   return same?m:null;
 }
 function saveMap(m){
-  const recent=[m.range,...(store.get(RECENT_KEY)||[]).filter(r=>r!==m.range)];
-  for(const r of recent.slice(3))store.remove(keyFor(r));
-  store.set(RECENT_KEY,recent.slice(0,3));
-  store.set(keyFor(m.range),m);
+  const recent=[m.range,...recentMaps().filter(r=>r!==m.range)];
+  for(const r of recent.slice(KEEP_MAPS))store.remove(keyFor(r));
+  store.set(RECENT_KEY,recent.slice(0,KEEP_MAPS));
+  if(store.set(keyFor(m.range),m))return true;
+  // Storage full: drop the other saved maps (not this radius's) and try once more.
+  evictMaps({keepBase:m.range});
+  if(store.set(keyFor(m.range),m))return true;
+  console.error(`map ${m.range} mi not saved: storage full`);return false;
+}
+// Frees saved maps, oldest kinds first: wide detail, then the other detail slots, then
+// base maps for other radii.
+// Any other save that finds storage full (logbook, settings) frees the saved maps but the
+// newest base map.
+store.onFull=()=>evictMaps({keepBase:recentMaps()[0]??null});
+function evictMaps({keepBase=null,keepDetail=null}={}){
+  for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY])if(k!==keepDetail)try{localStorage.removeItem(k);}catch{/* none */}
+  for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
+  store.set(RECENT_KEY,keepBase?[keepBase]:[]);
 }
 
 // --- Detail map. Coordinates in thousandths of a mile (~5 ft). Each line or ring is
@@ -3906,7 +4444,7 @@ function decodeDetail(m){
   for(const k of DETAIL_LAYERS)out[k]=m[k].map(f=>f.p?{...f,p:decode(f.p)}:{...f,r:decode(f.r)});
   return out;
 }
-async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,range=DETAIL_RANGE,buildings=BUILDING_RANGE,zoom=12,key='street',inner=0}={}){
+async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,range=DETAIL_RANGE,buildings=BUILDING_RANGE,zoom=12,key='street',inner=0,alive=()=>true}={}){
   if(!MVT)throw new Error('mvt.js missing');
   const lim=range+.5,template=await tileTemplate(net),per=perMile(range),encode=encoder(per),k=Math.max(1,range/10.5);
   const out={v:DETAIL_VERSION,latitude:home.latitude,longitude:home.longitude,range,zoom,key,per,buildingRange:buildings,inner,built:Date.now(),
@@ -3950,32 +4488,28 @@ async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.W
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000});
     });
-  });
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   // Side streets near home from z12 (the wide map's own zoom doesn't carry them).
   if(inner>0){
     const ilim=inner+.2;
-    try{
-      await eachTile(home,ilim,12,template,net,MVT,({each,geom})=>{
-        each('transportation',(f,e)=>{
-          const c=String(f.properties.class||'');
-          if(f.type!==2||(c!=='minor'&&c!=='service'))return;
-          for(const l of geom(f,e).flatMap(l=>clipLine(l,ilim)))if(l.some(([x,y])=>Math.hypot(x,y)<=ilim))out.roads.push({c,p:encode(simplify(l,.006))});
-        });
+    await eachTile(home,ilim,12,template,net,MVT,({each,geom})=>{
+      each('transportation',(f,e)=>{
+        const c=String(f.properties.class||'');
+        if(f.type!==2||(c!=='minor'&&c!=='service'))return;
+        for(const l of geom(f,e).flatMap(l=>clipLine(l,ilim)))if(l.some(([x,y])=>Math.hypot(x,y)<=ilim))out.roads.push({c,p:encode(simplify(l,.006))});
       });
-    }catch(e){/* main roads without side streets are still a map */}
+    },alive);
   }
   const order={city:0,town:1,suburb:2,village:3,quarter:4,neighbourhood:5};
   out.places=[...places.values()].sort((a,b)=>order[a.c]-order[b.c]||a.rank-b.rank).slice(0,80);
   if(buildings>0){
     const found=[],blim=buildings+.15;
-    try{
-      await eachTile(home,blim,14,template,net,MVT,({each,geom})=>{
-        each('building',(f,e)=>{if(f.type===3)for(const r of geom(f,e))if(r.length>3&&touches(r,blim)){
-          const s=simplify(r,.003);if(s.length>3)found.push(s);
-        }});
-      });
-    }catch(e){/* streets without buildings are still a map */}
+    await eachTile(home,blim,14,template,net,MVT,({each,geom})=>{
+      each('building',(f,e)=>{if(f.type===3)for(const r of geom(f,e))if(r.length>3&&touches(r,blim)){
+        const s=simplify(r,.003);if(s.length>3)found.push(s);
+      }});
+    },alive);
     const dist=r=>Math.min(...r.map(([x,y])=>Math.max(Math.abs(x),Math.abs(y))));
     let points=0;
     for(const r of found.map(r=>[dist(r),r]).sort((a,b)=>a[0]-b[0]).map(([,r])=>r)){
@@ -3987,40 +4521,46 @@ async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.W
 }
 
 // The detail map is saved straight to localStorage (not kept in memory by `store`),
-// so a layout that doesn't draw it costs nothing. Too big for the quota: not saved.
-// Two slots: the street map (up to 15 mi) and the most recent wide map.
-const detailKey=spec=>spec.key==='street'?DETAIL_KEY:`${DETAIL_KEY}.wide`;
-function savedDetail(home,spec=detailSpec(10)){
+// so a layout that doesn't draw it costs nothing. Three slots: the street map (up to
+// 5 mi), the 10-mile map (the default radius gets its own) and the most recent wider one.
+// Storage full: the other slots and base maps are evicted and it is tried once more.
+const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_KEY}.r10`:`${DETAIL_KEY}.wide`;
+function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
     return m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
-      Date.now()-m.built<MAX_AGE?m:null;
+      (stale||freshMap(m))?m:null;
   }catch{return null;}
 }
 function saveDetail(m){
-  const key=detailKey({key:m.key||'street'});
-  try{localStorage.setItem(key,JSON.stringify(m));return true;}
-  catch{try{localStorage.removeItem(key);}catch{/* no storage */}return false;}
+  if(store.sealed)return false;
+  const key=detailKey({key:m.key||'street'}),json=JSON.stringify(m);
+  try{localStorage.setItem(key,json);return true;}catch{/* full: make room */}
+  evictMaps({keepDetail:key,keepBase:recentMaps()[0]??null});
+  try{localStorage.setItem(key,json);return true;}
+  catch{console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;}
 }
 
-return {MAP_ATTRIBUTION,zoomFor,AIRFIELD_MAX_RANGE,DETAIL_MAX_RANGE,buildMap,savedMap,saveMap,DETAIL_RANGE,INNER_STREETS,detailSpec,detailFits,decodeDetail,buildDetail,savedDetail,saveDetail};
+return {MAP_ATTRIBUTION,zoomFor,AIRFIELD_MAX_RANGE,DETAIL_MAX_RANGE,STALE,buildMap,savedMap,saveMap,evictMaps,DETAIL_RANGE,INNER_STREETS,detailSpec,detailFits,decodeDetail,buildDetail,savedDetail,saveDetail};
 })();
 // ---- model.mjs
 __modules["model.mjs"]=(()=>{
-const {IDS,airspace,recentSightings,number,inZone,OVERHEAD_MI}=__modules["core.mjs"];
+const {IDS,airspace,recentSightings,number,inZone,ABOVE_MI}=__modules["core.mjs"];
 const {RouteLookup}=__modules["routes.mjs"];
 const {startLive,haversine,store}=__modules["live.mjs"];
 const {AIRCRAFT_TYPES}=__modules["aircraft-types.mjs"];
-// The display model: live aircraft (live.mjs: adsb.fi + ADSB.lol routes) enriched
+// The display model: live aircraft (live.mjs: adsb.fi, or adsb.lol standing in, + ADSB.lol routes) enriched
 // with operator, cargo brand, look-up angles, closest approach, trend and a daily
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
-// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off).
+// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
+// &still=1: the planes hold where they start, for checks that step through them in order).
 
 
 
 
-const query=new URLSearchParams(typeof location!=='undefined'?location.search:'');
-const demo=query.get('demo')==='1',scene=query.get('scene')||'';
+// Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
+const query=new URLSearchParams(typeof location!=='undefined'&&!globalThis.window?.__whatsupRelease?location.search:'');
+const demo=query.get('demo')==='1',scene=query.get('scene')||'',still=query.get('still')==='1';
 let HOME={latitude:0,longitude:0,elevationFt:0},TZ='UTC';
 const tz=()=>TZ;
 
@@ -4061,13 +4601,13 @@ function cargoBrand(callsign,owner){
   return '';
 }
 const EMERGENCY={'7500':'HIJACK','7600':'RADIO FAILURE','7700':'EMERGENCY'};
-const titleCase=s=>s.toLowerCase().replace(/[,.]?\s+(inc|co|llc|ltd|corp|corporation|company|plc|gmbh|sa|ag)\.?$/,'').replace(/\b(\w)/g,c=>c.toUpperCase());
 const typeName=code=>code?AIRCRAFT_TYPES[String(code).toUpperCase()]||code:'';
 const compass=deg=>['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(deg/22.5)%16];
 
 // Miles east/north of home.
 function offset(lat,lon){
-  return {x:(lon-HOME.longitude)*69.172*Math.cos(HOME.latitude*Math.PI/180),y:(lat-HOME.latitude)*69.0};
+  const dLon=((lon-HOME.longitude+540)%360)-180; // across the date line the short way round
+  return {x:dLon*69.172*Math.cos(HOME.latitude*Math.PI/180),y:(lat-HOME.latitude)*69.0};
 }
 function derive(a){
   const {x,y}=offset(a.latitude,a.longitude),ground=Math.hypot(x,y);
@@ -4089,25 +4629,60 @@ function derive(a){
 const LOG_KEY='whatsup.logbook.v1';
 const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
 const localHour=t=>Number(new Date(t).toLocaleString('en-US',{hour:'numeric',hourCycle:'h23',timeZone:TZ}));
-const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?localDay(t-86400000):null;};
-const resetLog=()=>store.remove(LOG_KEY);
+// Before 06:00 the night belongs to the previous calendar date (counted on the date itself,
+// not 24 h back: after a 23-hour spring-forward day that would land two dates back).
+const prevDay=d=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd-1)).toISOString().slice(0,10);};
+const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?prevDay(localDay(t)):null;};
+const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
+// The logbook lives in memory and is saved every 5 min, at the local midnight change and
+// when the app leaves the screen (flushLog), not on every poll: it can be ~350 KB, and
+// writing it twice per poll wore the stick's flash and stalled the page.
+const LOG_FLUSH_MS=300000;
+let pendingLog=null,lastLogSave=0;
+function flushLog(){if(pendingLog){store.set(LOG_KEY,pendingLog);pendingLog=null;lastLogSave=Date.now();}}
+function saveLogSoon(log,now){
+  const newDay=pendingLog&&pendingLog.day!==log.day;
+  pendingLog=log;
+  if(newDay||now-lastLogSave>=LOG_FLUSH_MS)flushLog();
+}
+// A saved logbook as loaded from storage: repaired field by field (old shapes, or a value
+// damaged on the stick's flash), or dropped when it isn't a logbook at all, so a bad value
+// can never stop the dashboard.
+const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
+function saneLog(log){
+  if(!plain(log)||typeof log.day!=='string')return null;
+  if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
+  const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null;
+  return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plain(v)&&(v.d===undefined||Number.isFinite(v.d)))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isFinite(n))):{},highest:rec(log.highest),fastest:rec(log.fastest),
+    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?log.cargo:{night:null,seen:{}},
+    mil:plain(log.mil)?log.mil:{}};
+}
 function updateLog(log,planes,now){
   const day=localDay(now);
-  if(!log||log.day!==day)log={day,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}}};
+  if(!log||log.day!==day)log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
   // Today's aircraft (any distance the feed covers): closest approach, type, callsign and
   // origin. Rarest and Farthest pick from those that came within the map radius, so they
   // follow zooming. Older logs (no planes yet): today's local types count as close (0 mi).
   if(!log.planes){log.planes={};for(const t of log.typesToday||[])log.planes[`old-${t}`]={t,d:0};}
+  // Plane keys are 'x'+hex: an all-digit hex is an integer-like key, which objects keep
+  // first, so the 4000 cap evicted those planes first and they were counted again.
+  if(!log.pk){const old=log.planes;log.planes={};for(const [k,v] of Object.entries(old))log.planes[/^[0-9a-f]{6}$/.test(k)?'x'+k:k]=v;log.pk=1;}
   delete log.typesZone;delete log.zoneSeen;
   const night=tonightKey(now);
   if(log.cargo.night!==night||Array.isArray(log.cargo.seen))log.cargo={night,seen:{}};
   for(const a of planes){
     const from=a.route?.from,d=Math.round(a.distance_mi*10)/10;
-    let rec=log.planes[a.hex];
+    let rec=log.planes['x'+a.hex];
     if(!rec){
-      rec=log.planes[a.hex]={d};
+      rec=log.planes['x'+a.hex]={d};
       // All-time type tallies: once per aircraft per day, wherever it was seen.
-      if(a.aircraft_type)log.typesAll[a.aircraft_type]=(log.typesAll[a.aircraft_type]||0)+1;
+      if(a.aircraft_type&&/^[A-Z0-9]{2,4}$/.test(a.aircraft_type)){
+        log.typesAll[a.aircraft_type]=(log.typesAll[a.aircraft_type]||0)+1;
+        // Bounded: ICAO designators only, at most 600 kept (the rarest-ever pick reads it).
+        const ks=Object.keys(log.typesAll);if(ks.length>600){ks.sort((x,y)=>log.typesAll[y]-log.typesAll[x]);for(const k of ks.slice(600))delete log.typesAll[k];}
+      }
       const keys=Object.keys(log.planes);if(keys.length>4000)delete log.planes[keys[0]];
     }
     rec.d=Math.min(rec.d,d);
@@ -4123,7 +4698,11 @@ function updateLog(log,planes,now){
     const name=a.flight;
     if(number(a.altitude_ft)&&(!log.highest||a.altitude_ft>log.highest.value))log.highest={name,value:a.altitude_ft};
     if(number(a.speed_kt)&&(!log.fastest||a.speed_kt>log.fastest.value))log.fastest={name,value:a.speed_kt};
-    if(night&&a.cargo&&!log.cargo.seen[a.hex])log.cargo.seen[a.hex]=a.cargo;
+    // Amazon is told by the owner, which the backup feed (adsb.lol) doesn't send: a plane first
+    // logged under its callsign's operator (ATN: ATI) becomes Amazon once the owner is known.
+    if(night&&a.cargo&&(!log.cargo.seen[a.hex]||a.cargo==='Amazon'))log.cargo.seen[a.hex]=a.cargo;
+    // Military today: once per aircraft per day, same local area as Seen; kept with its type.
+    if(a.military){log.mil=log.mil||{};if(!(a.hex in log.mil)){log.mil[a.hex]=String(a.aircraft_type||'').slice(0,4);const k=Object.keys(log.mil);if(k.length>500)delete log.mil[k[0]];}}
   }
   return log;
 }
@@ -4150,13 +4729,18 @@ function cargoCounts(seen){
   const counts={};for(const brand of Object.values(seen||{}))counts[brand]=(counts[brand]||0)+1;
   return Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
 }
+// Military today by type, most seen first: [[short name, count]] ("C-17", 2).
+function militaryTypes(mil){
+  const n={};for(const t of Object.values(mil||{})){const k=shortType(t)||'Unknown';n[k]=(n[k]||0)+1;}
+  return Object.entries(n).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+}
 function logSummary(log){
-  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoTonight:0,cargoBy:[],night:false};
+  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoTonight:0,cargoBy:[],night:false,militaryToday:0,militaryTypes:[]};
   const cargoBy=cargoCounts(log.cargo.seen);
   // Rarest/Farthest are read when drawn, so zooming the map changes them at once.
   return {today:log.seen.length,highest:log.highest,fastest:log.fastest,night:!!log.cargo.night,
     get rarest(){return pickRarest(log,logRadius());},get farthest(){return pickFarthest(log,logRadius());},
-    cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy};
+    cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy,militaryToday:Object.keys(log.mil||{}).length,militaryTypes:militaryTypes(log.mil)};
 }
 
 // Trend: compare with the reading ~30 s ago; the samples double as the trail.
@@ -4170,30 +4754,41 @@ function trend(a,now){
 }
 function pruneSamples(now){for(const [k,l] of samples)if(now-l[l.length-1].t>120000)samples.delete(k);}
 
+// Military: adsb.fi marks it in the readsb dbFlags field, bit 1 (the same flag behind its
+// /api/v2/mil list); the field is only present when it isn't 0.
+const isMilitary=raw=>(Number(raw?.dbFlags)&1)===1;
+// A type's short name, as the app writes it elsewhere: "C-17 Globemaster III" -> "C-17".
+const shortType=code=>{const n=typeName(code),w=n.split(' ')[0];return /\d/.test(w)?w:code||'';};
 function enrich(a,raw,route,now){
-  const r=raw||{},owner=typeof r.ownOp==='string'?r.ownOp.trim():'';
+  const r=raw||{},owner=typeof r.ownOp==='string'?r.ownOp.slice(0,80).trim():''; // capped: remote text through regexes
   const call=(a.callsign||'').toUpperCase();
-  const airline=/^[A-Z]{3}\d/.test(call)?OPERATORS[call.slice(0,3)]:'';
+  const airline=/^[A-Z]{3}\d/.test(call)&&Object.prototype.hasOwnProperty.call(OPERATORS,call.slice(0,3))?OPERATORS[call.slice(0,3)]:'';
   const cargo=cargoBrand(call,owner);
-  const operator=(cargo==='Amazon'?'Amazon Air':'')||airline||
-    (owner&&!/BANK|TRUST|LEAS|FINANCE|CAPITAL|WELLS FARGO|WILMINGTON|HOLDINGS/i.test(owner)?titleCase(owner):'');
+  // The registered owner is never shown: for a private aircraft it can be a person's name
+  // (or a holding company named after one). It only tells Amazon's cargo flights apart.
+  const operator=(cargo==='Amazon'?'Amazon Air':'')||airline;
   const flight=a.callsign||a.registration||a.hex.toUpperCase();
   const squawk=typeof r.squawk==='string'?r.squawk:'';
-  const emergency=EMERGENCY[squawk]||(r.emergency&&r.emergency!=='none'?String(r.emergency).toUpperCase():'');
+  // Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
+  // fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
+  const declared={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'}[String(r.emergency||'')];
+  const emergency=(Object.prototype.hasOwnProperty.call(EMERGENCY,squawk)?EMERGENCY[squawk]:'')||(Object.prototype.hasOwnProperty.call({general:1,nordo:1,unlawful:1,downed:1},String(r.emergency||''))?declared:'');
   let progress=null;
   if(route?.from&&route?.to&&number(route.from.lat)&&number(route.to.lat)){
     const flown=haversine(route.from.lat,route.from.lon,a.latitude,a.longitude),left=haversine(a.latitude,a.longitude,route.to.lat,route.to.lon);
     progress={flown,left,share:flown/Math.max(1,flown+left)};
   }
   const vertical=number(r.baro_rate)?r.baro_rate:number(r.geom_rate)?r.geom_rate:null;
-  return {...a,flight,operator,registration:a.registration||r.r||'',type:typeName(a.aircraft_type),
+  const military=isMilitary(r);
+  // The cleaned registration only: the feed's raw one could be any type ("[object Object]").
+  return {...a,flight,operator,military,registration:a.registration||'',type:typeName(a.aircraft_type),
     year:/^\d{4}$/.test(String(r.year||''))?String(r.year):'',squawk,emergency,vertical,
     cargo,route,progress,...derive(a),trend:trend(a,now)};
 }
 
 // The hero: an emergency first, then the nearest inside the alert zone, then the one
 // arriving soonest, then the nearest. In Window view, "inside" means in the window's
-// wedge (or right overhead) and "approaching" means its closest point falls in the wedge.
+// wedge (or right above) and "approaching" means its closest point falls in the wedge.
 function inAlert(a,config){
   const z=config.zone;
   return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
@@ -4202,10 +4797,10 @@ function pickHero(planes,config){
   const z=config.zone,win=z?.kind==='window';
   const approaching=a=>a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(win?inZone(z,a.cpa.x,a.cpa.y):
     a.cpa.miles<config.radiusMiles+1);
-  const hero=planes.find(a=>a.emergency)||planes.find(a=>a.inside)||
+  const hero=planes.find(a=>a.emergency&&a.ground<=config.rangeMiles)||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
     planes.filter(approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
     planes.find(a=>a.ground<=config.rangeMiles)||null; // 'Nearest' only from planes on the map
-  if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>OVERHEAD_MI?'In your window':'Above you now'):
+  if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>ABOVE_MI?'In your window':'Above you now'):
     approaching(hero)?'Approaching':'Nearest';
   return hero;
 }
@@ -4213,11 +4808,15 @@ function pickHero(planes,config){
 // --- Live
 const MAX_PLANES=300,LOG_MILES=17.3; // 15 NM
 function liveSource(config,onModel){
-  const routes=new RouteLookup(),started=Date.now();let log=store.get(LOG_KEY),lastOk=0;
+  const routes=new RouteLookup(),started=Date.now();let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=0,lastGood=null;
   return startLive((states,ok)=>{
     if(ok)lastOk=Date.now();
-    const now=Date.now();
-    const {fresh,all}=airspace(states,now,now-lastOk<15000);
+    const now=Date.now(),retryIn=states.retryAt?Math.max(0,Math.round((states.retryAt-now)/1000)):0;
+    // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
+    // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s".
+    if(!ok&&lastGood&&now-lastOk<60000)return onModel({...lastGood,now,retryIn});
+    const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
+    const {fresh,all}=airspace(states,feedNow,now-lastOk<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
     const raw=new Map((states[IDS.feed]?.attributes?.ac||[]).filter(r=>r&&typeof r==='object').map(r=>[String(r.hex).toLowerCase(),r])); // one bad entry must not drop the update
     // A 250-mile map over a busy region can hold 500+ aircraft: draw the nearest MAX_PLANES
@@ -4227,10 +4826,16 @@ function liveSource(config,onModel){
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
-    if(fresh){log=updateLog(log,planes,now);store.set(LOG_KEY,log);}
+    // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
+    // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
+    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,now);}
     const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
       route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
-    onModel({now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log)});
+    // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show.
+    // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log?.day===localDay(feedNow)?log:null),retryIn,source:states.source||''};
+    if(ok&&fresh)lastGood=model;
+    onModel(model);
   },config);
 }
 
@@ -4262,9 +4867,12 @@ function demoSource(config,onModel,airports){
     ['a7c3b9','SWA1987','N8817L','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg(h4,h2)],
     ['a03b7e','N451PA','N451PA','C172','','1977',2.5,3.1,2400,96,300,300,null],
     ['a0c9f5','N8UH','N8UH','EC35','UNIVERSITY HOSPITAL','2009',-1.2,3.7,1300,118,20,0,null],
+    ['ae1471','RCH481','05-5143','C17','','2005',-4.6,-3.9,12500,330,40,1200,null],
+    ['ae04c2','PKSN21','58-0010','K35R','','1958',1.5,-7.0,21000,380,250,0,null], // south of home, clear of the other tags
   ];
+  const MILITARY=new Set(['ae1471','ae04c2']);
   const started=Date.now(),log={today:184,highest:{name:'UAE2VL',value:41000},fastest:{name:'SWA1987',value:512},
-    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},night:true,cargoTonight:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]]};
+    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},night:true,cargoTonight:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]],militaryToday:3,militaryTypes:[['C-17',2],['KC-135',1]]};
   if(scene==='long')Object.assign(log,{rarest:{code:'A124',name:typeName('A124'),count:1},
     farthest:{name:'GEC8401',value:4310,from:'Frankfurt am Main',code:'FRA'},cargoBy:[['UPS',9],['FedEx',5],['Amazon',3],['ABX',2],['DHL',2]]});
   const recentRows=[['a6d1e2','UAL1840','B739',leg('DEN','BOS'),3],['a3c4d5','ATN3121','B763',leg('LAX','HOME'),12],
@@ -4278,21 +4886,22 @@ function demoSource(config,onModel,airports){
     DEMO[0]=['0d0a1b','MAA6521','XA-MAAZZ','A124','AEROTRANSPORTES MAS DE CARGA SA DE CV','1991',1.6,-1.9,34000,451,331,0,leg('FRA','DFW')];
     DEMO[1]=['a1b2c3','N1234567','N1234567','GLF6','INTERNATIONAL BUSINESS AVIATION SERVICES LLC','2021',-3,2,45000,520,90,0,null];
     Object.assign(log,{rarest:{code:'A124',name:typeName('A124'),count:1},farthest:{name:'MAA6521',value:9876,from:'Santa Cruz de la Sierra',code:'VVI'},
-      cargoBy:[['UPS',19],['FedEx',15],['Amazon',13],['ABX',12],['DHL',12],['Atlas',10]]});
+      cargoBy:[['UPS',19],['FedEx',15],['Amazon',13],['ABX',12],['DHL',12],['Atlas',10]],
+      militaryToday:22,militaryTypes:[['KC-135',9],['C-130J',7],['UH-60',4],['CH-47',2]]});
   }
   if(scene==='long'){
     DEMO[0]=['3c4b26','GEC8401','D-ALFH','B77L','LUFTHANSA CARGO AG','2013',1.6,-1.9,34000,451,331,0,leg('FRA','DFW')];
     DEMO[5]=['a7c3b9','SWA4499','N8731J','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg('DFW','FRA')];
   }
   const tick=()=>{
-    const now=Date.now(),t=(now-started)/1000;
+    const now=Date.now(),t=still?0:(now-started)/1000;
     const planes=DEMO.map(([hex,callsign,registration,aircraft_type,ownOp,year,e,n,alt,gs,track,fpm,route])=>{
       const v=gs*1.15078/3600,east=e+v*t*Math.sin(track*Math.PI/180),north=n+v*t*Math.cos(track*Math.PI/180);
       const latitude=HOME.latitude+north/69,longitude=HOME.longitude+east/(69.172*Math.cos(HOME.latitude*Math.PI/180));
       const a={hex,callsign,registration,aircraft_type,latitude,longitude,altitude_ft:Math.round(alt+fpm*t/60),speed_kt:gs,
         heading:track,position_timestamp:now/1000-1};
       a.distance_mi=Math.hypot(east,north);a.inside=a.distance_mi<=config.radiusMiles;
-      const raw={ownOp,year,squawk:scene==='emergency'&&hex===DEMO[0][0]?'7700':'2214',baro_rate:fpm};
+      const raw={ownOp,year,squawk:scene==='emergency'&&hex===DEMO[0][0]?'7700':'2214',baro_rate:fpm,dbFlags:MILITARY.has(hex)?1:0};
       const p=enrich(a,raw,route?{...route,flight:callsign}:null,now);p.inside=inAlert(p,config);return p;
     }).filter(a=>a.distance_mi<config.rangeMiles+3&&scene!=='quiet')
       .sort((a,b)=>Number(b.inside)-Number(a.inside)||a.distance_mi-b.distance_mi);
@@ -4312,11 +4921,12 @@ function start(place,config,onModel,airports){
   return demo?demoSource(cfg,onModel,airports):liveSource(cfg,onModel);
 }
 
-return {query,demo,tz,cargoBrand,EMERGENCY,typeName,compass,offset,resetLog,updateLog,pickRarest,pickFarthest,setLogRadius,cargoCounts,logSummary,start};
+return {query,demo,tz,cargoBrand,EMERGENCY,typeName,compass,offset,resetLog,flushLog,saneLog,updateLog,pickRarest,pickFarthest,setLogRadius,cargoCounts,militaryTypes,logSummary,isMilitary,shortType,start};
 })();
 // ---- kit.mjs
 __modules["kit.mjs"]=(()=>{
-const {number,zoneOutline}=__modules["core.mjs"];
+const {PROFILE}=__modules["profile.mjs"];
+const {number,zoneOutline,snapped,GRID_PAD_MI}=__modules["core.mjs"];
 const {SILHOUETTES,silhouetteFamily}=__modules["silhouettes.mjs"];
 const {photoFor,qrFor,qrColours,modelPhoto}=__modules["photos.mjs"];
 const {MAP_ATTRIBUTION}=__modules["mapgen.mjs"];
@@ -4340,7 +4950,9 @@ const {tz,compass,offset}=__modules["model.mjs"];
 // route {origin,destination,from,to}, progress {flown,left,share}, x/y (miles east/
 // north of home), ground (miles), bearing, elevation (deg up), cpa {seconds,miles,
 // receding}, inside (within the alert radius), trend {alt,speed,trail[]}, year;
-// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency').
+// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency'); while Left/Right
+// browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
+// {index, count} (headingAlts words the card's heading).
 
 
 
@@ -4353,11 +4965,25 @@ function themedQr(link){
 // The aircraft picture block shared by the non-Atlas layouts: photo of this aircraft
 // (Planespotters, credit + QR, per their terms) -> bundled model photo -> nothing (the
 // layout keeps its own text). Styled per layout via .ph / .ph-img / .ph-qr / .ph-cap.
+// A model photo's author, shortened for a tight caption: an agency credit keeps the
+// agency ("U.S. Air Force photo"), a person becomes "J. Herzog".
+// A Planespotters credit, longest first; every wording keeps the photographer and the site.
+const psCredit=name=>[...new Set([`Photo © ${name} / Planespotters.net`,`© ${name} / Planespotters.net`,
+  `© ${shortAuthor(name)} / Planespotters.net`,`© ${shortAuthor(name)} / Planespotters`])];
+// Only a person's name becomes "J. Herzog"; usernames, studios and agencies ("BWard 1997",
+// "Curimedia Photography", "Armada Argentina") stay as credited.
+const ORG=/\b(Armada|Envoy|Photography|Aviat(?:ion|or)|Museum|Archives?|Navy|Army|Force|Ministry|Ministerstwo|Marina|Secretar[ií]a|Agency|Department)\b/i;
+const personName=a=>{const w=a.split(/\s+/);return w.length>=2&&w.length<=3&&w.every(x=>/^\p{Lu}[\p{Ll}'’-]+$|^\p{Lu}\.$|^(van|von|de|da|di|der|den|le|la|du)$/u.test(x))&&!ORG.test(a);};
+const shortAuthor=a=>/^Author unknown$/.test(a)?a:/ photo( by |$)/.test(a)?a.replace(/ by .*$/,''):
+  personName(a.replace(/,.*$/,''))?a.replace(/,.*$/,'').replace(/^(\S)\S*\s+(?=\S)/,'$1. '):a;
 function photoSlot(cls=''){
   const s=el('div',`ph ${cls}`);s.hidden=true;
   s.append(s._img=el('img','ph-img'),s._qr=el('img','ph-qr'),s._cap=el('div','ph-cap'));
+  s._cap._whole=true; // attribution: wraps rather than losing words
   s._img.alt='';s._qr.alt='';return s;
 }
+// Alt text for an aircraft's photo, for screen readers: "Photo of a Boeing 737-800".
+const photoAlt=a=>{const t=a?.type||a?.aircraft_type||'aircraft';return `Photo of ${/^[aeiou]/i.test(t)?'an':'a'} ${t}`;};
 // Show the picture for aircraft `a` in slot `s`; `relayout()` runs when it appears or goes.
 function showPhotoIn(s,a,relayout=()=>{}){
   const hex=a?.hex||'';
@@ -4367,15 +4993,20 @@ function showPhotoIn(s,a,relayout=()=>{}){
   photoFor(a).then(p=>{
     if(s._hex!==hex||!s.isConnected)return;
     const qr=p&&themedQr(p.link);
-    if(p&&qr){s._img.src=p.src;s._qr.src=qr;s._cap._alts=[`© ${p.photographer} · Planespotters.net`,`© ${p.photographer}`];}
+    // A Planespotters image that fails to load: the bundled model photo instead (or none).
+    s._img.onerror=()=>{if(s._hex!==hex||s.classList.contains('model'))return;const m=modelPhoto(a);
+      if(!m){s.hidden=true;relayout();return;}
+      s.classList.add('model');s._qr.removeAttribute('src');s._img.src=m.src;s._img.alt=`Typical ${m.model}`;
+      s._cap._alts=[`Typical ${m.model} · ${m.author} · ${m.license}`,`${m.author} · ${m.license}`,`${shortAuthor(m.author)} · ${m.license}`];fitLine(s._cap);};
+    if(p&&qr){s._img.src=p.src;s._qr.src=qr;s._img.alt=photoAlt(a);s._qr.alt='QR code for this photo on Planespotters.net';s._cap._alts=psCredit(p.photographer);}
     else{
       const m=modelPhoto(a);if(!m)return;
-      const short=m.author.replace(/^(\S)\S*\s+(?=\S)/,'$1. ').replace(/,.*$/,'');
-      s.classList.add('model');s._img.src=m.src;
+      const short=shortAuthor(m.author);
+      s.classList.add('model');s._img.src=m.src;s._img.alt=`Typical ${m.model}`;s._qr.alt='';
       s._cap._alts=[`Typical ${m.model} · ${m.author} · ${m.license}`,`Model photo · ${m.author} · ${m.license}`,`${m.author} · ${m.license}`,`${short} · ${m.license}`];
     }
     s._cap.textContent=s._cap._alts[0];s.hidden=false;
-    const fit=()=>{if(s._hex===hex){fitLine(s._cap);relayout();}};
+    const fit=()=>{if(s._hex===hex&&s.isConnected){fitLine(s._cap);relayout();}}; // not after a layout switch (seed 211)
     s._img.onload=fit; // the photo's width decides the room left for the credit
     requestAnimationFrame(fit);
   });
@@ -4384,7 +5015,7 @@ function showPhotoIn(s,a,relayout=()=>{}){
 
 
 
-const DATA_ATTRIBUTION='Aircraft: adsb.fi · Routes: ADSB.lol';
+const DATA_ATTRIBUTION=`${PROFILE.feed==='adsb.fi'?'Aircraft: adsb.fi':'Positions: adsb.lol (ODbL)'} · Routes: ADSB.lol`;
 // Map radius in miles (Settings > Map radius). Layouts are drawn for a 10-mile view
 // (BASE_RANGE); paintMap and toView scale every view by zoom() = 10 / map radius, so
 // fixed pixel sizes in a layout stay put while distances shrink or grow.
@@ -4440,7 +5071,7 @@ const useSettings=s=>{S=s;};
 const KM=1.609344;
 const metric=()=>S.distance==='km';
 const fmt={
-  int:v=>number(v)?Math.round(v).toLocaleString('en-US'):'—',
+  int:v=>number(v)?(Math.round(v)||0).toLocaleString('en-US'):'—', // ||0: never "-0"
   dist:(mi,d=1)=>!number(mi)?'—':S.distance==='km'?`${(mi*KM).toFixed(d)} km`:`${mi.toFixed(d)} mi`,
   far:mi=>!number(mi)?'—':S.distance==='km'?`${fmt.int(mi*KM)} km`:`${fmt.int(mi)} mi`,
   alt:ft=>!number(ft)?'—':S.altitude==='m'?`${fmt.int(ft*.3048)} m`:ft>=18000?`FL${Math.round(ft/100)}`:`${fmt.int(ft)} ft`,
@@ -4450,7 +5081,9 @@ const fmt={
   speedNum:kt=>!number(kt)?'—':S.distance==='km'?fmt.int(kt*1.852):fmt.int(kt),
   speedUnit:()=>S.distance==='km'?'km/h':'kt',
   distUnit:()=>S.distance==='km'?'km':'mi',
-  vs:fpm=>!number(fpm)||Math.abs(fpm)<100?'level':S.altitude==='m'?`${fpm>0?'↑':'↓'}${(Math.abs(fpm)*.00508).toFixed(1)} m/s`:
+  // Hundreds of feet for tags ("045"), never negative ("0-1" below sea level).
+  hundreds:ft=>String(Math.max(0,Math.round((ft||0)/100))).padStart(3,'0'),
+  vs:fpm=>!number(fpm)?'—':Math.abs(fpm)<100?'level':S.altitude==='m'?`${fpm>0?'↑':'↓'}${(Math.abs(fpm)*.00508).toFixed(1)} m/s`:
     `${fpm>0?'↑':'↓'}${fmt.int(Math.abs(Math.round(fpm/50)*50))}`,
   mmss:s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`,
   ago:(stamp,now)=>{const m=Math.max(0,Math.floor((now/1000-stamp)/60));return m<1?'now':m<60?`${m}m`:`${Math.floor(m/60)}h`;},
@@ -4467,10 +5100,19 @@ const windowView=()=>S.alertZone==='window';
 // SVG path of the alert zone; at(x,y) maps miles east/north of home to screen {x,y}.
 const zonePath=at=>'M'+zoneOutline(alertZone()).map(([x,y])=>{const p=at(x,y);return `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;}).join('L')+'Z';
 const routeText=(r,sep=' → ')=>r?`${r.origin}${sep}${r.destination}`:'';
+// The card's heading. While Left/Right browse the planes (browse.mjs) it gives the plane's place
+// in the list and where it is, "Plane 3 of 9 · 4.2 mi NE", with shorter wordings for a tight
+// line that all keep the number; otherwise `line`, the layout's own heading.
+function headingAlts(hero,line){
+  const b=hero?.browse;if(!b)return [line];
+  const d=fmt.dist(hero.ground),at=`${d} ${compass(hero.bearing)}`;
+  return [`Plane ${b.index} of ${b.count} · ${at}`,`${b.index} of ${b.count} · ${at}`,`${b.index}/${b.count} · ${at}`,`${b.index}/${b.count} · ${d}`];
+}
 const routeCities=r=>r?[r.from?.city||r.origin,r.to?.city||r.destination]:null;
 // "Live" / "Preview" / "Connecting…" / "No signal", and what to say when nothing is near.
-const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting…':m.fresh?'Live':'No signal';
-const quietText=(m,demo)=>!demo&&!m.fresh?(m.connecting?'Connecting to the live feed…':'No live data right now. Retrying every few seconds.'):
+const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting':m.fresh?'Live':'No signal';
+const fmtWait=s=>s<90?`${s} s`:`${Math.round(s/60)} min`;
+const quietText=(m,demo)=>!demo&&!m.fresh?(m.connecting?'Connecting to the live feed':m.retryIn>=5?`No live data right now. Reconnecting in ${fmtWait(m.retryIn)}.`:'No live data right now. Reconnecting.'):
   m.noCoverage?'No receiver coverage here. The aircraft feed has no receivers near this location.':
   'Quiet skies. Nothing within range right now.';
 
@@ -4492,17 +5134,31 @@ function silhouette(a,cls='sil'){
 }
 // One line, never cut: try each wording (e._alts, longest first) shrinking the type down
 // to 11 px; if none fits, the shortest one goes down to 9 px.
+// Wider than its box: scrollWidth rounds, so the text's own measured width decides too
+// (a 1.5 px overrun cut the last digit).
+const over=e=>{if(e.scrollWidth>e.clientWidth)return true;const r=document.createRange();r.selectNodeContents(e);
+  const cs=getComputedStyle(e),inner=e.getBoundingClientRect().width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-parseFloat(cs.borderLeftWidth)-parseFloat(cs.borderRightWidth);
+  return r.getBoundingClientRect().width>inner+.5;};
 function fitLine(e){
   const alts=e._alts||[e.textContent];
   // Not laid out (hidden): show the full wording and fit again at the next setText.
   if(!e.isConnected||!e.getClientRects().length){e.textContent=alts[0];e.style.fontSize='';e._key=null;return;}
+  e.style.whiteSpace='';e.style.overflowWrap='';
   for(let i=0;i<alts.length;i++){
     const floor=i===alts.length-1?9:11;
     e.textContent=alts[i];e.style.fontSize='';
     let size=parseFloat(getComputedStyle(e).fontSize);
-    while(e.scrollWidth>e.clientWidth+1&&size>floor){size-=.5;e.style.fontSize=`${size}px`;}
-    if(e.scrollWidth<=e.clientWidth+1)return;
+    while(over(e)&&size>floor){size-=.5;e.style.fontSize=`${size}px`;}
+    if(!over(e))return;
   }
+  // Text that must stay whole (a photo credit, e._whole) wraps onto another line instead.
+  if(e._whole){e.style.whiteSpace='normal';e.style.overflowWrap='anywhere';return;}
+  // Still too long at the smallest size (a 400-character name): drop whole words from the
+  // end, never ending in "…" (or a dangling slash), so at least it isn't cut through a word.
+  let t=e.textContent;
+  while(over(e)&&/\s\S+\s*$/.test(t.trim())){t=t.trim().replace(/\s+\S+$/,'').replace(/[\s,·:;–\/-]+$/,'');e.textContent=t;}
+  // One unbroken word longer than the row: it wraps rather than being cut.
+  if(over(e)){e.style.whiteSpace='normal';e.style.overflowWrap='anywhere';}
 }
 // The planes worth labelling first: hero, then those inside the alert ring, then nearest.
 const byInterest=m=>[...new Set([m.hero,...m.planes.filter(a=>a.inside),...m.planes].filter(Boolean))];
@@ -4652,21 +5308,108 @@ function credits(cls='credits',{oneLine=false}={}){
   return e;
 }
 
-return {themedQr,photoSlot,showPhotoIn,DATA_ATTRIBUTION,BASE_RANGE,range,zoom,svg,el,setText,fit,placeAlts,airlineAlts,overlap,placeBox,useSettings,KM,metric,fmt,placeName,cityName,alertRadius,alertZone,windowView,zonePath,routeText,routeCities,statusText,quietText,PLANE,HELI,SINGLE,isHeli,isLight,shapeFor,planeIcon,silhouette,fitLine,byInterest,TrailBook,pixelRatio,makeCanvas,mapShift,ppmOf,niceStep,niceDistance,paintMap,toView,placeKinds,placesNear,shortField,airfieldsNear,airportsNear,credits,photoFor,qrFor,modelPhoto,number,compass,offset,placeLabel,MAP_ATTRIBUTION};
+// Military today's sub-line, count first ("2 C-17 · 1 KC-135": "C-17 2" reads like C-172),
+// most seen first; shorter wordings drop types. With none: "none yet".
+const militaryAlts=L=>{
+  const t=L?.militaryTypes||[];if(!t.length)return ['none yet'];
+  const w=n=>t.slice(0,n).map(([k,c])=>`${c} ${k}`).join(' · ');
+  return [...new Set([w(4),w(3),w(2),w(1)])];
+};
+
+return {themedQr,psCredit,shortAuthor,photoSlot,photoAlt,showPhotoIn,DATA_ATTRIBUTION,BASE_RANGE,range,zoom,svg,el,setText,fit,placeAlts,airlineAlts,overlap,placeBox,useSettings,KM,metric,fmt,placeName,cityName,alertRadius,alertZone,windowView,zonePath,routeText,headingAlts,routeCities,statusText,quietText,PLANE,HELI,SINGLE,isHeli,isLight,shapeFor,planeIcon,silhouette,fitLine,byInterest,TrailBook,pixelRatio,makeCanvas,mapShift,ppmOf,niceStep,niceDistance,paintMap,toView,placeKinds,placesNear,shortField,airfieldsNear,airportsNear,credits,militaryAlts,snapped,GRID_PAD_MI,photoFor,qrFor,modelPhoto,number,compass,offset,placeLabel,MAP_ATTRIBUTION};
+})();
+// ---- browse.mjs
+__modules["browse.mjs"]=(()=>{
+
+// Left/Right on the dashboard step through the planes on the map; the chosen one takes the main
+// card, shown the way the hero is (app.mjs reads the keys and draws; the rules live here, where
+// tests/test-browse.mjs drives them with a clock):
+//  - Order: distance from home, closest first, among the planes within the map radius (the ones
+//    the map draws). It is worked out again on every update and the choice follows the
+//    aircraft's hex, so its number changes as planes move.
+//  - The first press starts from the plane on the card (the hero): Right the next one out, Left
+//    the one before, wrapping round at either end.
+//  - Back to automatic on Back (app.mjs), when the chosen plane leaves the map, after IDLE_MS
+//    without Left or Right, and while an emergency squawk has the card.
+//  - A plane's photo and route are looked up only once it has stayed chosen HOLD_MS, so
+//    stepping quickly through the list sends nothing for the planes passed over.
+const IDLE_MS=60000,HOLD_MS=1000;
+
+// The planes the map draws, closest first.
+const browseOrder=(planes,miles)=>planes.filter(a=>a.ground<=miles)
+  .sort((a,b)=>a.ground-b.ground||(a.hex<b.hex?-1:a.hex>b.hex?1:0));
+
+// One press (dir 1 = Right, -1 = Left). state: {hex, since, last} while browsing (the chosen
+// plane, when it was chosen, the last press), null for automatic. Returns the new state, or
+// null when there is nothing to step through (or an emergency has the card).
+function step(state,m,miles,dir,now){
+  if(!m||m.hero?.emergency)return null;
+  const list=browseOrder(m.planes,miles);if(!list.length)return null;
+  const at=list.findIndex(a=>a.hex===(state?.hex??m.hero?.hex));
+  const hex=list[at<0?(dir>0?0:list.length-1):(at+dir+list.length)%list.length].hex;
+  return {hex,since:hex===state?.hex?state.since:now,last:now};
+}
+
+// The model as the card shows it. While browsing, a copy of the chosen plane takes the hero's
+// place, carrying its place in the list ({index, count}) and the status "Plane 3 of 9"; the
+// copy also replaces it in planes, so a layout's `a===hero` marks it on the map. Returns
+// {state, m}; state is null once browsing has ended.
+function apply(state,m,miles,now){
+  if(!state||!m)return {state:null,m};
+  if(m.hero?.emergency||now-state.last>=IDLE_MS)return {state:null,m};
+  const list=browseOrder(m.planes,miles),i=list.findIndex(a=>a.hex===state.hex);
+  if(i<0)return {state:null,m}; // it left the map
+  const a=list[i],hero={...a,status:`Plane ${i+1} of ${list.length}`,browse:{index:i+1,count:list.length}};
+  return {state,m:{...m,hero,planes:m.planes.map(p=>p===a?hero:p)}};
+}
+
+// Chosen long enough for its photo and route to be looked up.
+const held=(state,now)=>!!state&&now-state.since>=HOLD_MS;
+
+// The photo lookup for the plane on the card waits on wait(hex): true at once outside
+// browsing, true once a browsed plane has been on the card HOLD_MS, false as soon as another
+// plane takes the card. app.mjs calls update() with the plane about to be drawn on the card,
+// before every draw (a layout asks for the photo while it draws).
+class LookupGate{
+  constructor(){this.waiting=[];this.card='';this.state=null;this.timer=0;}
+  wait(hex){
+    if(!this.state)return Promise.resolve(true);
+    return new Promise(resolve=>{this.waiting.push({hex,resolve});this.update(this.card,this.state,Date.now());});
+  }
+  update(card,state,now){
+    this.card=card;this.state=state;clearTimeout(this.timer);
+    const ready=!state||held(state,now);
+    this.waiting=this.waiting.filter(({hex,resolve})=>{
+      if(hex!==card){resolve(false);return false;}
+      if(ready){resolve(true);return false;}
+      return true;
+    });
+    if(this.waiting.length)this.timer=setTimeout(()=>this.update(this.card,this.state,Date.now()),Math.max(0,state.since+HOLD_MS-now)+10);
+  }
+}
+
+return {IDLE_MS,browseOrder,step,apply,held,LookupGate};
 })();
 // ---- app.mjs
 __modules["app.mjs"]=(()=>{
 const {CONFIG}=__modules["config.js"];
+const {PROFILE}=__modules["profile.mjs"];
 const {chimeGate}=__modules["core.mjs"];
-const {HISTORY_KEY,MAX_NM,store}=__modules["live.mjs"];
-const {start,demo,query,compass,resetLog,setLogRadius}=__modules["model.mjs"];
-const {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,placeLabel}=__modules["place.mjs"];
-const {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits}=__modules["mapgen.mjs"];
-const {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr}=__modules["kit.mjs"];
-// What's Up: the page. Owns the data (feed model, settings, maps) and the shared
+const {HISTORY_KEY,MAX_NM,store,setRouteFocus}=__modules["live.mjs"];
+const {start,demo,query,compass,resetLog,setLogRadius,flushLog}=__modules["model.mjs"];
+const {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone}=__modules["place.mjs"];
+const {buildMap,savedMap,saveMap,buildDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,STALE}=__modules["mapgen.mjs"];
+const {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit:fitText}=__modules["kit.mjs"];
+const {setPhotoGate}=__modules["photos.mjs"];
+const {step:stepBrowse,apply:applyBrowse,held,LookupGate,IDLE_MS}=__modules["browse.mjs"];
+// The page. Owns the data (feed model, settings, maps) and the shared
 // screens (Settings, location, Adjust position, layout picker); the chosen layout
 // (web/layouts/<id>.mjs, loaded on demand, only one at a time) draws the dashboard.
-// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings.
+// Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings;
+// on the dashboard Up/Down change the map radius and Left/Right step through the planes.
+
+
+
 
 
 
@@ -4677,21 +5420,34 @@ const {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr}=__modules["kit.
 const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
 const stage=$('stage');
-const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540);stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+// The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
+// reaches the outer 5% of any edge (overscan); the personal build fills the screen.
+const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
+// The margin around an inset stage shows the layout's own background (its --edge colour where
+// that background is a gradient; Adjust position's own background while it is open), shaded
+// like the stage while screens with a shade are open over it.
+const clear=c=>!c||c==='transparent'||/^rgba\(.*,\s*0\)$/.test(c);
+function paintEdge(){
+  if(!(PROFILE.stageScale<1))return;
+  const cs=getComputedStyle(stage),own=cs.getPropertyValue('--edge').trim(),bg=getComputedStyle($('layout')).backgroundColor;
+  const edge=stage.classList.contains('adjusting')?cs.backgroundColor:own||(clear(bg)?cs.backgroundColor:bg);
+  const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o).backgroundColor).filter(c=>!clear(c));
+  document.body.style.background=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
+}
 
 // --- Bridge to the Vega app: it handles the remote's Back button and asks us first.
 const native=window.ReactNativeWebView;
 const tellApp=msg=>{try{native?.postMessage(JSON.stringify(msg));}catch{/* desktop */}};
 // Keep screen awake: the app plays a silent, invisible loop so the screensaver stays away.
-const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake!==false});
+const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true});
 
 // Rarest/Farthest follow the map radius (Settings > Map radius, Up/Down).
 setLogRadius(()=>settings.mapMiles||CONFIG.rangeMiles);
 let settings=loadSettings(),feed=null,lastModel=null,placeToken=0;
 useSettings(settings);
 const mapMiles=()=>settings.mapMiles||CONFIG.rangeMiles;
-// The feed follows the map radius: adsb.fi is asked for ~1.5x the radius (wide layouts
+// The feed follows the map radius: adsb.fi (or adsb.lol) is asked for ~1.5x the radius (wide layouts
 // show that far sideways), at most its 250 NM, and polled less often over big areas.
 const feedConfig=()=>{
   const r=mapMiles();
@@ -4699,19 +5455,36 @@ const feedConfig=()=>{
   return {...CONFIG,radiusMiles:alertFor(settings.radiusMiles,r),rangeMiles:r,
     zone:win?{kind:'window',from:settings.viewFrom,to:settings.viewTo,miles:view}:{kind:'circle',radius:alertFor(settings.radiusMiles,r)},
     searchNm:Math.min(MAX_NM,Math.max(CONFIG.searchNm,Math.ceil(reach/1.15078))),
-    pollSeconds:r<=25?CONFIG.pollSeconds:r<=100?10:15};
+    pollSeconds:Math.max(PROFILE.minPollSeconds||0,r<=25?CONFIG.pollSeconds:r<=100?10:15)};
 };
 const maps={base:null,detail:null};
 
 // --- Credits: always in Settings; on the dashboard one line that fades out ~5 s after
-// the app opens, the layout changes or a new location's map is drawn.
-let creditTimer=0;
-const CREDITS='Aircraft adsb.fi · Routes ADSB.lol · Map © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
+// the app opens, the layout changes or a new location's map is drawn. It is always shown for
+// the full 5 s with nothing over it: while a screen is open it waits, and a screen opened
+// over it puts it back in the queue (syncApp).
+let creditTimer=0,creditDue=false,credited=PROFILE.feed,sourceFlashAt=-Infinity;
+const MAP_CREDIT='Map © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
+// The positions' source as shown: adsb.fi, or adsb.lol while it stands in (live.mjs). A change
+// of source shows the line again (render), at most once every 10 minutes: a flaky adsb.fi
+// switching back and forth mustn't keep covering the stats and photo credits (E14).
+const feedSource=()=>lastModel?.source||PROFILE.feed,SOURCE_FLASH_MS=600000;
 function flashCredits(){
-  if(pick)return; // the picker bar sits where the line would
-  const c=$('credit-flash'),sat=active?.id==='atlas-satellite',us=['US','PR'].includes(settings.place?.countryCode);
-  c.textContent=CREDITS+(sat?(us?' · Imagery USGS':' · Imagery Sentinel-2 cloudless 2016 by EOX (Copernicus Sentinel data 2016)'):'');
+  if(pick||layer||adj){creditDue=true;return;} // shown when the screen closes
+  creditDue=false;credited=feedSource();
+  // adsb.lol standing in gives both the aircraft and the routes: one item, one spelling.
+  const data=credited===PROFILE.backup?[PROFILE.backupCreditFlash]:[`${PROFILE.creditFlash} · Routes ADSB.lol`,PROFILE.creditFlash];
+  const c=$('credit-flash'),a=$('credit-a'),b=$('credit-b'),sat=active?.id==='atlas-satellite',us=['US','PR'].includes(settings.place?.countryCode);
+  // Positions, routes and map credits on the first line (shorter wordings keep both map
+  // credits); the satellite credit, exact, on a second line of its own. About has them all.
+  const EOX='EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017)';
   c.classList.add('on');
+  a._alts=[...data.map(d=>`${d} · ${MAP_CREDIT}`),`${data.at(-1)} · © OpenMapTiles © OpenStreetMap contributors`];
+  a.textContent=a._alts[0];fitLine(a);
+  // US imagery: the credit the USGS imagery service asks for, word for word.
+  const img=sat&&(us?'Imagery: USDA, USGS The National Map':PROFILE.eox?`Imagery: ${EOX}`:'');
+  b._alts=img?[img,...(us?[]:[EOX])]:[''];
+  b.textContent=b._alts[0];if(img)fitLine(b);
   clearTimeout(creditTimer);creditTimer=setTimeout(()=>c.classList.remove('on'),5000);
 }
 
@@ -4758,7 +5531,9 @@ const root=$('layout');
 const ctx={settings:()=>settings,place:()=>settings.place,layout:()=>active?.id,demo};
 async function useLayout(id){
   id=validLayout(id);
-  if(active?.id===id)return;
+  // Already showing it: still cancel any switch in flight (Back in the picker while a
+  // preview loads must not let that preview land after the revert).
+  if(active?.id===id){++layoutToken;if(!busyNow)$('busy').classList.remove('on');return;}
   const token=++layoutToken;
   $('busy').classList.add('on'); // a layout switch can take a moment on the stick
   const done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===layoutToken&&!busyNow)$('busy').classList.remove('on');}));
@@ -4773,43 +5548,57 @@ async function useLayout(id){
   unloadExcept(id);
   root.replaceChildren();root.className='layout';
   stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));stage.dataset.layout=id;
-  active={id,mod};
+  active={id,mod};paintEdge();
   if(mod.map!=='detail')maps.detail=null; // free it; it reloads from storage when needed
   try{
     mod.mount(root,ctx);
     mod.setMap?.({...maps});
-    if(lastModel&&!adj)mod.render(lastModel);
+    if(lastModel&&!adj)mod.render(shown(lastModel));
   }catch(e){console.error(`layout ${id}`,e);}
   if(mod.map==='detail')ensureDetail();
+  else if(/street map|map detail/i.test($('layout-note').textContent))setText('layout-note',''); // not this layout's
+  refitScreens(); // screens open over the switch now have this layout's fonts
   flashCredits();done();
 }
 function draw(m){
   if(!active||adj)return;
+  m=shown(m);
   try{active.mod.render(m);}catch(e){console.error(`render ${active.id}`,e);}
+  // A photo credit is fitted when its photo loads; when the card's other lines take room from
+  // it later, it is fitted again here (fuzz seed 7008: cut by 3 px).
+  for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
+  announce(m);
 }
 function mapsChanged(){
   try{active?.mod.setMap?.({...maps});}catch(e){console.error('setMap',e);}
 }
 
 // --- Detail map (streets, landuse, buildings) for the layouts that draw it.
-let detailToken=0,detailBusy=false;
+// A build stops as soon as it's no longer wanted (another radius or place: detailToken);
+// a failed one is tried again after 30 s, 60 s... up to 5 min, and an older saved map for
+// this place and radius is shown meanwhile.
+let detailToken=0,detailBusy=false,detailTries=0,detailRetry=null;
 async function ensureDetail(){
   const place=settings.place;
-  if(!place||maps.detail||detailBusy)return;
+  if(!place||maps.detail&&!maps.detail.stale||detailBusy)return;
   const spec=detailSpec(mapMiles()),saved=savedDetail(place,spec);
-  if(saved){maps.detail=decodeDetail(saved);return mapsChanged();}
-  const token=++detailToken;detailBusy=true;
-  setText('layout-note',mapMiles()<=15?'Drawing the street map…':'Filling in map detail…');
+  if(saved){maps.detail=decodeDetail(saved);detailTries=0;return mapsChanged();}
+  if(!maps.detail){const old=savedDetail(place,spec,{stale:true});if(old){maps.detail={...decodeDetail(old),stale:true};mapsChanged();}}
+  const token=++detailToken;detailBusy=true;clearTimeout(detailRetry);
+  setText('layout-note',mapMiles()<=15?'Drawing the street map':'Filling in map detail');
   try{
-    const built=await buildDetail(place,spec);
+    const built=await buildDetail(place,{...spec,alive:()=>token===detailToken&&settings.place===place});
     if(token!==detailToken||settings.place!==place)return;
-    saveDetail(built);
+    saveDetail(built);detailTries=0;
     if(active?.mod.map==='detail'){maps.detail=decodeDetail(built);mapsChanged();}
     setText('layout-note','');
   }catch(e){
+    if(e?.message===STALE)return;
     console.error('detail map',e?.message||e);
-    if(token===detailToken)setText('layout-note','Street map unavailable');
-    setTimeout(()=>{if(token===detailToken)setText('layout-note','');},6000);
+    if(token!==detailToken)return;
+    setText('layout-note','Street map unavailable, trying again soon');
+    const wait=Math.min(300000,30000*2**detailTries++);
+    detailRetry=setTimeout(()=>{if(token===detailToken){setText('layout-note','');detailBusy=false;if(active?.mod.map==='detail')ensureDetail();}},wait);
   }finally{if(token===detailToken)detailBusy=false;}
 }
 
@@ -4821,7 +5610,48 @@ function listen(m){
   const r=chimeGate(chime,m.planes.filter(a=>a.inside).length,m.now,m.live&&m.fresh);chime=r.state;
   if(r.ring&&settings.chime!=='off')tellApp({type:'chime',volume:CHIME_VOLUME[settings.chime]});
 }
-function render(m){lastModel=m;listen(m);draw(m);}
+// Screen readers: one polite announcement when the plane on the card changes (or Left/Right
+// browsing starts or ends on it).
+let spoken='';
+function announce(m){
+  if(layer||adj){spoken=null;return;} // not over a screen; the nearest plane is read again after
+  const h=m.hero,key=h?h.hex+(h.browse?'+':''):'';
+  if(key===spoken)return;spoken=key;
+  $('sr-live').textContent=h?[h.status,h.flight,h.type||h.aircraft_type,fmt.dist(h.ground)].filter(Boolean).join(', '):'';
+}
+function render(m){
+  lastModel=m;listen(m);draw(m);
+  if(m.source&&m.source!==credited&&performance.now()-sourceFlashAt>=SOURCE_FLASH_MS){sourceFlashAt=performance.now();flashCredits();}
+}
+
+// --- Left/Right on the dashboard step through the planes on the map, closest first; the chosen
+// one takes the card (browse.mjs has the rules). Back, the plane leaving the map, a minute
+// without Left or Right, or an emergency give the card back to the hero.
+let browse=null,browseTimer=0,browseFrame=0;
+const gate=new LookupGate(),redraw=()=>{if(lastModel)draw(lastModel);};
+// Its photo and route are looked up once it has stayed on the card about a second.
+setPhotoGate(hex=>gate.wait(hex));
+setRouteFocus(()=>held(browse,Date.now())?browse.hex:'');
+// The model as drawn: while browsing, the chosen plane is the hero. The lookup gate learns which
+// plane the card is about to show (a layout asks for its photo while drawing).
+function shown(m){
+  if(browse){
+    const r=applyBrowse(browse,m,mapMiles(),Date.now());
+    if(!r.state){browse=null;clearTimeout(browseTimer);queueMicrotask(syncApp);}
+    m=r.m;
+  }
+  gate.update(m.hero?.hex||'',browse,Date.now());
+  return m;
+}
+function stepPlanes(dir){
+  const next=stepBrowse(browse,lastModel,mapMiles(),dir,Date.now());
+  if(!next)return; // nothing on the map, or an emergency has the card
+  const was=browse;browse=next;
+  clearTimeout(browseTimer);browseTimer=setTimeout(redraw,IDLE_MS+50);
+  if(!was)syncApp(); // Back now ends browsing instead of leaving the app
+  cancelAnimationFrame(browseFrame);browseFrame=requestAnimationFrame(redraw); // a held key: one draw a frame
+}
+function endBrowse(){if(!browse)return;browse=null;clearTimeout(browseTimer);syncApp();redraw();}
 // Restart only the aircraft feed (alert zone or alert radius changed): the maps stay as
 // they are. Re-reading and re-decoding the saved maps blocked the stick for seconds.
 function restartFeed(){
@@ -4837,23 +5667,26 @@ async function applyPlace(place,{fresh=false}={}){
   // Keep maps already in memory when they still fit this place and radius.
   const same=m=>m&&Math.abs(m.latitude-place.latitude)<.01&&Math.abs(m.longitude-place.longitude)<.01;
   const keepBase=same(maps.base)&&maps.base.range===range,keepDetail=same(maps.detail)&&detailFits(maps.detail,detailSpec(range));
-  if(!keepBase)maps.base=savedMap(place,range);
-  if(!keepDetail){maps.detail=null;detailToken++;detailBusy=false;}
+  // No saved map for this radius yet: an older one, or the map already on screen (another
+  // radius, same place: it's in miles, so it still draws), shows while the new one is built.
+  if(!keepBase)maps.base=savedMap(place,range)||(()=>{const old=savedMap(place,range,{stale:true})||(same(maps.base)?maps.base:null);return old&&{...old,stale:true};})();
+  if(!keepDetail){maps.detail=null;detailToken++;detailBusy=false;clearTimeout(detailRetry);detailTries=0;}
   if(!keepBase||!keepDetail)mapsChanged();
   if(active?.mod.map==='detail'&&!keepDetail)ensureDetail();
   const startFeed=()=>{if(token===placeToken&&!feed)feed=start(place,feedConfig(),render,maps.base?.airports);};
   if(!demo)startFeed();
-  if(maps.base){startFeed();return;}
+  if(maps.base&&!maps.base.stale){startFeed();return;}
+  if(maps.base)startFeed(); // an older saved map shows while a new one is built
   for(let attempt=0;token===placeToken;attempt++){
     try{
-      const m=await buildMap(place,range);
+      const m=await buildMap(place,range,{alive:()=>token===placeToken});
       if(token!==placeToken)return;
       maps.base=m;saveMap(m);mapsChanged();setText('layout-note','');flashCredits();
       break;
     }catch(e){
+      if(e?.message===STALE||token!==placeToken)return;
       console.error('map',e?.message||e);
-      if(token!==placeToken)return;
-      setText('layout-note',attempt?'Map unavailable, retrying…':'Map unavailable');
+      setText('layout-note',attempt?'Map unavailable, retrying':'Map unavailable');
       if(demo)startFeed();
       await new Promise(r=>setTimeout(r,Math.min(300000,30000*(attempt+1))));
     }
@@ -4864,6 +5697,8 @@ async function applyPlace(place,{fresh=false}={}){
 // A search result: show what matched before using it.
 function confirmPlace(place){
   pending=place;
+  // A picked address: its time zone now (only the picked one's rounded location goes out).
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&pending===place)pending=p;}).catch(()=>{});
   setText('confirm-label','Use this location?');
   setText('confirm-main',place.street||placeLabel(place));
   setText('confirm-sub',place.street?placeLabel(place):[place.admin,place.country].filter(Boolean).join(', '));
@@ -4873,18 +5708,41 @@ function confirmPlace(place){
 }
 let pending=null;
 
+// A new home more than 2 mi away starts today's logbook and 'Recently above' afresh;
+// a closer one (Adjust position, a nearby address) keeps them, restarts the feed for the
+// new point (and its time zone) and redraws the map around it.
+// The saved place with its looked-up time zone: saved, the feed restarted, and a street map
+// being drawn for the old object (it stops as stale) started again.
+function adoptRefined(p){
+  settings={...settings,place:p};saveSettings(settings);useSettings(settings);restartFeed();refreshLayout();
+  if(detailBusy){detailToken++;detailBusy=false;ensureDetail();}
+}
 function choosePlace(place){
-  const changed=!settings.place||Math.abs(settings.place.latitude-place.latitude)>.001||Math.abs(settings.place.longitude-place.longitude)>.001;
+  // Chosen before its time zone came back: look it up once more for the saved place.
+  if(place.tzGuess)refineZone(place).then(p=>{if(p&&settings.place===place)adoptRefined(p);}).catch(()=>{});
+  const old=settings.place,cos=Math.cos(place.latitude*Math.PI/180);
+  const miles=old?Math.hypot((place.longitude-old.longitude)*69.172*cos,(place.latitude-old.latitude)*69):Infinity;
   settings={...settings,place,confirmed:true};saveSettings(settings);useSettings(settings);
   closeAll();
-  if(changed)applyPlace(place,{fresh:true});else refreshLayout();
+  if(miles>2)return applyPlace(place,{fresh:true});
+  if(miles>.01)applyPlace(place);else restartFeed();
+  mapsChanged();refreshLayout();
 }
 function refreshLayout(){try{active?.mod.refresh?.();}catch(e){console.error(e);}if(lastModel)draw(lastModel);}
 
 // --- Focus and remote navigation
+function labelRow(el){
+  const name=el.querySelector?.(':scope > span'),value=el.querySelector?.(':scope > b');
+  if(name&&el.classList.contains('row'))el.setAttribute('aria-label',[name.textContent,value?.textContent].filter(Boolean).join(', '));
+}
+// While a screen is open the dashboard behind it is hidden from screen readers.
+const hideBehind=()=>{$('layout').setAttribute('aria-hidden',layer||adj?'true':'false');};
 let layer=null,focused=null;
 const layers=[];
+// The .focus class draws the highlight; DOM focus (without scrolling) lets a screen reader
+// (VoiceView) read the control. Settings rows read "name, value".
 function setFocus(el){focused?.classList.remove('focus');const was=focused;focused=el||null;focused?.classList.add('focus');
+  if(focused){labelRow(focused);try{focused.focus({preventScroll:true});}catch{/* not focusable */}}
   if(layer?.id==='settings'){fitValue(was);fitValue(focused);}}
 // Settings values never end in "...": try each wording (b._alts, longest first), shrinking
 // to 13 px; if the focused row's hint is what doesn't fit, drop the hint on that row.
@@ -4893,8 +5751,11 @@ function fitValue(row){
   const alts=b._alts||[b.textContent],fits=()=>b.scrollWidth<=b.clientWidth+1;
   const attempt=()=>{for(const t of alts){b.textContent=t;b.style.fontSize='';let size=parseFloat(getComputedStyle(b).fontSize);
     while(!fits()&&size>13){size-=.5;b.style.fontSize=`${size}px`;}if(fits())return true;}return false;};
-  row.classList.remove('nohint');
+  row.classList.remove('nohint');b.classList.remove('wrap');
   if(!attempt()&&row.classList.contains('focus')){row.classList.add('nohint');attempt();}
+  // Still too wide at the smallest size (a very long name, one unbroken word): it wraps onto
+  // more lines rather than being cut.
+  if(!fits())b.classList.add('wrap');
 }
 // Focus must always be on something visible in the top screen.
 function keepFocus(fallback){
@@ -4905,27 +5766,45 @@ const focusables=()=>layer?[...layer.querySelectorAll('[data-focus]')].filter(el
 function open(id,first){
   if(layer){layer._last=focused;layers.push(layer);}
   layer=$(id);layer.hidden=false;
-  if(id==='settings'){
-    const refit=()=>{if(layer?.id!=='settings')return;for(const r of layer.querySelectorAll('.row'))fitValue(r);showTipJar();};
-    refit();document.fonts?.ready.then(refit);setTimeout(refit,700); // the layout's font may still be loading
-  }
+  if(id==='settings')refitSettings();
   // Stack order follows opening order, not page order: a later screen must cover an earlier one.
   layer.style.zIndex=String(10+layers.length);setFocus(first?$(first):focusables()[0]);syncApp();
 }
 function close(){
   if(!layer)return;
   if(layer.id==='locate'&&!settings.place)return; // nothing to go back to
+  if(layer.id==='consent')return; // Back on it leaves the app (syncApp tells the app not to catch Back)
   if(layer.id==='picker')endPick(false);
   layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;
   if(layer){
-    if(layer.id==='settings')showSettings();
+    if(layer.id==='settings'){showSettings();refitSettings();} // the layout (and its font) may have changed
     {const last=layer._last;setFocus(last&&layer.contains(last)&&last.offsetParent?last:focusables()[0]);}
   }else setFocus(null);
   syncApp();
 }
+// Settings values and the tip lines fit their rows in the active layout's font; again when
+// a font arrives (a layout picked meanwhile brings its own).
+function refitSettings(){
+  const refit=()=>{if(layer?.id!=='settings')return;for(const r of layer.querySelectorAll('.row'))fitValue(r);showTipJar();};
+  refit();document.fonts?.ready.then(refit);setTimeout(refit,700);
+}
+// Text fitted on a screen that stays open while the layout changes, or while its font arrives,
+// is fitted again: Settings rows (also under the search screen), the search screen's source
+// line, and the card's photo credit. Without this they stayed cut (fuzz seeds 7008, 7059).
+function refitScreens(){
+  if(!$('settings').hidden){for(const r of $('settings').querySelectorAll('.row'))fitValue(r);showTipJar();}
+  if(!$('locate').hidden)fitLine($('search-src'));
+  for(const c of root.querySelectorAll('.ph-cap'))if(c.scrollWidth>c.clientWidth+1)fitLine(c);
+}
+// A layout's font arriving changes text widths: fit the settings and the dashboard again.
+document.fonts?.addEventListener?.('loadingdone',()=>{if(layer?.id==='settings')refitSettings();refitScreens();if(lastModel)draw(lastModel);});
 function closeAll(){while(layer){if(layer.id==='picker')endPick(false);layer.hidden=true;layer.style.zIndex='';layer=layers.pop()||null;}setFocus(null);syncApp();}
 // The app swallows Back only while a screen is open (and there's somewhere to go).
-function syncApp(){tellApp({type:'ui',overlay:!!adj||!!layer&&!(layer.id==='locate'&&!settings.place&&!layers.length)});}
+function syncApp(){
+  const c=$('credit-flash');
+  if(layer||adj||pick){if(c.classList.contains('on')){c.classList.remove('on');clearTimeout(creditTimer);creditDue=true;}}
+  else if(creditDue)flashCredits();
+  hideBehind();paintEdge();tellApp({type:'ui',overlay:!!adj||(layer?!((layer.id==='locate'&&!settings.place||layer.id==='consent')&&!layers.length):!!browse)});}
 
 function move(dir){
   const items=focusables();
@@ -4954,7 +5833,9 @@ let kofiFor='';
 function showTipJar(){
   const cs=getComputedStyle(stage),key=cs.getPropertyValue('--ui-ink')+cs.getPropertyValue('--ui-bg');
   if(kofiFor!==key){const qr=themedQr(KOFI);if(qr){kofiFor=key;$('kofi-qr').src=qr;}}
-  for(const id of ['kofi-a','kofi-b'])fitLine($(id));
+  // One line each: shorter wordings for the narrow monospace layouts (Cockpit, Radar).
+  const alts={'kofi-a':['Enjoying it? Tip the developer','Enjoying it? Tip the dev'],'kofi-b':['Optional. The app stays free either way.','Optional. Free either way.']};
+  for(const id of ['kofi-a','kofi-b']){const e=$(id);e._alts=alts[id];fitLine(e);}
 }
 function showSettings(){
   const i=LAYOUTS.findIndex(([k])=>k===settings.layout);
@@ -4977,7 +5858,11 @@ function showSettings(){
   setText('set-view-v',view<settings.viewMiles?`${fmt.dist(view,0)} (the map radius)`:fmt.dist(settings.viewMiles,0));
   for(const r of document.querySelectorAll('#settings .win'))r.hidden=!win;
   $('set-radius').hidden=win;
-  for(const r of document.querySelectorAll('#settings .row'))fitValue(r);
+  // Spoken labels follow the values; a changed value on the focused row is read out.
+  for(const r of document.querySelectorAll('#settings .row')){
+    fitValue(r);const before=r.getAttribute('aria-label');labelRow(r);
+    if(r===focused&&before&&before!==r.getAttribute('aria-label'))$('sr-live').textContent=r.querySelector(':scope > b')?.textContent||'';
+  }
 }
 function adjustSetting(el,dir){
   if(el.id==='set-layout')return startPick(dir);
@@ -4985,7 +5870,7 @@ function adjustSetting(el,dir){
   else if(el.id==='set-map')return stepMap(dir);
   else if(el.id==='set-distance')settings.distance=settings.distance==='km'?'mi':'km';
   else if(el.id==='set-altitude')settings.altitude=settings.altitude==='m'?'ft':'m';
-  else if(el.id==='set-zone'){settings.alertZone=settings.alertZone==='window'?'circle':'window';store.remove(HISTORY_KEY);return zoneChanged();} // the old list was the other shape
+  else if(el.id==='set-zone'){settings.alertZone=settings.alertZone==='window'?'circle':'window';return zoneChanged();} // the list is cleared when the change is kept (stopEdit)
   else if(el.id==='set-from'||el.id==='set-to'){
     const k=el.id==='set-from'?'viewFrom':'viewTo',other=settings[k==='viewFrom'?'viewTo':'viewFrom'];
     let v=((settings[k]+dir)%360+360)%360;
@@ -5027,21 +5912,44 @@ let zoneDraw=0;
 // Slow work (map repaints, layout switches): a cog in the theme accent shows if it takes
 // more than ~250 ms, and remote presses are dropped until it's done so mashing can't stack it.
 let busyNow=false;
+// Keys are ignored while the cog shows. It clears after the next paint, or after 1.5 s at
+// the latest: animation frames pause on a hidden or starved page (fuzz seed 281).
+let busyToken=0;
+// Except one OK: pressed while the cog shows, it is kept and acted on when the cog clears, if the
+// screen, the focused row and the edit are as they were (Back forgets it; more OKs aren't kept, so
+// mashing still can't stack). Dropped, on a slow stick a change then OK at a normal pace left the
+// row in edit mode, and the next Down changed the value instead of moving down.
+let heldOk=null;
 function busy(fn){
-  busyNow=true;$('busy').classList.add('on');
-  setTimeout(()=>{try{fn();}finally{requestAnimationFrame(()=>requestAnimationFrame(()=>{busyNow=false;$('busy').classList.remove('on');}));}},20);
+  const token=++busyToken;busyNow=true;$('busy').classList.add('on');
+  const done=()=>{if(token!==busyToken)return;busyNow=false;$('busy').classList.remove('on');
+    const h=heldOk;heldOk=null;
+    if(h&&h.layer===layer&&h.focused===focused&&h.editing===editing&&h.adj===adj)document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));};
+  setTimeout(()=>{try{fn();}finally{requestAnimationFrame(()=>requestAnimationFrame(done));setTimeout(done,1500);}},20);
 }
 // Window bearings: OK on the row to edit, then Left/Right 1°, Up/Down 10°, OK or Back to finish.
 let editing=null;
 function editKey(e){
   const k=e.key,dir={ArrowLeft:-1,ArrowRight:1,ArrowDown:-10,ArrowUp:10}[k];
   e.preventDefault();
-  // Up/Down: 10 at a time on bearings, otherwise the same as Right/Left.
-  if(dir)return adjustSetting(editing,editing.dataset.big!==undefined?dir:Math.sign(dir));
-  if(k==='Enter'||k===' ')return stopEdit();
+  // Up/Down: 10 at a time on bearings; on Map radius Up zooms in as on the dashboard;
+  // otherwise the same as Right/Left.
+  if(dir)return adjustSetting(editing,editing.dataset.big!==undefined?dir:editing.id==='set-map'&&Math.abs(dir)===10?-Math.sign(dir):Math.sign(dir));
+  if(k==='Enter'||k===' ')return stopEdit(true);
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4)return cancelEdit();
 }
-function stopEdit(){editing?.classList.remove('editing');editing=null;editSnap=null;}
+// commit: the edit is kept. A kept change of Alert zone starts 'Recently above' afresh (the
+// old list was for the other zone shape); a cancelled or no-net-change edit keeps it.
+function stopEdit(commit=false){
+  const before=editSnap;editing?.classList.remove('editing');editHint(null,editing);editing=null;editSnap=null;
+  if(commit&&before&&before.alertZone!==settings.alertZone){feed?.stop();feed=null;store.remove(HISTORY_KEY);clearTimeout(zoneTimer);restartFeed();}
+}
+// While a row is being edited its keys hint shows on the Settings title line, so the value
+// keeps the row's full width (in the narrow monospace layouts the hint left it no room).
+function editHint(row,was){
+  const card=$('settings').querySelector('.card');card.classList.toggle('editing',!!row);card.classList.toggle('big',row?.dataset.big!==undefined);
+  fitValue(row||was);
+}
 // Back while editing puts the value back as it was when OK was pressed.
 let editSnap=null;
 function cancelEdit(){
@@ -5117,7 +6025,8 @@ function typeKey(key){
   else if(key==='search')return runSearch(true);
   else if(entry.length<40)entry+=key;
   setText('entry-text',entry);
-  clearTimeout(searchTimer);searchTimer=setTimeout(runSearch,900);
+  // Search as you type: after 800 ms of no typing, and only from 3 characters (P3-7).
+  clearTimeout(searchTimer);if(entry.trim().length>=3)searchTimer=setTimeout(runSearch,800);
 }
 // ZIP/city searches run as you type; street addresses only on Search (one geocoder
 // request per search, as Nominatim's usage policy asks). Every search ends in results,
@@ -5126,7 +6035,7 @@ const SEARCH_LIMIT_MS=25000;
 async function runSearch(explicit=false){
   clearTimeout(searchTimer);
   const q=entry.trim(),seq=++searchSeq,box=$('results'),searchKey=$('keys').querySelector('[data-key="search"]');
-  const show=(...nodes)=>{box.replaceChildren(...nodes);keepFocus(searchKey);};
+  const show=(...nodes)=>{box.replaceChildren(...nodes);$('results-src').textContent='';fitLine($('search-src'));keepFocus(searchKey);};
   const msg=(text,cls='msg')=>Object.assign(document.createElement('div'),{className:cls,textContent:text});
   const retry=()=>{const b=document.createElement('button');b.dataset.focus='';b.id='search-retry';b.className='retry';b.textContent='Try again';return b;};
   if(q.length<2){
@@ -5135,12 +6044,15 @@ async function runSearch(explicit=false){
   }
   const address=looksLikeAddress(q);
   if(address&&!explicit)return show(msg('Street address: press Search when done.'));
-  show(msg(`Searching for “${q}”…`,'msg busy'));
-  const elsewhere=settings.place?.countryCode&&settings.place.countryCode!=='US'&&settings.place.source!=='ip';
+  // Street addresses go to the U.S. Census geocoder only when they look like a U.S. address,
+  // and to OpenStreetMap only where the profile allows; never to Open-Meteo.
+  const us=address&&looksLikeUSAddress(q);
+  if(address&&!us&&!PROFILE.nominatim)return show(msg('For a U.S. street address, add the state or ZIP code. Elsewhere, search for the town or postal code.'));
+  show(msg(`Searching for “${q}”`,'msg busy'));
   const work=(async()=>{
-    let found=address?await searchAddress(q,{skipCensus:elsewhere}):await searchPlaces(q);
-    // Postcodes Open-Meteo doesn't know (e.g. UK "SW1A 2AA"): try the address geocoders once.
-    if(!address&&explicit&&found&&!found.length)found=await searchAddress(q,{skipCensus:elsewhere});
+    let found=address?await searchAddress(q,{census:us,nominatim:PROFILE.nominatim}):await searchPlaces(q);
+    // Postcodes Open-Meteo doesn't know (e.g. UK "SW1A 2AA"): OpenStreetMap once, if allowed.
+    if(!address&&explicit&&found&&!found.length&&PROFILE.nominatim&&looksLikePostcode(q))found=await searchAddress(q,{nominatim:true});
     return found;
   })().catch(e=>{console.error('search',e?.message||e);return null;});
   const found=await Promise.race([work,new Promise(r=>setTimeout(()=>r('timeout'),SEARCH_LIMIT_MS))]);
@@ -5152,25 +6064,30 @@ async function runSearch(explicit=false){
     return;
   }
   if(!found.length)return show(msg(`No places match “${q}”. Check the spelling, or try a ZIP or postal code.`));
-  show(...found.slice(0,5).map(p=>{
+  show(...found.slice(0,4).map(p=>{ // four fit beside the keyboard with the source lines
     const b=document.createElement('button');b.dataset.focus='';
     b.append(Object.assign(document.createElement('span'),{textContent:p.street||placeLabel(p)}),Object.assign(document.createElement('small'),{textContent:p.street?placeLabel(p):[p.admin,p.country].filter(Boolean).join(', ')}));
     b._place=p;return b;
   }));
   for(const t of box.querySelectorAll('button span,button small'))fitLine(t); // one line each, never "…"
+  // GeoNames (CC BY 4.0) asks for its credit where its places are shown.
+  $('results-src').textContent=found.some(p=>p.source==='search')?'Places: GeoNames via open-meteo.com':'';
   // After Search, go to the first match; while typing, stay on the keyboard.
   if(explicit&&layer?.id==='locate')setFocus(box.firstElementChild);
 }
 let lastQuery='';
 function openLocate(help){
+  searchSeq++;clearTimeout(searchTimer); // a search from an earlier visit must not fill this one
+  $('results-src').textContent='';
   entry='';setText('entry-text','');$('results').replaceChildren();
   setText('entry-help',help||'Type a ZIP or postal code, a city, or your street address, then Search.');
   open('locate');
+  {const src=$('search-src');src._alts=PROFILE.searchAlts;src.textContent=src._alts[0];fitLine(src);}
 }
 
 function select(el){
   if(!el)return;
-  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');const {place,...rest}=settings;editSnap=rest;return;}
+  if(el.dataset.edit!==undefined){editing=el;el.classList.add('editing');editHint(el);const {place,...rest}=settings;editSnap=rest;return;}
   if(el._place)return confirmPlace(el._place);
   if(el.dataset.key)return typeKey(el.dataset.key);
   switch(el.id){
@@ -5180,10 +6097,17 @@ function select(el){
     case 'set-location':return openLocate();
     case 'set-adjust':return startAdjust(settings.place);
     case 'confirm-ok':return choosePlace(pending);
-    case 'confirm-adjust':return startAdjust(pending);
+    case 'confirm-adjust':return startAdjust(pending,{from:'confirm'});
     case 'confirm-again':return close();
     case 'set-done':return close();
-    case 'set-about':return open('about','about-back');
+    case 'set-about':return openAbout();
+    case 'set-privacy':return openPrivacy();
+    case 'consent-ok':return agree();
+    case 'consent-policy':return openPrivacy();
+    case 'privacy-back':return close();
+    case 'privacy-erase':return open('erase','erase-cancel');
+    case 'erase-cancel':return close();
+    case 'erase-ok':return eraseAll();
     case 'about-back':return close();
     case 'pick-prev':return stepPick(-1);
     case 'pick-next':return stepPick(1);
@@ -5194,9 +6118,12 @@ function select(el){
 
 let lastBack=0;
 function back(){
+  // The app and the page may both report one press: de-duplicate first, so one Back while
+  // editing only cancels the edit (it also closed Settings).
+  const now=Date.now();if(now-lastBack<350)return;lastBack=now;
   if(editing)return cancelEdit();
-  const now=Date.now();if(now-lastBack<350)return;lastBack=now; // the app and the page may both report one press
   if(adj)return endAdjust();
+  if(!layer&&browse)return endBrowse();
   close();
 }
 window.__whatsupBack=back;
@@ -5215,14 +6142,16 @@ function adjMap(){
     {layer:'runways',stroke:c(.85),width:2.4}];
 }
 let adj=null;
-async function startAdjust(place){
+// from: 'confirm' when opened on a search result (Back returns to it, not to an empty
+// dashboard on a first run).
+async function startAdjust(place,{from=''}={}){
   if(!place)return;
   closeAll();
-  adj={place,latitude:place.latitude,longitude:place.longitude,map:null,held:0,canvas:makeCanvas(540,540)};
+  adj={place,from,latitude:place.latitude,longitude:place.longitude,map:null,held:0,canvas:makeCanvas(540,540)};
   $('adjust-map').replaceChildren(adj.canvas);
   stage.classList.add('adjusting');
   drawAdjust();syncApp();
-  setText('adjust-note','Loading street map…');
+  setText('adjust-note','Loading street map');
   try{
     const m=await buildMap(place,ADJ_RANGE+.5,{zoom:13,detail:true});
     if(adj?.place===place){adj.map=m;setText('adjust-note','');drawAdjust();}
@@ -5244,27 +6173,47 @@ function drawAdjust(){
   setText('adjust-moved',moved<1?'Not moved yet':`Moved ${moved>=1000?(moved/1000).toFixed(2)+' km':Math.round(moved)+' m'} ${compass((Math.atan2(dx,dy)*180/Math.PI+360)%360)}`);
   setText('adjust-where',adj.place.street||placeLabel(adj.place));
 }
+// Fine-tuning keeps the whole view on the street map loaded around the place (ADJ_RANGE +
+// 0.5 mi, the view shows ADJ_RANGE around the dot): at most ADJ_MAX_M from where it started;
+// farther is a job for Location. A held arrow speeds up to 4x.
+const ADJ_MAX_M=800;
 function nudge(dir,held){
   adj.held=held?adj.held+1:0;
-  const step=STEP_M*(held?Math.min(8,1+adj.held/3):1),cos=Math.cos(adj.latitude*Math.PI/180);
+  const step=STEP_M*(held?Math.min(4,1+adj.held/3):1),cos=Math.cos(adj.place.latitude*Math.PI/180);
   const [e,n]={up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]}[dir];
-  adj.latitude+=n*step/111320;adj.longitude+=e*step/(111320*cos);
+  let dy=(adj.latitude-adj.place.latitude)*111320+n*step,dx=(adj.longitude-adj.place.longitude)*111320*cos+e*step;
+  const d=Math.hypot(dx,dy),limit=d>ADJ_MAX_M;
+  if(limit){dx*=ADJ_MAX_M/d;dy*=ADJ_MAX_M/d;}
+  adj.latitude=adj.place.latitude+dy/111320;adj.longitude=adj.place.longitude+dx/(111320*cos);
+  if(adj.map)setText('adjust-note',limit?'As far as fine-tuning goes. To move farther, change Location.':'');
   drawAdjust();
 }
 function endAdjust(save=false){
   const a=adj;adj=null;stage.classList.remove('adjusting');setText('adjust-note','');$('adjust-map').replaceChildren();
   if(save){
     const moved=Math.abs(a.latitude-a.place.latitude)+Math.abs(a.longitude-a.place.longitude)>1e-7;
-    choosePlace({...a.place,latitude:a.latitude,longitude:a.longitude,accuracyKm:moved?.05:a.place.accuracyKm,
+    // Longitude stays within ±180 (nudging across the date line), or the next launch drops it.
+    const longitude=((a.longitude+540)%360)-180;
+    choosePlace({...a.place,latitude:Math.max(-85,Math.min(85,a.latitude)),longitude,accuracyKm:moved?.05:a.place.accuracyKm,
       source:moved?'adjusted':a.place.source});
+  }else if(a.from==='confirm'){
+    if(!settings.place)openLocate();
+    confirmPlace(a.place);
   }
   if(lastModel)draw(lastModel);syncApp();
 }
 
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
 document.addEventListener('keydown',e=>{
-  if(busyNow){e.preventDefault();return;}
+  if(busyNow){
+    e.preventDefault();
+    if(e.key==='Enter'&&!e.repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
+    else if(['Escape','GoBack','BrowserBack','Back'].includes(e.key)||e.keyCode===4)heldOk=null;
+    return;
+  }
   const k=e.key,dir=DIRS[k];
+  // A held OK repeats: it would open and close the picker, or run through screens.
+  if(e.repeat&&(k==='Enter'||k===' ')){e.preventDefault();return;}
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4){e.preventDefault();return back();}
   // Play/Pause toggles Settings: Vega never passes the remote's Menu (≡) key to the page.
   if(k==='MediaPlayPause'||e.keyCode===179){
@@ -5281,6 +6230,8 @@ document.addEventListener('keydown',e=>{
   if(!layer){
     // Up/Down on the dashboard: zoom the map in/out (Settings > Map radius).
     if(dir==='up'||dir==='down'){e.preventDefault();return stepMap(dir==='up'?-1:1);}
+    // Left/Right: the next or previous plane on the card (a held key repeats).
+    if(dir==='left'||dir==='right'){e.preventDefault();return stepPlanes(dir==='right'?1:-1);}
     if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();showSettings();open('settings');}
     return;
   }
@@ -5291,6 +6242,9 @@ document.addEventListener('keydown',e=>{
     if(dir==='right'||dir==='down')return stepPick(1);
     if(k==='Enter'||k===' '){endPick(true);return close();}
     return;
+  }
+  if(dir&&(layer.id==='privacy'||layer.id==='about')&&(dir==='up'||dir==='down')){
+    e.preventDefault();const d=$(`${layer.id}-doc`);d.scrollTop+=(dir==='down'?1:-1)*d.clientHeight*.6;return;
   }
   if(dir){
     e.preventDefault();
@@ -5314,9 +6268,59 @@ function showWelcome(place){
   open('welcome','welcome-change');
 }
 
+// --- Consent, privacy page and erase.
+// Consent is stored with the version of the text agreed to; a new version asks again
+// (once), and everything else the user set is kept.
+// Version 2: the text names every service by profile and says where searches go (asked again once).
+const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=2;
+// The hosted policy (shown as a QR on the privacy page when set): the store build's only.
+const PRIVACY_URL=PROFILE.privacyUrl||'';
+function hasConsent(){try{return JSON.parse(localStorage.getItem(CONSENT_KEY))?.v===CONSENT_VERSION;}catch{return false;}}
+function giveConsent(){store.set(CONSENT_KEY,{v:CONSENT_VERSION,at:new Date().toISOString().slice(0,10)});} // full storage: maps make room
+let consentDone=null;
+function askConsent(){$('consent-body').textContent=PROFILE.consent;return new Promise(r=>{consentDone=r;open('consent','consent-ok');});}
+function agree(){giveConsent();closeAll();const r=consentDone;consentDone=null;r?.();}
+// The chosen layout's colours for the consent screen, without starting the layout (its
+// code may fetch map imagery): only its stylesheets and stage classes.
+function themeOnly(id){
+  for(const sheet of sheetsOf(id))addCss(sheet,paintEdge);
+  stage.classList.add(...sheetsOf(id).map(s=>`L-${s}`));
+}
+// assets/privacy.txt as plain text: a blank line starts a paragraph, "## " a heading.
+function renderDoc(box,text){
+  box.replaceChildren(...String(text||'').split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean).map(p=>
+    p.startsWith('## ')?Object.assign(document.createElement('h4'),{textContent:p.slice(3)}):
+    Object.assign(document.createElement('p'),{textContent:p.replace(/\s*\n\s*/g,' '),className:p.startsWith('• ')?'bullet':''})));
+}
+function openPrivacy(){
+  const doc=$('privacy-doc');renderDoc(doc,window.__whatsupDocs?.privacy||'');doc.scrollTop=0;
+  $('privacy-qr-box').hidden=!PRIVACY_URL;if(PRIVACY_URL)$('privacy-qr').src=themedQr(PRIVACY_URL);
+  $('privacy-erase').hidden=!hasConsent(); // before consent there is nothing to erase
+  open('privacy','privacy-back');
+}
+// About & credits (assets/licenses.txt), with the QR adsb.fi's terms ask for (a cite and a link).
+function openAbout(){
+  const doc=$('about-doc');renderDoc(doc,window.__whatsupDocs?.licenses||'');doc.scrollTop=0;
+  // adsb.fi's terms ask for a cite and a link (personal profile only; the store build uses adsb.lol).
+  const fi=PROFILE.feed==='adsb.fi';$('about-qr').closest('figure').hidden=!fi;if(fi)$('about-qr').src=themedQr('https://adsb.fi');
+  open('about','about-back');
+}
+// Everything the app stored on this TV, then a clean start at the consent screen.
+function eraseAll(){
+  feed?.stop();feed=null;store.seal();placeToken++;detailToken++;clearTimeout(detailRetry);
+  try{for(const k of Object.keys(localStorage))if(k.startsWith('whatsup.'))localStorage.removeItem(k);}catch{/* nothing stored */}
+  try{indexedDB?.deleteDatabase?.('whatsup');}catch{/* none */}
+  location.reload();
+}
+
+// The app tells the page when it leaves or returns to the screen: polling pauses meanwhile.
+window.__whatsupActive=on=>{if(on)feed?.resume?.();else{feed?.pause?.();flushLog();}};
+addEventListener('pagehide',()=>flushLog());
+
 // --- Boot
 async function boot(){
   buildKeys();
+  fitText($('kofi-a'),$('kofi-b')); // the tip lines re-fit when a layout's font arrives (P3-2)
   tellAwake();
   if(query.get('reset')==='1'){saveSettings({});settings=loadSettings();}
   if(query.get('units')==='metric'){settings.distance='km';settings.altitude='m';}
@@ -5329,12 +6333,17 @@ async function boot(){
   if(query.get('layout'))settings.layout=validLayout(query.get('layout'));
   settings.layout=validLayout(settings.layout);
   useSettings(settings);
+  // Nothing is fetched until the user has agreed to the current consent text.
+  if(query.get('q'))giveConsent(); // dev/screenshot runs (the release build has no URL hooks)
+  if(!hasConsent()){themeOnly(settings.layout);await askConsent();}
   // Dev/screenshot hook: ?q=London picks the first geocoding result.
   const q=query.get('q');
   if(q){const found=await searchPlaces(q);if(found?.[0]){settings.place=found[0];settings.confirmed=true;useSettings(settings);}}
   useLayout(settings.layout);
   if(settings.place){
     applyPlace(settings.place);
+    // A time zone that was only a stand-in: look it up again (once per launch).
+    refineZone(settings.place).then(p=>{if(p&&settings.place?.latitude===p.latitude&&settings.place?.longitude===p.longitude)adoptRefined(p);});
     if(!settings.confirmed)showWelcome(settings.place);
     // Screenshot hooks: ?screen=settings|picker|welcome|adjust, ?screen=locate&typed=CHICAGO
     const screen=query.get('screen');
@@ -5345,11 +6354,12 @@ async function boot(){
     if(screen==='locate'){showSettings();open('settings');openLocate();for(const c of (query.get('typed')||'').toUpperCase())typeKey(c===' '?'space':c);runSearch(true);setFocus($('keys').children[2]);}
     return;
   }
-  setText('layout-note','Finding your location…');
+  setText('layout-note','Finding your location');
   const place=await locateByIp();
   setText('layout-note','');
   if(!place)return openLocate('We couldn’t find your location automatically. Type a ZIP or postal code, or a city name.');
-  settings={...settings,place,confirmed:false};saveSettings(settings);useSettings(settings);
+  // Not saved until the user confirms it (Confirm, or a place chosen through Change).
+  settings={...settings,place,confirmed:false};useSettings(settings);
   applyPlace(place,{fresh:true});
   showWelcome(place);
   setTimeout(()=>{if(layer?.id==='welcome')close();},60000);

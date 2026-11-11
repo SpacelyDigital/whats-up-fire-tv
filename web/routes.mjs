@@ -5,7 +5,7 @@ const call=a=>code((a?.callsign||a?.registration||'').trim().toUpperCase());
 export const routeText=r=>r?`${r.origin} → ${r.destination}`:'';
 export class RouteLookup {
   entries=[];demo=new Map();
-  update(entries){this.entries=Array.isArray(entries)?entries:[];}
+  update(entries){this.entries=Array.isArray(entries)?entries.filter(r=>r&&typeof r==='object'):[];}
   get(a,now=Date.now()) {
     const observed=a?.position_timestamp??a?.last_seen;
     const recent=Number.isFinite(a?.last_seen)&&!Number.isFinite(a?.position_timestamp);

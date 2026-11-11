@@ -2,13 +2,12 @@
 // prints, after each step, the top screen, the focused control and the results box. Steps:
 // {"keys":"ArrowRight,Enter"} {"wait":2000} {"shot":"out.png"} {"offline":true|false} {"eval":"js"} {"block":"pattern"}
 // SHOT_PROFILE keeps a Chrome profile (saved settings and maps) between runs.
-import {spawn} from 'node:child_process';import {writeFileSync,readFileSync,mkdtempSync,mkdirSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {writeFileSync,readFileSync,mkdtempSync,mkdirSync} from 'node:fs';import {tmpdir} from 'node:os';
 const [url,stepsFile]=process.argv.slice(2);
 const steps=JSON.parse(readFileSync(stepsFile,'utf8'));
-const port=9400+Math.floor(Math.random()*500),profile=process.env.SHOT_PROFILE||mkdtempSync(tmpdir()+'/drive');
+const profile=process.env.SHOT_PROFILE||mkdtempSync(tmpdir()+'/drive');
 mkdirSync(profile,{recursive:true});
-const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-  '--user-data-dir='+profile,'--hide-scrollbars','--window-size=960,540','about:blank'],{stdio:'ignore'});
+const {chrome,port}=await launch(profile,['--hide-scrollbars','--window-size=960,540','about:blank']);
 let tabs;for(let i=0;i<40&&!tabs;i++){await new Promise(r=>setTimeout(r,250));try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
 const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map();
 ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result||m.error);waiting.delete(m.id);}

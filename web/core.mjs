@@ -46,8 +46,10 @@ export function mapGeometry(home,radius,width,height) {
     radiusPx:radius*1609.344/mpp,outerPx:(radius+2)*1609.344/mpp};
 }
 
-const clean = v => typeof v==='string' ? v.trim().slice(0,24) : '';
+const clean = v => typeof v==='string' ? v.replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF]/g,'').trim().slice(0,24) : '';
 export const flightLabel = a => clean(a.callsign)||clean(a.registration)||clean(a.hex).toUpperCase();
+// A type designator (2-4 of A-Z, 0-9), in capitals; ZZZZ ("none assigned") or anything else is no type.
+export const designator = v => {const t=clean(v).toUpperCase();return /^[A-Z0-9]{2,4}$/.test(t)&&t!=='ZZZZ'?t:'';};
 // Airline callsigns read as published flight numbers ("UAL0696" -> "UA 696");
 // registrations, charter and military callsigns stay as broadcast.
 export function flightNumber(callsign,designators) {
@@ -78,9 +80,11 @@ export function airlineLogo(a,logos) {
   const call=clean(a.callsign).toUpperCase(),code=call.slice(0,3);
   return /^[A-Z]{3}[0-9]/.test(call)&&logos.has(code)?code:'';
 }
+// Longitude difference the short way round (across the date line too), in degrees.
+export const dLon=(lon,home)=>((lon-home+540)%360)-180;
 export function distanceMiles(home,a) {
   const r=Math.PI/180;
-  const x=(a.longitude-home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
+  const x=dLon(a.longitude,home.longitude)*r*Math.cos((home.latitude+a.latitude)/2*r);
   const y=(a.latitude-home.latitude)*r;
   return Math.hypot(x,y)*3958.7613;
 }
@@ -95,11 +99,12 @@ export function airspace(states,now,connected) {
   const byHex=new Map();
   for(const a of fresh&&Array.isArray(raw)?raw:[]) {
     if(!a||typeof a.hex!=='string'||!(/^[a-f0-9]{6}$/i.test(a.hex))||
-      !coordinates(a.lat,a.lon)||!number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||
+      !coordinates(a.lat,a.lon)||!number(a.alt_baro)||a.alt_baro>60000||a.alt_baro<-1500||!number(a.seen_pos)||a.seen_pos<0||
       age+a.seen_pos<0||age+a.seen_pos>20)continue;
-    const record={hex:a.hex.toLowerCase(),callsign:clean(a.flight),registration:clean(a.r),
-      aircraft_type:clean(a.t),category:clean(a.category),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,
-      speed_kt:number(a.gs)&&a.gs>=0?a.gs:null,heading:number(a.track)?((a.track%360)+360)%360:null,
+    const record={hex:a.hex.toLowerCase(),callsign:clean(a.flight).slice(0,10),registration:clean(a.r).slice(0,12), // real ones are 8 and ~10
+      aircraft_type:designator(a.t),category:clean(a.category),latitude:a.lat,longitude:a.lon,altitude_ft:a.alt_baro,
+      // Impossible readings are no reading.
+      speed_kt:number(a.gs)&&a.gs>=0&&a.gs<=1500?a.gs:null,heading:number(a.track)?((a.track%360)+360)%360:null,
       position_timestamp:stamp-a.seen_pos};
     record.distance_mi=distanceMiles(home,record);
     record.inside=record.distance_mi<=radius;
@@ -118,7 +123,7 @@ export function recentSightings(states,inside,now) {
       !number(a.last_seen)||a.last_seen<=0||a.last_seen>now/1000+5)continue;
     const h=a.hex.toLowerCase();
     if(!unique.has(h)||unique.get(h).last_seen<a.last_seen)unique.set(h,{...a,hex:h,
-      callsign:clean(a.callsign),registration:clean(a.registration)});
+      callsign:clean(a.callsign),registration:clean(a.registration),aircraft_type:designator(a.aircraft_type)});
   }
   return [...unique.values()].sort((a,b)=>b.last_seen-a.last_seen||a.hex.localeCompare(b.hex)).slice(0,5);
 }
@@ -163,8 +168,8 @@ export function placeLabels(points,width,height,scale=1) {
 
 // Alert zone. 'circle': within `radius` miles all around. 'window': a wedge of compass
 // bearings from `from` to `to` degrees (clockwise; 300 -> 40 crosses north), out to `miles`,
-// for a view from one window; a plane within OVERHEAD_MI is counted either way.
-export const OVERHEAD_MI=1;
+// for a view from one window; a plane within ABOVE_MI is counted either way.
+export const ABOVE_MI=1;
 export const norm=deg=>((deg%360)+360)%360;
 export function inBearings(bearing,from,to){
   const b=norm(bearing),f=norm(from),t=norm(to);
@@ -173,7 +178,7 @@ export function inBearings(bearing,from,to){
 export function inZone(zone,x,y){
   const d=Math.hypot(x,y);
   if(zone?.kind!=='window')return d<=(zone?.radius??3);
-  return d<=OVERHEAD_MI||d<=zone.miles&&inBearings(Math.atan2(x,y)*180/Math.PI,zone.from,zone.to);
+  return d<=ABOVE_MI||d<=zone.miles&&inBearings(Math.atan2(x,y)*180/Math.PI,zone.from,zone.to);
 }
 // The zone's outline as [x,y] miles east/north of home (a closed ring).
 export function zoneOutline(zone,steps=64){
@@ -195,3 +200,15 @@ export function chimeGate(state,count,now,fresh,quiet=60000){
   if(count>0)emptySince=null;else if(s.count>0||emptySince===null)emptySince=now;
   return {state:{ready:true,count,emptySince},ring};
 }
+
+// Data minimization: every coordinate that leaves the TV (feed queries, the time-zone
+// lookup, the map and satellite tile sets) is the home snapped to a fixed 0.05 degree grid
+// (about 3.5 mi north-south), so a request only reveals the grid cell. The home itself
+// can be up to half a cell's diagonal from the snapped point, so query areas grow by
+// that much and the app filters by true distance on the TV.
+export const GRID_DEG=0.05;
+export const snapDeg=v=>Math.round(Number(v)/GRID_DEG)*GRID_DEG;
+export const snapped=p=>({latitude:Math.max(-85,Math.min(85,snapDeg(p.latitude))),longitude:((snapDeg(p.longitude)+540)%360)-180});
+// Half the cell's diagonal, at most (at the equator): sqrt(2)*0.025 deg*60 NM/deg = 2.12 NM.
+export const GRID_PAD_NM=2.2;
+export const GRID_PAD_MI=GRID_PAD_NM*1.15078;

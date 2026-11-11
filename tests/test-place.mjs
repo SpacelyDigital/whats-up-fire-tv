@@ -1,7 +1,7 @@
 // Geocoding parsing, address detection, settings and unit formatting. The network is a stub.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {searchPlaces,searchAddress,looksLikeAddress,locateByIp,loadSettings,placeLabel} from '../web/place.mjs';
+import {searchPlaces,searchAddress,looksLikeAddress,looksLikePostcode,locateByIp,loadSettings,placeLabel,refineZone} from '../web/place.mjs';
 import {useSettings,fmt} from '../web/kit.mjs';
 
 // fetch stub: url pattern -> [status, body]. Unmatched URLs fail like a dropped connection.
@@ -40,23 +40,36 @@ test('city search: bad coordinates and unknown time zones are dropped or default
   assert.equal(found.length,1);
   assert.equal(found[0].timeZone,'UTC');
 });
+test('search: a null or malformed entry in a reply is skipped, the other results are still shown',async()=>{
+  stub([meteo(null,42,'x',[],CHICAGO)]);
+  assert.deepEqual((await searchPlaces('Chicago')).map(placeLabel),['Chicago, IL'],'Open-Meteo');
+  stub([[/census/,[200,{result:{addressMatches:[null,'x',{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',addressComponents:{city:'CINCINNATI',state:'OH'},coordinates:{x:-84.67,y:39.06}}]}}]]]);
+  assert.deepEqual((await searchAddress('801 Plum St Cincinnati OH',{census:true})).map(p=>p.street),['801 Plum St'],'Census');
+  stub([[/nominatim/,[200,[null,7,{lat:'51.5034',lon:'-0.1276',name:'10',address:{house_number:'10',road:'Downing Street',city:'London',country:'United Kingdom',country_code:'gb'}}]]]]);
+  assert.deepEqual((await searchAddress('10 Downing Street, Westminster',{nominatim:true})).map(p=>p.street),['10 Downing Street'],'Nominatim');
+});
 test('address detection: house number then words; ZIPs and cities are not addresses',()=>{
   assert.ok(looksLikeAddress('123 Main St Cincinnati OH'));
   assert.ok(looksLikeAddress('10 Downing Street'));
   for(const q of ['45202','45202-1234','Chicago','SW1A 2AA',''])assert.ok(!looksLikeAddress(q),q);
 });
-test('address search: Census match first, with its time zone looked up',async()=>{
+test('address search: Census match first; its time zone is looked up when picked',async()=>{
   const seen=stub([
     [/geocoding\.geo\.census\.gov/,[200,{result:{addressMatches:[{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',
       addressComponents:{city:'CINCINNATI',state:'OH'},coordinates:{x:-84.6694,y:39.0550}}]}}]],
     [/api\.open-meteo\.com\/v1\/forecast/,[200,{timezone:'America/New_York',elevation:150}]],
   ]);
-  const [p]=await searchAddress('801 Plum St Cincinnati OH');
+  const [p]=await searchAddress('801 Plum St Cincinnati OH',{census:true,nominatim:true});
   assert.equal(p.street,'801 Plum St');
   assert.equal(placeLabel(p),'Cincinnati, OH');
   assert.equal(p.source,'census');
   assert.ok(!seen.some(u=>/nominatim/.test(u)),'Nominatim not asked when Census matched');
-  assert.ok(seen.some(u=>/latitude=39\.0[56]&longitude=-84\.67/.test(u)),'time zone lookup gets rounded coordinates only');
+  // Privacy policy: Open-Meteo gets a place's rounded location only when the user picks it.
+  assert.ok(!seen.some(u=>/forecast/.test(u)),'no time zone lookup for matches that were only shown');
+  assert.ok(p.tzGuess,'a stand-in time zone until picked');
+  const picked=await refineZone(p);
+  assert.ok(seen.some(u=>/latitude=39\.05&longitude=-84\.65&/.test(u)),'on pick: the snapped 0.05 degree grid point only');
+  assert.equal(picked.timeZone,'America/New_York');assert.ok(!picked.tzGuess);
 });
 test('address search: falls back to Nominatim; both failing is null, no match is []',async()=>{
   stub([
@@ -64,28 +77,98 @@ test('address search: falls back to Nominatim; both failing is null, no match is
     [/nominatim/,[200,[{lat:'51.5034',lon:'-0.1276',name:'10',address:{house_number:'10',road:'Downing Street',city:'London',state:'England',country:'United Kingdom',country_code:'gb'}}]]],
     [/forecast/,[200,{timezone:'Europe/London'}]],
   ]);
-  const [p]=await searchAddress('10 Downing Street London');
+  const [p]=await searchAddress('10 Downing Street London',{census:true,nominatim:true});
   assert.equal(p.street,'10 Downing Street');
   assert.equal(placeLabel(p),'London, UK');
-  assert.equal(p.timeZone,'Europe/London');
+  assert.equal((await refineZone(p)).timeZone,'Europe/London','looked up when picked');
   stub([[/census/,[200,{result:{addressMatches:[]}}]],[/nominatim/,[200,[]]]]);
-  assert.deepEqual(await searchAddress('1 Nowhere Lane'),[]);
+  assert.deepEqual(await searchAddress('1 Nowhere Lane Springfield OH',{census:true,nominatim:true}),[]);
   stub([]);
-  assert.equal(await searchAddress('1 Nowhere Lane'),null);
+  assert.equal(await searchAddress('2 Nowhere Lane Springfield OH',{census:true,nominatim:true}),null,'both failing is null (and not cached)');
+  // The same search again in this session is answered from the cache (Nominatim policy).
+  const again=stub([]);
+  assert.equal((await searchAddress('10 Downing Street London',{census:true,nominatim:true}))[0].street,'10 Downing Street');
+  assert.equal(again.length,0,'no request for a repeated search');
+});
+test('address search: a non-U.S. address never reaches Census; store profile never asks Nominatim',async()=>{
+  const seen=stub([[/nominatim/,[200,[]]]]);
+  await searchAddress('10 Rue de Rivoli Paris',{census:true,nominatim:true});
+  assert.ok(!seen.some(u=>/census/.test(u)),'Census not asked');
+  const none=stub([]);
+  assert.deepEqual(await searchAddress('5 Elm Street Springfield IL',{census:false,nominatim:false}),[]);
+  assert.equal(none.length,0,'no request at all');
 });
 test('IP location: GeoJS reply becomes an unconfirmed guess with its accuracy',async()=>{
   stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'39.05',longitude:'-84.65',timezone:'America/New_York',accuracy:20}]]]);
-  const p=await locateByIp();
+  const {place:p,offline}=await locateByIp();
   assert.equal(placeLabel(p),'Cincinnati, OH');
-  assert.equal(p.accuracyKm,20);
+  assert.equal(p.accuracyKm,20);assert.equal(offline,false);
   stub([]);
-  assert.equal(await locateByIp(),null);
+  assert.equal((await locateByIp()).place,null);
+});
+test('IP location: a lookup nothing answered (no connection, a timeout, a captive portal\'s page) is offline; one GeoJS answered without a place is not',async()=>{
+  stub([]);assert.deepEqual(await locateByIp(),{place:null,offline:true},'no connection');
+  stub([[/geojs/,[200,'<!DOCTYPE html><html><head><title>Guest Wi-Fi</title></head><body>Welcome to Hotel Wi-Fi</body></html>']]]);
+  assert.deepEqual(await locateByIp(),{place:null,offline:true},'a portal\'s page');
+  for(const [status,body,tag] of [[503,'','GeoJS down'],[429,'','GeoJS busy'],[200,{city:'Nowhere'},'no coordinates'],[200,'null','null']]){
+    globalThis.fetch=async()=>({status,headers:{get:()=>null},text:async()=>typeof body==='string'?body:JSON.stringify(body)});
+    assert.deepEqual(await locateByIp(),{place:null,offline:false},tag);
+  }
+});
+test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°), saved or from a service',async()=>{
+  const CHI={name:'Chicago',admin:'Illinois',country:'United States',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'};
+  for(const bad of [null,'',' ',false,[],true,{}])for(const k of ['latitude','longitude']){
+    globalThis.localStorage={getItem:()=>JSON.stringify({place:{...CHI,[k]:bad},confirmed:true}),setItem(){},removeItem(){}};
+    assert.equal(loadSettings().place,null,`saved ${k} ${JSON.stringify(bad)}`);
+  }
+  globalThis.localStorage={getItem:()=>JSON.stringify({place:CHI,confirmed:true}),setItem(){},removeItem(){}};
+  assert.equal(loadSettings().place.latitude,41.85,'a real one is kept');
+  delete globalThis.localStorage;
+  stub([meteo(...[null,'',' ',false].map((v,i)=>({...CHICAGO,name:`Bad${i}`,latitude:v})),{...CHICAGO,name:'Badlon',longitude:null},{...CHICAGO,latitude:'41.85',longitude:'-87.65'})]);
+  assert.deepEqual((await searchPlaces('Chicago')).map(p=>[p.name,p.latitude,p.longitude]),[['Chicago',41.85,-87.65]],'only the readable one');
+  stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'',longitude:'-84.6444',timezone:'America/New_York',accuracy:null}]]]);
+  assert.equal((await locateByIp()).place,null,'an IP guess with no latitude is no guess');
+  stub([[/geojs/,[200,{city:'Cincinnati',region:'Ohio',country:'United States',country_code:'US',latitude:'39.05',longitude:'-84.65',timezone:'America/New_York',accuracy:null}]]]);
+  assert.equal((await locateByIp()).place.accuracyKm,null,'no accuracy is unknown, not 0 km');
 });
 test('settings: bad saved values fall back to safe defaults',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({radiusMiles:99,distance:'parsecs',altitude:'m',layout:'<script>'}),setItem(){},removeItem(){}};
   const s=loadSettings();
   assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-dark');assert.equal(s.placeNames,'cities');
   delete globalThis.localStorage;
+});
+test('settings: a saved place that can\'t be read is damaged (the logbook and \'Recently above\' wait for a confirmed place); no place or an unconfirmed guess (saved as null) is not',async()=>{
+  const {placeDamaged}=await import('../web/place.mjs');
+  const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'};
+  const damaged=raw=>{globalThis.localStorage={getItem:()=>raw,setItem(){},removeItem(){}};return placeDamaged();};
+  for(const place of [{...CHI,latitude:'abc'},{...CHI,latitude:91},{...CHI,longitude:'x'},'Chicago',{},[41.85,-87.65],true]){
+    assert.equal(damaged(JSON.stringify({place,confirmed:true})),true,JSON.stringify(place));
+    assert.equal(loadSettings().place,null);
+  }
+  for(const raw of [JSON.stringify({place:CHI,confirmed:true}),JSON.stringify({place:null,mapMiles:25}),'{}','[]','"x"','null'])assert.equal(damaged(raw),false,raw);
+  delete globalThis.localStorage;
+});
+test('settings: a damaged saved place stays saved through settings changes until a place is confirmed, so the next launch still keeps the logbook and \'Recently above\'',async()=>{
+  const {saveSettings,placeDamaged}=await import('../web/place.mjs'),{store}=await import('../web/live.mjs');
+  const KEY='whatsup.settings.v1',data=new Map(),saved=()=>JSON.parse(data.get(KEY));
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const CHI={name:'Chicago',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},GUESS={...CHI,latitude:41.878,source:'ip'};
+  for(const bad of [{...CHI,latitude:'abc'},{...CHI,latitude:91},'Chicago']){
+    data.set(KEY,JSON.stringify({place:bad,confirmed:true,mapMiles:10}));
+    const s=loadSettings();assert.equal(s.place,null);
+    saveSettings({...s,mapMiles:25}); // Up while 'Finding your location'
+    assert.deepEqual(saved(),{...s,place:bad,mapMiles:25});assert.equal(placeDamaged(),true,'while locating');
+    saveSettings({...s,place:GUESS,confirmed:false,mapMiles:5}); // the welcome card on the guess, Back, Up
+    assert.deepEqual(saved().place,bad);assert.equal(saved().mapMiles,5);assert.equal(placeDamaged(),true,'unconfirmed guess');
+    saveSettings({...s,place:GUESS,confirmed:true}); // Confirm
+    assert.deepEqual(saved().place,GUESS);assert.equal(placeDamaged(),false,'confirmed');
+  }
+  // No damaged place: an unconfirmed guess is never stored, as before.
+  for(const raw of [null,JSON.stringify({place:null,mapMiles:10}),JSON.stringify({place:CHI,confirmed:false})]){
+    if(raw)data.set(KEY,raw);else data.delete(KEY);
+    saveSettings({place:GUESS,confirmed:false,mapMiles:5});assert.equal(saved().place,null,raw);
+  }
+  store.remove(KEY);delete globalThis.localStorage;
 });
 test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft',()=>{
   useSettings({distance:'mi',altitude:'ft'});
@@ -98,7 +181,7 @@ test('units: miles/knots/feet and km/km-h/metres, flight levels above 18,000 ft'
 // --- Map radius
 import {MAP_RADII,alertFor} from '../web/place.mjs';
 import {niceStep,niceDistance,zoom,range} from '../web/kit.mjs';
-import {zoomFor,savedMap,saveMap} from '../web/mapgen.mjs';
+import {zoomFor,savedMap,saveMap,touchMap,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,buildMap,buildDetail} from '../web/mapgen.mjs';
 test('map radius: saved value must be a step, default 10; alert ring never wider than the map',()=>{
   for(const [saved,want] of [[50,50],[7,10],['250',250],[undefined,10]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({mapMiles:saved}),setItem(){},removeItem(){}};
@@ -118,18 +201,229 @@ test('map radius: view zoom, round ring/scale steps, tile zoom per radius',()=>{
   assert.equal(niceDistance({ppm:54},60).label,'0.5 km');
   assert.deepEqual([2,10,15,25,50,100,150,250].map(zoomFor),[10,10,10,9,8,7,6,6]);
 });
-test('map radius: one saved map per radius, the 3 most recent kept',()=>{
+test('map radius: one saved map per radius, the current and the one before kept',()=>{
   const data=new Map();
   globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
-  const home={latitude:39.05,longitude:-84.65};
-  for(const range of [10,50,250,2])saveMap({v:4,latitude:39.05,longitude:-84.65,range,built:Date.now()});
-  assert.equal(savedMap(home,10),null,'oldest dropped');
-  for(const r of [50,250,2])assert.equal(savedMap(home,r)?.range,r);
+  const home={latitude:39.05,longitude:-84.65},layers={water:[],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]};
+  for(const range of [10,50,250,2])saveMap({v:5,latitude:39.05,longitude:-84.65,range,built:Date.now(),...layers});
+  for(const r of [10,50])assert.equal(savedMap(home,r),null,'older radii dropped');
+  for(const r of [250,2])assert.equal(savedMap(home,r)?.range,r);
+  // Past 30 days: not used as is, but available as a stand-in while a new one is built.
+  saveMap({v:5,latitude:39.05,longitude:-84.65,range:2,built:Date.now()-31*86400000,...layers});
+  assert.equal(savedMap(home,2),null);
+  assert.equal(savedMap(home,2,{stale:true})?.range,2);
   assert.equal(savedMap({latitude:40,longitude:-84.65},2),null,'another place');
   delete globalThis.localStorage;
 });
-test('keep screen awake: on unless turned off',()=>{
-  for(const [saved,want] of [[undefined,true],[true,true],[false,false],['no',true]]){
+test('saved maps: a base map with a damaged layer (not a list, a null or malformed feature) is dropped, so it is built again',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  const base={v:5,...home,range:10,zoom:10,built:Date.now()-60000,water:[[[-3,-3],[3,-3],[3,3],[-3,-3]]],shore:[[[0,0],[1,1]]],rivers:[],
+    roads:[{c:'motorway',major:true,p:[[-9,0],[9,0]]}],runways:[],airports:[{code:'ORD',iata:'ORD',icao:'KORD',name:'O\'Hare',kind:'international',x:-13,y:9}],
+    airfields:[{name:'Lansing',code:'',iata:'',kind:'',x:5,y:-20}],shields:[{ref:'90',x:0,y:1}],places:[{name:'Chicago',c:'city',rank:1,x:0,y:0}]};
+  saveMap(base);
+  assert.equal(savedMap(home,10)?.range,10,'an intact map is used');
+  for(const [what,patch] of [['airports as an object',{airports:{ORD:1}}],['places as text',{places:'Chicago'}],['a null road',{roads:[null,...base.roads]}],
+    ['shields as an object',{shields:{}}],['no water layer',{water:undefined}],['a road with no line',{roads:[{c:'motorway',p:5}]}],['a null point',{rivers:[[[0,0],null]]}],
+    ['a place with no name',{places:[{c:'city',x:0,y:0}]}],['an airport off the map',{airports:[{code:'ORD',x:'west',y:9}]}]]){
+    saveMap({...base,...patch});
+    assert.equal(savedMap(home,10),null,what);
+    assert.equal(savedMap(home,10,{stale:true}),null,`${what}: not shown while a new one is built either`);
+    assert.equal(data.get('whatsup.map.v2'),undefined,`${what}: discarded`);
+  }
+  delete globalThis.localStorage;
+});
+test('saved maps: a street map with a damaged layer (missing, not a list, a feature with no line) is dropped, so it is built again',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  for(const mi of [2,10,25]){
+    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
+    const detail={v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
+      water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'}],landuse:[],parks:[],aero:[],buildings:[],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
+    saveDetail(detail);
+    assert.ok(decodeDetail(savedDetail(home,spec)).roads[0].p instanceof Int16Array,`${mi} mi: an intact one is used`);
+    for(const [what,patch] of [['no roads',{roads:undefined}],['a road with a number for its line',{roads:[{c:'minor',p:5}]}],['water as an object',{water:{}}],
+      ['a null building',{buildings:[null]}],['places as text',{places:'Loop'}],['a place with no name',{places:[{c:'city',x:0,y:0}]}]]){
+      saveDetail({...detail,...patch});
+      assert.equal(savedDetail(home,spec),null,`${mi} mi: ${what}`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`${mi} mi: ${what}: not shown while a new one is built either`);
+      assert.equal(data.get(key),undefined,`${mi} mi: ${what}: discarded`);
+    }
+  }
+  delete globalThis.localStorage;
+});
+test('saved maps: a street map whose lines don\'t decode to whole-number pairs (\'1,,2,x\', \'a,b,c\', an empty string, an odd count: NaN geometry, drawn as nothing for 30 days) is dropped, so it is built again; an intact one is still used',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  const home={latitude:41.85,longitude:-87.65};
+  for(const mi of [5,10,25]){
+    const spec=detailSpec(mi),key=spec.key==='street'?'whatsup.detail.v1':spec.key==='r10'?'whatsup.detail.v1.r10':'whatsup.detail.v1.wide';
+    const detail={v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,built:Date.now()-60000,
+      water:[{r:'0,0,100,0,0,100,-100,0'}],shore:[{p:'-5,-5,10,0'}],waterways:[{c:'river',p:'0,0,5,5'}],roads:[{c:'minor',p:'0,0,10,0'},{c:'motorway',p:'-9000,0,18000,0,-3,-2'}],landuse:[],parks:[],aero:[],
+      buildings:[{r:'1,1,2,0,0,2,-2,0'}],places:[{name:'Loop',c:'quarter',rank:1,x:0,y:0}]};
+    saveDetail(detail);
+    const m=savedDetail(home,spec);
+    assert.ok(m&&decodeDetail(m).roads[1].p instanceof Int16Array,`${mi} mi: an intact one is used`);
+    for(const [what,patch] of [['a road of \'1,,2,x\'',{roads:[{c:'minor',p:'1,,2,x'}]}],['a building of \'a,b,c\'',{buildings:[{r:'a,b,c'}]}],['an empty line',{roads:[{c:'minor',p:''}]}],
+      ['an empty ring',{water:[{r:''}]}],['a lone number',{shore:[{p:'5'}]}],['an odd count',{waterways:[{c:'river',p:'0,0,5'}]}],['a decimal',{roads:[{c:'minor',p:'0,0,1.5,2'}]}],
+      ['a sign alone',{roads:[{c:'minor',p:'0,0,-,2'}]}],['NaN written out',{aero:[{c:'runway',p:'0,0,NaN,1'}]}],['a line as a list',{roads:[{c:'minor',p:['0,0,1,1']}]}]]){
+      saveDetail({...detail,...patch});
+      assert.equal(savedDetail(home,spec),null,`${mi} mi: ${what}`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`${mi} mi: ${what}: not shown while a new one is built either`);
+      assert.equal(data.get(key),undefined,`${mi} mi: ${what}: discarded`);
+    }
+  }
+  delete globalThis.localStorage;
+});
+test('street maps: never more than three are saved (the policy says up to three), under whatsup.detail.v1 (2-5 mi), .r10 (10 mi) and .wide (the wider size used last), with no list of them',async()=>{
+  const {store}=await import('../web/live.mjs');
+  const data=new Map(),home={latitude:41.85,longitude:-87.65};let quota=Infinity;
+  const used=()=>[...data].reduce((n,[k,v])=>n+k.length+v.length,0);
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,removeItem:k=>data.delete(k),
+    setItem(k,v){v=String(v);if(used()-(data.has(k)?k.length+data.get(k).length:0)+k.length+v.length>quota)throw new Error('QuotaExceededError');data.set(k,v);}};
+  // A street map for a radius, and a base map, each about `size` characters saved.
+  const detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
+    built:Date.now()-60000,water:[],shore:[],waterways:[],roads:[{c:'minor',p:'0,0'+',1,0'.repeat(size/4)}],landuse:[],parks:[],aero:[],buildings:[],places:[]};};
+  const base=(range,size=0)=>({v:5,...home,range,built:Date.now(),water:[Array.from({length:size/8},(_,i)=>[0,i])],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
+  const has=mi=>!!savedDetail(home,detailSpec(mi));
+  const SLOTS=['whatsup.detail.v1','whatsup.detail.v1.r10','whatsup.detail.v1.wide'],slots=()=>[...data.keys()].filter(k=>k.startsWith('whatsup.detail')).sort();
+  try{
+    // Every size, out and back: only the three slots, never a fourth map or a list of them (whatsup.detail.recent).
+    for(const mi of [2,5,10,15,25,50,100,150,250,100,15,2,250,10]){
+      saveDetail(detail(mi));has(mi);
+      assert.ok(slots().length<=3&&slots().every(k=>SLOTS.includes(k)),`${mi} mi: ${slots()}`);
+    }
+    assert.deepEqual(slots(),SLOTS);
+    // 2 and 5 mi share the street map, 10 mi has its own, and the wider sizes share one slot: the one saved last
+    // is kept and an earlier one is built again (two wider maps don't fit the storage side by side anyway).
+    assert.ok(has(2)&&has(5)&&has(10)&&has(250)&&!has(15)&&!has(100));
+    saveDetail(detail(25));
+    assert.ok(has(25)&&!has(250)&&has(2)&&has(10),'the wider slot holds the size saved last; the street and 10 mi maps stay');
+    assert.equal(JSON.parse(data.get('whatsup.detail.v1.wide')).key,'r25');
+    // Storage full: the other two slots make room first and the base maps stay; then the base maps but the newest go too.
+    const A=20000,fresh=()=>{data.clear();store.remove('whatsup.map.recent');saveMap(base(10,A/2));saveMap(base(25,A/2));};
+    quota=3.6*A;fresh();
+    saveDetail(detail(2,A));saveDetail(detail(25,A));
+    assert.ok(has(2)&&has(25));
+    assert.ok(saveDetail(detail(10,2*A)));
+    assert.ok(has(10)&&!has(2)&&!has(25),'the street and wider maps made room for the 10 mi one');
+    assert.ok(savedMap(home,10)&&savedMap(home,25),'base maps kept');
+    fresh();saveDetail(detail(25,A));
+    assert.ok(saveDetail(detail(10,3*A)));
+    assert.ok(has(10)&&!has(25)&&savedMap(home,25)&&!savedMap(home,10),'too big beside the base maps: the older base map goes too');
+    fresh();
+    assert.ok(!saveDetail(detail(10,4*A)),'too big for the storage: not saved');
+    assert.ok(!has(10)&&!data.has('whatsup.detail.v1.r10')&&savedMap(home,25));
+    // Any other save that finds storage full frees every street map; the newest base map stays.
+    fresh();saveDetail(detail(25,A));saveDetail(detail(10,A));
+    assert.ok(store.set('whatsup.qa.big','x'.repeat(2*A)));
+    assert.ok(!has(25)&&!has(10)&&savedMap(home,25)&&!savedMap(home,10));
+    assert.deepEqual(slots(),[]);
+    // Keys only the unreleased builds of 5 November wrote (a whatsup.detail.recent list, one street map per wider size):
+    // never read, but dropped with the slots when a save finds storage full, so a stick that ran one is not left full.
+    const DEAD={'whatsup.detail.recent':'["r25","r15"]','whatsup.detail.v1.r25':'x'.repeat(2.5*A)},dead=()=>Object.keys(DEAD).filter(k=>data.has(k));
+    fresh();for(const [k,v] of Object.entries(DEAD))data.set(k,v);
+    assert.ok(saveDetail(detail(10,A)),'the dead keys made room for the 10 mi street map');
+    assert.ok(has(10)&&savedMap(home,10)&&savedMap(home,25)&&!dead().length,`base maps kept, dead keys gone: ${dead()}`);
+    assert.deepEqual(slots(),['whatsup.detail.v1.r10']);
+    fresh();for(const [k,v] of Object.entries(DEAD))data.set(k,v);
+    assert.ok(store.set('whatsup.qa.big','x'.repeat(A)),'another save: the dead keys make room through onFull');
+    assert.ok(!dead().length&&savedMap(home,25),`dead keys gone, the newest base map kept: ${dead()}`);
+  }finally{
+    delete globalThis.localStorage;
+    for(const k of ['whatsup.qa.big','whatsup.map.recent','whatsup.map.v2','whatsup.map.v2.r25'])store.remove(k);
+  }
+});
+
+test('saved maps: the base map on screen is the newest of the two kept (a saved one trusted is stamped as a saved one is: touchMap), so storage filling up evicts the other, and a wider size then keeps the current one beside it, not the size two steps back',async()=>{
+  const {store}=await import('../web/live.mjs');
+  const data=new Map(),home={latitude:41.85,longitude:-87.65};let quota=Infinity;
+  const used=()=>[...data].reduce((n,[k,v])=>n+k.length+v.length,0);
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,removeItem:k=>data.delete(k),
+    setItem(k,v){v=String(v);if(used()-(data.has(k)?k.length+data.get(k).length:0)+k.length+v.length>quota)throw new Error('QuotaExceededError');data.set(k,v);}};
+  const A=20000,detail=(mi,size=0)=>{const spec=detailSpec(mi);return {v:5,...home,range:spec.range,zoom:spec.zoom,key:spec.key,per:1000,buildingRange:spec.buildings,inner:spec.inner,
+    built:Date.now()-60000,water:[],shore:[],waterways:[],roads:[{c:'minor',p:'0,0'+',1,0'.repeat(size/4)}],landuse:[],parks:[],aero:[],buildings:[],places:[]};};
+  const base=(range,size=0)=>({v:5,...home,range,built:Date.now(),water:[Array.from({length:size/8},(_,i)=>[0,i])],shore:[],rivers:[],roads:[],runways:[],airports:[],airfields:[],shields:[],places:[]});
+  const recent=()=>JSON.parse(data.get('whatsup.map.recent')),kept=()=>[2,5,10,15,25].filter(r=>savedMap(home,r));
+  // A fresh install at 10 mi (built, saved, trusted at the next launch), then 5 mi (built), then back to 10 mi: trusted from storage (0 tiles).
+  const fresh=()=>{data.clear();store.remove('whatsup.map.recent');saveMap(base(10,A/2));touchMap(10);assert.deepEqual(recent(),[10]);saveMap(base(5,A/2));assert.deepEqual(recent(),[5,10]);
+    assert.equal(savedMap(home,10)?.range,10);touchMap(10);};
+  try{
+    fresh();
+    assert.deepEqual(recent(),[10,5],'the size on screen first');
+    assert.deepEqual(kept(),[5,10]);
+    // Three large street maps fill the storage: the third makes room, and the base map on screen stays.
+    quota=3.6*A;
+    saveDetail(detail(2,A));saveDetail(detail(10,A));
+    assert.ok(saveDetail(detail(25,3*A)),'the third street map saved: the other two and a base map made room');
+    assert.deepEqual(kept(),[10],'the map on screen kept, the previous size gone');
+    assert.deepEqual(recent(),[10]);
+    // A wider size after 10 -> 5 -> 10: the current (10) and the new size are kept, not 5 from two steps back.
+    quota=Infinity;fresh();
+    saveMap(base(15,A/2));
+    assert.deepEqual(kept(),[10,15]);
+    assert.deepEqual(recent(),[15,10]);
+    touchMap(15);assert.deepEqual(recent(),[15,10],'trusting the newest changes nothing');
+    touchMap(10);assert.deepEqual(recent(),[10,15],'back to 10: first again, both kept');
+    assert.deepEqual(kept(),[10,15]);
+  }finally{delete globalThis.localStorage;for(const k of ['whatsup.map.recent','whatsup.map.v2','whatsup.map.v2.r5','whatsup.map.v2.r15'])store.remove(k);}
+});
+test('saved maps: base and street maps saved as format 4 (older builds kept a map whose tiles failed or came back empty: blank, or with holes) are built again; maps built now are used',async()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  try{
+    const {readFileSync}=await import('node:fs');
+    const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+    const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+    const tile=new Uint8Array(readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url)));
+    const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),getBytes:async()=>tile};
+    const home={latitude:39.10,longitude:-84.41},spec=detailSpec(10),MVT={VectorTile,Pbf};
+    const base=await buildMap(home,10,{net,MVT}),detail=await buildDetail(home,{...spec,net,MVT});
+    const blank=m=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Array.isArray(v)?[]:v])),holes=m=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Array.isArray(v)?v.slice(0,v.length>>1):v]));
+    for(const [what,old] of [['blank',blank],['with holes',holes]]){
+      saveMap({...old(base),v:4});
+      assert.equal(savedMap(home,10),null,`a ${what} base map`);
+      assert.equal(savedMap(home,10,{stale:true}),null,`a ${what} base map: not shown while a new one is built either`);
+      saveDetail({...old(detail),v:4});
+      assert.equal(savedDetail(home,spec),null,`a ${what} street map`);
+      assert.equal(savedDetail(home,spec,{stale:true}),null,`a ${what} street map: not shown while a new one is built either`);
+    }
+    saveMap(base);saveDetail(detail);
+    assert.equal(savedMap(home,10)?.built,base.built,'the base map built now');
+    assert.equal(savedDetail(home,spec)?.built,detail.built,'the street map built now');
+  }finally{delete globalThis.localStorage;}
+});
+test('saved maps: at launch the ones this build never reads go (the first build\'s whatsup.map.v1, older formats, a 10-mile street map left in .wide: up to 3.3 MB); its own maps and everything else stay',async()=>{
+  const {dropOldMaps}=await import('../web/mapgen.mjs');
+  // localStorage as the page sees it: the stored keys are own properties (Object.keys lists them).
+  const ls=globalThis.localStorage=Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},setItem(k,v){this[k]=String(v);},removeItem(k){delete this[k];}});
+  try{
+    const {readFileSync}=await import('node:fs');
+    const {VectorTile}=await import('../vendor/node_modules/@mapbox/vector-tile/index.js');
+    const {default:Pbf}=await import('../vendor/node_modules/pbf/index.js');
+    const tile=new Uint8Array(readFileSync(new URL('./fixtures/cincinnati-10-271-391.pbf',import.meta.url)));
+    const net={getJson:async()=>({status:200,payload:{tiles:['https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf']}}),getBytes:async()=>tile};
+    const home={latitude:39.10,longitude:-84.41},spec=detailSpec(10),MVT={VectorTile,Pbf};
+    const base=await buildMap(home,10,{net,MVT}),detail=await buildDetail(home,{...spec,net,MVT});
+    saveMap(base);saveDetail(detail);saveMap({...base,range:5});
+    const j=JSON.stringify,kept={'whatsup.settings.v1':'{}','whatsup.consent':'{"v":3}','whatsup.map.recent':'[5,10]','whatsup.logbook.v1':'{}','whatsup.ledger.v1':'{}','other.app':'{"v":1}'};
+    Object.assign(ls,kept,{
+      'whatsup.map.v1':j({v:1,...home,range:10,zoom:10,built:Date.now(),water:[]}), // c80f98b
+      'whatsup.detail.v1':j({v:1,...home,range:6.5,buildingRange:1.3,built:Date.now(),water:[]}), // dd5f3b7
+      'whatsup.detail.v1.wide':j({...detail,v:4}), // 73d51fe: its 10-mile street map
+      'whatsup.map.v2.r15':j({...base,v:2,range:15}),'whatsup.map.v2.r25':j({...base,v:4,range:25}),'whatsup.map.v2.r50':'{"v":'});
+    dropOldMaps();
+    assert.deepEqual(Object.keys(ls).sort(),[...Object.keys(kept),'whatsup.map.v2','whatsup.map.v2.r5','whatsup.detail.v1.r10'].sort());
+    for(const k of Object.keys(kept))assert.equal(ls[k],kept[k],k);
+    assert.equal(savedMap(home,10)?.built,base.built,'this build\'s base maps');
+    assert.equal(savedMap(home,5)?.range,5);
+    assert.equal(savedDetail(home,spec)?.built,detail.built,'and street map');
+  }finally{delete globalThis.localStorage;}
+});
+test('keep screen awake: off unless turned on (a saved ON is kept)',()=>{
+  for(const [saved,want] of [[undefined,false],[true,true],[false,false],['no',false]]){
     globalThis.localStorage={getItem:()=>JSON.stringify({keepAwake:saved}),setItem(){},removeItem(){}};
     assert.equal(loadSettings().keepAwake,want);
   }
@@ -137,7 +431,7 @@ test('keep screen awake: on unless turned off',()=>{
 });
 
 // --- Alert zone: Window view
-import {inBearings,inZone,zoneOutline,OVERHEAD_MI} from '../web/core.mjs';
+import {inBearings,inZone,zoneOutline,ABOVE_MI} from '../web/core.mjs';
 test('window view: bearings in range, including ranges that cross north',()=>{
   assert.ok(inBearings(74,74,175)&&inBearings(175,74,175)&&inBearings(120,74,175));
   assert.ok(!inBearings(73,74,175)&&!inBearings(176,74,175)&&!inBearings(300,74,175));
@@ -150,7 +444,7 @@ test('window view: wedge reach, overhead always counts, circle unchanged',()=>{
   assert.ok(inZone(z,...at(120,24)));
   assert.ok(!inZone(z,...at(120,26)),'beyond the distance');
   assert.ok(!inZone(z,...at(270,5)),'behind the window');
-  assert.ok(inZone(z,...at(270,OVERHEAD_MI*.9)),'right overhead counts from any side');
+  assert.ok(inZone(z,...at(270,ABOVE_MI*.9)),'right above counts from any side');
   const c={kind:'circle',radius:3};
   assert.ok(inZone(c,...at(270,2.9))&&!inZone(c,...at(90,3.1)));
   const ring=zoneOutline(z);
@@ -162,4 +456,125 @@ test('window view settings: defaults and saved values',()=>{
   const s=loadSettings();
   assert.equal(s.alertZone,'window');assert.equal(s.viewFrom,74);assert.equal(s.viewTo,175);assert.equal(s.viewMiles,25);
   delete globalThis.localStorage;
+});
+
+test('Census gets only text that looks like a U.S. address', async () => {
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  for(const q of ['123 Main St, Cincinnati, OH','123 MAIN ST CINCINNATI OH','1600 Pennsylvania Ave NW Washington DC 20500','12 Calle Luna San Juan Puerto Rico',
+    '400 Marine Dr, Tamuning, GU 96913','5 Elm Street Springfield, IL','77 Oak Rd 45202'])assert.ok(looksLikeUSAddress(q),q);
+  for(const q of ['10 Downing Street London','123 Main St','221B Baker Street','45202','Cincinnati','8 Rue de Rivoli Paris','12 Queen St W Toronto ON'])assert.ok(!looksLikeUSAddress(q),q);
+});
+test('Census: a state name counts only at the end or after a comma, and a state code that is also a country code (DE, IN, CO, ME...) only after a comma, with a ZIP or after a street type and a town',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  for(const q of ['4 Elm Street, Springfield, IL','22 Market St Wilmington DE 19801','9 Meridian St Indianapolis, IN','1 Main St Springfield Illinois','1 Peachtree St Atlanta Georgia',
+    '1 Main St, Springfield, Illinois, USA','350 Fifth Ave, New York','350 Fifth Ave New York NY','2 Main St Tulsa OK'])assert.ok(looksLikeUSAddress(q),q);
+  for(const q of ['5 UNTER DEN LINDEN BERLIN DE','7 PLAZA MAYOR MADRID CO','9 VIA ROMA MILANO IN',
+    '800 W GEORGIA ST VANCOUVER BC','10 STATION RD VIRGINIA WATER','10 Station Rd, Virginia Water, Surrey','5 WASHINGTON ST LONDON','45 FLORIDA BUENOS AIRES',
+    '3 COLORADO ST MADRID','1 INDIANA AVE KINGSTON'])assert.ok(!looksLikeUSAddress(q),q);
+  const seen=stub([[/nominatim/,[200,[]]]]);
+  await searchAddress('5 Unter den Linden Berlin DE',{census:true,nominatim:true});
+  assert.ok(!seen.some(u=>/census/.test(u))&&seen.some(u=>/nominatim/.test(u)),'to Nominatim, not the Census Bureau');
+});
+test('Census: a state code that is also a country code (IL, PA, GA...) counts after a street type and a town too, so "233 S Wacker Dr Chicago IL" goes to Census; foreign text typed that way does too, and with no match there goes on to Nominatim',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  // One for each such state, typed the usual way: no comma before the code, no ZIP; a direction, a unit, the type in full.
+  for(const q of ['233 S WACKER DR CHICAGO IL','123 MAIN ST PHILADELPHIA PA','100 STATE ST BOSTON MA','2 MAIN ST NASHVILLE TN','12 OAK ST, DENVER CO','12 Oak St. Denver CO',
+    '600 Dexter Ave Montgomery AL','500 Woodlane St Little Rock AR','411 Legislative Ave Dover DE','206 Washington St SW Atlanta GA','700 W Jefferson St Boise ID',
+    '200 W Washington St Indianapolis IN','900 N 3rd St Baton Rouge LA','210 State St Augusta ME','100 State Cir Annapolis MD','75 Rev Dr Martin Luther King Jr Blvd St Paul MN',
+    '400 High St Jackson MS','1301 E 6th Ave Helena MT','1445 K St Lincoln NE','1100 Gervais St Columbia SC','500 E Capitol Ave Pierre SD','1000 Bank St Richmond VA',
+    '233 S Wacker Dr Ste 3100 Chicago IL','123 Main Street Philadelphia PA','42 Peachtree Road Atlanta GA','9 Elm Lane Nashville TN','7 Oak Court Columbia SC'])assert.ok(looksLikeUSAddress(q),q);
+  // No street type after the street's name (none, or the type first as in French or Spanish): Nominatim alone.
+  for(const q of ['12 Avenue Habib Bourguiba Tunis TN','10 Boulevard Mohammed V Casablanca MA','10 Calle 50 Panama City PA','Hauptstrasse 5 Berlin DE'])assert.ok(!looksLikeUSAddress(q),q);
+  // Text alone can't tell these from U.S. addresses: Census first, then Nominatim.
+  for(const q of ['22 BAKER ST LONDON DE','10 KING ST SYDNEY ME','12 MG ROAD BANGALORE IN','123 HAY ST PERTH WA'])assert.ok(looksLikeUSAddress(q),q);
+  let seen=stub([[/census/,[200,{result:{addressMatches:[{matchedAddress:'233 S WACKER DR, CHICAGO, IL, 60606',addressComponents:{city:'CHICAGO',state:'IL'},coordinates:{x:-87.6359,y:41.8789}}]}}]]]);
+  const [p]=await searchAddress('233 S Wacker Dr Chicago IL',{census:true,nominatim:true});
+  assert.equal(p.street,'233 S Wacker Dr');assert.equal(placeLabel(p),'Chicago, IL');assert.equal(p.source,'census');
+  assert.ok(!seen.some(u=>/nominatim/.test(u)),'matched by Census: Nominatim not asked');
+  seen=stub([[/census/,[200,{result:{addressMatches:[]}}]],[/nominatim/,[200,[]]]]);
+  assert.deepEqual(await searchAddress('10 King St Sydney ME',{census:true,nominatim:true}),[]);
+  assert.deepEqual(seen.map(u=>new URL(u).hostname),['geocoding.geo.census.gov','nominatim.openstreetmap.org'],'no match at Census: then Nominatim');
+});
+
+test('place search: "Rosemont, Illinois" and "Rosemont IL" search the name, then match the state',async()=>{
+  const reply={results:[{name:'Rosemont',admin1:'Illinois',country:'United States',country_code:'US',latitude:41.995,longitude:-87.884,timezone:'America/Chicago'},
+    {name:'Rosemont',admin1:'Pennsylvania',country:'United States',country_code:'US',latitude:40.03,longitude:-75.33,timezone:'America/New_York'}]};
+  for(const q of ['Rosemont, Illinois','ROSEMONT IL','Rosemont Illinois']){
+    const seen=stub([[/name=Rosemont&/i,[200,reply]],[/search\?name=/,[200,{}]]]);
+    const found=await searchPlaces(q);
+    assert.deepEqual(found.map(p=>placeLabel(p)),['Rosemont, IL'],q);assert.equal(seen.length,2,q);
+  }
+});
+test('place search: a city and a three-letter country code ("TORONTO CAN", "LONDON GBR") match like the two-letter code or the name',async()=>{
+  const at=(name,admin1,country,country_code)=>({name,admin1,country,country_code,latitude:10,longitude:10,timezone:'UTC'});
+  const LONDON=[at('London','England','United Kingdom','GB'),at('London','Ontario','Canada','CA'),at('London','Ohio','United States','US')];
+  for(const [q,results,want] of [['TORONTO CAN',[at('Toronto','Ontario','Canada','CA')],['Toronto, ON']],['PARIS FRA',[at('Paris','Île-de-France','France','FR'),at('Paris','Texas','United States','US')],['Paris, France']],
+    ['LONDON GBR',LONDON,['London, UK']],['London, CAN',LONDON,['London, ON']],['SYDNEY AUS',[at('Sydney','New South Wales','Australia','AU'),at('Sydney','Nova Scotia','Canada','CA')],['Sydney, Australia']],
+    ['TOKYO JPN',[at('Tokyo','Tokyo','Japan','JP')],['Tokyo, Japan']],['CAPE TOWN RSA',[at('Cape Town','Western Cape','South Africa','ZA')],['Cape Town, South Africa']],
+    ['CAPE TOWN ZAF',[at('Cape Town','Western Cape','South Africa','ZA')],['Cape Town, South Africa']],['BERLIN DEU',[at('Berlin','Land Berlin','Germany','DE')],['Berlin, Germany']]]){
+    const name=q.replace(/,?\s+\S+$/,'');
+    stub([[new RegExp(`name=${encodeURIComponent(name)}&`,'i'),[200,{results}]],[/search\?name=/,[200,{}]]]);
+    assert.deepEqual((await searchPlaces(q)).map(placeLabel),want,q);
+  }
+});
+
+test('window view: no saved window shows the example ENE 74° to S 175°, 25 mi; a saved one is kept',()=>{
+  globalThis.localStorage={getItem:()=>JSON.stringify({alertZone:'circle'}),setItem(){},removeItem(){}};
+  let s=loadSettings();
+  assert.equal(s.viewFrom,74);assert.equal(s.viewTo,175);assert.equal(s.viewMiles,25);
+  globalThis.localStorage={getItem:()=>JSON.stringify({alertZone:'window',viewFrom:300,viewTo:40,viewMiles:10}),setItem(){},removeItem(){}};
+  s=loadSettings();
+  assert.equal(s.viewFrom,300);assert.equal(s.viewTo,40);assert.equal(s.viewMiles,10);
+  delete globalThis.localStorage;
+});
+
+test('address search privacy: a failed Census search never falls through to Nominatim; only postcode-like text does',async()=>{
+  const seen=stub([[/census/,[500,'']],[/nominatim/,[200,[]]]]);
+  assert.equal(await searchAddress('3087 Terminal Dr Hebron KY 41048',{census:true,nominatim:true}),null,'Search is unavailable, Try again');
+  assert.ok(!seen.some(u=>/nominatim/.test(u)),'the U.S. address was not sent to Nominatim');
+  const off=stub([[/nominatim/,[200,[]]]]);
+  assert.equal(await searchAddress('4 Elm Street, Springfield, IL',{census:true,nominatim:true}),null,'Census unreachable: null, still no Nominatim');
+  assert.ok(!off.some(u=>/nominatim/.test(u)));
+  for(const t of ['SW1A 2AA','M5V 3L9','75008','10115'])assert.ok(looksLikePostcode(t),t);
+  for(const t of ['CHICAGOO','St Johns','Springfield'])assert.ok(!looksLikePostcode(t),t);
+});
+test('search text from the break-it list: empty, long, right-to-left, markup or script, emoji, a ZIP and an address at CVG',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  let seen=stub([meteo()]);
+  for(const q of ['','   ','​​'])assert.deepEqual(await searchPlaces(q),[],JSON.stringify(q));
+  assert.equal(seen.length,0,'nothing is asked for empty text');
+  const name=u=>decodeURIComponent(new URL(u).searchParams.get('name'));
+  seen=stub([meteo()]);await searchPlaces('Hebron '.repeat(40));
+  // No match: one more try without the last word (as for "Rosemont IL"), no more.
+  assert.ok(seen.length>=1&&seen.length<=2&&seen.every(u=>name(u).length<=60),`long text is cut to 60 characters: ${seen.map(u=>name(u).length)}`);
+  for(const q of ['القاهرة','<script>alert(1)</script>','"Hebron" & <b>KY</b>','✈ Hebron ✈']){
+    seen=stub([meteo()]);assert.deepEqual(await searchPlaces(q),[],q);
+    assert.equal(name(seen[0]),q,`${q}: sent as typed, encoded`);assert.ok(seen.length<=2&&seen.every(u=>!/[<>"\s]/.test(u.split('?')[1])),`${q}: nothing raw in the URL`);
+  }
+  // A ZIP is a postcode, not an address; CVG's own street address is a U.S. address (Census).
+  assert.ok(looksLikePostcode('41048')&&!looksLikeAddress('41048'));
+  assert.ok(looksLikeUSAddress('3087 Terminal Dr, Hebron, KY 41048'));
+  seen=stub([meteo({name:'Hebron',admin1:'Kentucky',country:'United States',country_code:'US',latitude:39.07,longitude:-84.7,timezone:'America/New_York'})]);
+  assert.equal(placeLabel((await searchPlaces('41048'))[0]),'Hebron, KY');assert.equal(name(seen[0]),'41048');
+});
+test('address detection: a street name that starts with a digit (5th Ave, 42nd St) makes an address too, so "350 5TH AVE NEW YORK NY" goes to the Census geocoder (then Nominatim), never to Open-Meteo while typing; ZIPs and city names as before',async()=>{
+  const {looksLikeUSAddress}=await import('../web/place.mjs');
+  for(const q of ['350 5TH AVE NEW YORK NY','100 5TH AVE PITTSBURGH PA','350 5th Ave, New York, NY','1 1ST AVE','2 2ND ST','3 3RD ST','21 21ST ST','42 42ND ST','11 11TH AVE','12 12th Street',
+    '221B 3RD ST','350 5TH','2 MAIN ST','2 MAIN ST NASHVILLE TN','10 Downing Street'])assert.ok(looksLikeAddress(q),q);
+  for(const q of ['350 5TH AVE NEW YORK NY','100 5TH AVE PITTSBURGH PA','350 5th Ave, New York, NY','1 1st Ave Seattle WA 98101','900 N 3rd St Baton Rouge LA'])assert.ok(looksLikeUSAddress(q),q);
+  for(const q of ['45202','45202-1234','90210','45202 1234','350 5','350 5T','1 2','Chicago','New York','SW1A 2AA',''])assert.ok(!looksLikeAddress(q),q);
+  assert.ok(!looksLikeUSAddress('350 5th Ave'),'no state or ZIP: not for the Census geocoder');
+  const seen=stub([[/census/,[200,{result:{addressMatches:[{matchedAddress:'350 5TH AVE, NEW YORK, NY, 10118',addressComponents:{city:'NEW YORK',state:'NY'},coordinates:{x:-73.9857,y:40.7484}}]}}]]]);
+  const [p]=await searchAddress('350 5th Ave New York NY',{census:true,nominatim:true});
+  assert.equal(p.street,'350 5th Ave');assert.equal(placeLabel(p),'New York, NY');assert.equal(p.source,'census');
+  assert.deepEqual(seen.map(u=>new URL(u).hostname),['geocoding.geo.census.gov'],'Census alone: no Open-Meteo, no Nominatim');
+});
+test('hasDetail: whether a street map is saved in the slot for a radius, without reading it; no storage: no',()=>{
+  const data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  assert.equal(hasDetail(detailSpec(10)),false,'nothing saved');
+  saveDetail({v:5,latitude:41.85,longitude:-87.65,key:'r10',roads:[]});
+  assert.equal(hasDetail(detailSpec(10)),true);assert.equal(hasDetail(detailSpec(25)),false,'another slot');
+  delete globalThis.localStorage;
+  assert.equal(hasDetail(detailSpec(10)),false,'no storage');
 });

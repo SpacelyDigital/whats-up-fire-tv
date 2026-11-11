@@ -1,7 +1,7 @@
 // Layout 4, Radar: the green phosphor scope (10-mile range, sweep, data blocks) and
 // a panel with the hero flight, cargo tonight, today's logbook and recent sightings.
 import {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
-  makeCanvas,paintMap,airportsNear,mapShift,offset,compass,number,BASE_RANGE,range,zoom,niceStep,zonePath,windowView,alertZone,fitLine,photoSlot,showPhotoIn,fit,placeAlts,airlineAlts} from '../kit.mjs';
+  makeCanvas,paintMap,airportsNear,mapShift,offset,compass,number,BASE_RANGE,range,zoom,niceStep,zonePath,windowView,alertZone,fitLine,photoSlot,showPhotoIn,fit,placeAlts,airlineAlts,headingAlts} from '../kit.mjs';
 
 const CX=270,CY=270,R=250,PPM0=R/BASE_RANGE;
 let PPM=PPM0; // px per mile at the current map radius (set before each draw)
@@ -27,7 +27,7 @@ function ui(){
   for(const id of ['rings','labels','trails','blips','blocks'])$.scope.append($[id]=svg('g'));
   $.note=el('div','scope-note');
   $.ringNote=el('div','corner br');
-  wrap.append(el('div','sweep'),$.canvas,$.scope,$.note,$.ringNote,el('div','corner tr','Select ▸ Settings'),$.pic=photoSlot('corner tl'));
+  wrap.append(el('div','sweep'),$.canvas,$.scope,$.note,$.ringNote,el('div','corner tr','Select ▸ Settings · ‹ › Planes'),$.pic=photoSlot('corner tl'));
   panel.innerHTML=`
     <header class="head"><div class="city"></div><div class="clock"></div></header>
     <div class="where"><span class="today"></span><span class="status"></span></div>
@@ -45,13 +45,14 @@ function ui(){
     </div>
     <div class="empty-sky" hidden></div>
     <div class="lower">
-      <div class="cargo"><div class="label">Cargo tonight</div><div class="cargo-row"><b class="cargo-n"></b><div class="cargo-by"></div></div></div>
-      <div class="today-log"><div class="label">Today</div><div class="log"></div></div>
+      <div class="cargo"><div class="label">Cargo</div><div class="cargo-row"><b class="cargo-n"></b><div class="cargo-by"></div></div>
+        <div class="label mil-label">Military</div><div class="cargo-row mil-row"><b class="mil-n"></b><div class="mil-by"></div></div></div>
+      <div class="today-log"><div class="log"></div></div>
     </div>
     <div class="recent-wrap"><div class="label">Recently above</div><div class="recent"></div></div>`;
   for(const c of ['city','clock','today','status','hero','hero-label','alert','fl','op','route','progress','bar','prog','alt','spd','look','cpa',
-    'aircraft','empty-sky','cargo-n','cargo-by','log','recent'])$[c]=panel.querySelector('.'+c);
-  fit([...panel.querySelectorAll('.stats b')],$.city,$.op,$.route,$.aircraft);
+    'aircraft','empty-sky','cargo-n','cargo-by','mil-n','mil-by','log','recent'])$[c]=panel.querySelector('.'+c);
+  fit([...panel.querySelectorAll('.stats b')],$.city,$['hero-label'],$.op,$.route,$.aircraft);
   $.barFill=$.bar.firstChild;
 }
 
@@ -102,14 +103,14 @@ function drawMap(){
     labelBoxes.push(box);labels.push(svg('text',{class:'map-shield',x:p.x,y:p.y,'text-anchor':'middle'},ref));
   }
   $.labels.replaceChildren(...labels);
-  setText($.note,m?'':'Drawing the map…');
+  setText($.note,m?'':'Drawing the map');
 }
 
 function blockText(a){
   const ft=a.altitude_ft,vs=a.vertical>300?'↑':a.vertical<-300?'↓':'';
-  const alt=fmt.altUnit()==='m'?`${(ft*.3048/1000).toFixed(1)}k`:String(Math.round(ft/100)).padStart(3,'0');
+  const alt=fmt.altUnit()==='m'?`${(Math.max(0,ft)*.3048/1000).toFixed(1)}k`:fmt.hundreds(ft);
   const spd=metric()?Math.round((a.speed_kt||0)*1.852):Math.round(a.speed_kt||0);
-  return [a.flight,`${alt}${vs} ${String(spd).padStart(3,'0')}`,`${a.aircraft_type||'----'} ${a.route?.destination||''}`.trim()];
+  return [a.flight,`${alt}${vs} ${number(a.speed_kt)?String(spd).padStart(3,'0'):'---'}`,`${a.aircraft_type||'----'} ${a.route?.destination||''}`.trim()];
 }
 
 function render(m){
@@ -131,7 +132,7 @@ function render(m){
       dots.append(svg('circle',{cx:q.x.toFixed(1),cy:q.y.toFixed(1),r:1.3}));
     });
     trails.push(dots);
-    blips.push(planeIcon(a,p,isHero?20:a.inside?16:13,`blip${a.inside?'':' context'}${a.cargo?' cargo':''}${isHero?' hero':''}`));
+    blips.push(planeIcon(a,p,isHero?20:a.inside?16:13,`blip${a.inside?'':' context'}${a.cargo?' cargo':''}${a.military?' mil':''}${isHero?' hero':''}`));
     if(!labelled.has(a))continue;
     const lines=blockText(a),w=Math.max(...lines.map(l=>l.length))*7+4,h=38;
     const spots=[[14,-h-2],[-w-14,-h-2],[14,8],[-w-14,8]];
@@ -156,15 +157,15 @@ function render(m){
   $.hero.hidden=!hero;$['empty-sky'].hidden=!!hero;
   if(!hero)setText($['empty-sky'],quietText(m,demo));
   if(hero){
-    setText($['hero-label'],`${hero.status} · ${fmt.dist(hero.distance_mi??hero.ground)}`);
-    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`SQUAWK ${hero.squawk} · ${hero.emergency}`:'');
+    setText($['hero-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
+    $.alert.hidden=!hero.emergency;setText($.alert,hero.emergency?`${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`:'');
     setText($.fl,hero.flight);setText($.op,'',airlineAlts(hero.operator||(!hero.callsign||hero.callsign===hero.registration?'Private':'')));
     const r=hero.route,city=p=>p?.city?` ${p.city}`:'';
     setText($.route,'',r?[`${r.origin}${city(r.from)}  →  ${r.destination}${city(r.to)}`,`${r.origin}${city(r.from)} → ${r.destination}`,`${r.origin} → ${r.destination}`]:['Route not reported']);
     $.progress.hidden=!hero.progress;
     if(hero.progress){$.barFill.style.width=`${Math.round(hero.progress.share*100)}%`;
       setText($.prog,`${fmt.far(hero.progress.flown)} flown · ${fmt.int(metric()?hero.progress.left*KM:hero.progress.left)} to go`);}
-    const arrow=hero.trend.alt>0?' ↑':hero.trend.alt<0?' ↓':'';
+    const arrow=number(hero.vertical)?'':hero.trend.alt>0?' ↑':hero.trend.alt<0?' ↓':''; // the trend only when the feed sends no rate
     setText($.alt,number(hero.vertical)&&Math.abs(hero.vertical)>=100?`${fmt.alt(hero.altitude_ft)} ${fmt.vs(hero.vertical)}`:`${fmt.alt(hero.altitude_ft)}${arrow}`);
     setText($.spd,fmt.speed(hero.speed_kt));
     setText($.look,`${compass(hero.bearing)} · ${Math.max(0,Math.round(hero.elevation))}° up`);
@@ -179,8 +180,13 @@ function render(m){
   const L=m.log;
   setText($['cargo-n'],String(L.cargoTonight).padStart(2,'0'));
   $['cargo-by'].replaceChildren(...(L.cargoBy.length?L.cargoBy.slice(0,4).map(([brand,n])=>{
-    const d=el('div');d.append(`${brand} `,el('em','',n));return d;
+    const d=el('div');d.append(el('em','',n),` ${brand}`);return d; // count first, like Military
   }):[el('div','',L.night?'none yet':'counts 6 pm to 6 am')]));
+  setText($['mil-n'],String(L.militaryToday||0).padStart(2,'0'));
+  // Count first ("2 C-17"), most seen first, one type a row like the cargo brands.
+  $['mil-by'].replaceChildren(...((L.militaryTypes||[]).length?L.militaryTypes.slice(0,3).map(([t,n])=>{
+    const d=el('div');d.append(el('em','',n),` ${t}`);return d;
+  }):[el('div','','none yet')]));
   const cell=(text,tag='span',cls='')=>el(tag,cls,text);
   $.log.replaceChildren(cell('Seen'),cell(`${fmt.int(L.today)} aircraft`,'b'),
     cell('High'),cell(L.highest?`${L.highest.name} ${fmt.alt(L.highest.value)}`:'—','b'),
@@ -195,7 +201,9 @@ function render(m){
   // One line each, never cut; Recently rows go (oldest first) until the panel fits.
   for(const b of $.log.querySelectorAll('b'))fitLine(b);
   for(const s of $.recent.querySelectorAll('span:not(.t)'))fitLine(s);
-  const panel=$.recent.closest('.panel');
+  // Measured with the list shown: hidden from the last tick, it would make the panel look
+  // roomy, show again and flip every tick.
+  const panel=$.recent.closest('.panel');$.recent.parentNode.hidden=false;
   while(panel.scrollHeight>panel.clientHeight+1&&$.recent.children.length>3)for(let i=0;i<3;i++)$.recent.lastElementChild.remove();
   $.recent.parentNode.hidden=panel.scrollHeight>panel.clientHeight+1;
 }

@@ -3,7 +3,7 @@
 const __modules=window.__whatsupModules;
 const {zoneOutline}=__modules["core.mjs"];
 const {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
-  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts}=__modules["kit.mjs"];
+  makeCanvas,paintMap,airportsNear,placesNear,offset,compass,zoom,range,niceDistance,zonePath,windowView,alertZone,photoSlot,showPhotoIn,fit,placeAlts,militaryAlts,fitLine,headingAlts}=__modules["kit.mjs"];
 // Layout 10, Sectional: a cream VFR sectional chart around home. Towns in chart
 // yellow, water in chart blue, airspace-style rings around nearby airports, a VOR-style
 // compass rose on home, a lat/long graticule, and the data in chart-legend boxes.
@@ -53,8 +53,8 @@ function ui(){
       </section>
       <section class="box tonight">
         <header><span class="tl">Tonight &amp; today</span></header>
-        <div class="tn"><div><b class="cargo"></b><span>cargo flights</span></div><div><b class="seen"></b><span>aircraft today</span></div></div>
-        <div class="cargo-by"></div>
+        <div class="tn"><div><b class="cargo"></b><span>cargo</span></div><div><b class="mil"></b><span>military</span></div><div><b class="seen"></b><span>aircraft today</span></div></div>
+        <div class="cargo-by"></div><div class="mil-by"></div>
       </section>
       <section class="box key">
         <header><span class="tl">Legend</span></header>
@@ -76,9 +76,9 @@ function ui(){
   $.svg=svg('svg',{class:'chart-svg',viewBox:`0 0 ${W} ${H}`,'aria-hidden':'true'});
   for(const id of ['grat','air','rose','places','trails','planes','tags','scale'])$.svg.append($[id]=svg('g'));
   chart.append($.canvas,$.svg);
-  for(const c of ['city','clock','date','status','hero-st','notam','tbody','fl','op','rt','alt','gs','dist','look','cpa','type','none','quiet','cargo','seen','cargo-by'])
+  for(const c of ['city','clock','date','status','hero-st','notam','tbody','fl','op','rt','alt','gs','dist','look','cpa','type','none','quiet','cargo','seen','cargo-by','mil','mil-by'])
     $[c]=root.querySelector('.'+c);
-  fit([...root.querySelectorAll('.grid dd')],$.city);
+  fit([...root.querySelectorAll('.grid dd')],$.city,$['hero-st']);
 }
 
 let boxes=[];
@@ -95,11 +95,11 @@ function drawMap(){
     const fmtDeg=(v,pos,neg)=>{const a=Math.abs(v),d=Math.floor(a+1e-9),m=Math.round((a-d)*60);return `${d}°${String(m).padStart(2,'0')}′${v>=0?pos:neg}`;};
     for(let la=Math.ceil((lat0-span)/step)*step;la<lat0+span;la+=step){
       const y=CY-(la-lat0)*69*PPM;if(y<8||y>H-8)continue;
-      g.push(svg('line',{class:'grat',x1:0,y1:y,x2:W,y2:y}));if(y<H-60)g.push(svg('text',{class:'grat-t',x:6,y:y-4},fmtDeg(la,'N','S')));
+      g.push(svg('line',{class:'grat',x1:0,y1:y,x2:W,y2:y}));if(y<H-60&&y>24)g.push(svg('text',{class:'grat-t',x:6,y:y-4},fmtDeg(la,'N','S'))); // labels whole on the map
     }
     for(let lo=Math.ceil((lon0-span*1.5)/step)*step;lo<lon0+span*1.5;lo+=step){
       const x=CX+(lo-lon0)*69.172*cos*PPM;if(x<8||x>W-8)continue;
-      g.push(svg('line',{class:'grat',x1:x,y1:0,x2:x,y2:H}),svg('text',{class:'grat-t',x:x+4,y:H-8},fmtDeg(lo,'E','W')));
+      g.push(svg('line',{class:'grat',x1:x,y1:0,x2:x,y2:H}));if(x<W-70)g.push(svg('text',{class:'grat-t',x:x+4,y:H-8},fmtDeg(lo,'E','W')));
     }
   }
   $.grat.replaceChildren(...g);
@@ -186,11 +186,11 @@ function render(m){
     const pts=a.trend.trail.map(s=>{const o=offset(s.lat,s.lon);const q=P(o.x,o.y);return `${q.x.toFixed(1)} ${q.y.toFixed(1)}`;});
     if(pts.length>1)trails.push(svg('path',{class:'trail',d:`M${pts.join('L')}`}));
     if(isHero)planes.push(svg('circle',{class:'hero-ring',cx:p.x,cy:p.y,r:17}));
-    planes.push(planeIcon(a,p,isHero?26:20,`ac${isHero?' hero':''}${a.inside?' inside':''}`));
+    planes.push(planeIcon(a,p,isHero?26:20,`ac${isHero?' hero':''}${a.inside?' inside':''}${a.military?' mil':''}`));
   }
   for(const a of tagged){
     const p=P(a.x,a.y),isHero=a===hero;
-    const l1=a.flight,l2=`${fmt.altUnit()==='m'?fmt.altNum(a.altitude_ft):String(Math.round((a.altitude_ft||0)/100)).padStart(3,'0')} · ${a.aircraft_type||''}`;
+    const l1=a.flight,l2=`${fmt.altUnit()==='m'?fmt.altNum(a.altitude_ft):fmt.hundreds(a.altitude_ft)} · ${a.aircraft_type||''}`;
     const w=Math.max(l1.length*8.6,l2.length*7)+6,h=30;
     const b=[[16,-h-4],[16,6],[-w-16,-h-4],[-w-16,6]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,w,h}))
       .find(b=>b.x>2&&b.x+w<W-2&&b.y>2&&b.y+h<H-40&&!tb.some(o=>overlap(o,b)));
@@ -203,7 +203,7 @@ function render(m){
   $.notam.hidden=!hero?.emergency;
   if(!hero){setText($.quiet,quietText(m,demo));setText($['hero-st'],'');}
   else{
-    setText($['hero-st'],hero.status.toUpperCase());
+    setText($['hero-st'],'',headingAlts(hero,hero.status).map(s=>s.toUpperCase()));
     if(hero.emergency)setText($.notam,`NOTAM · ${hero.squawk} ${hero.emergency}`);
     setText($.fl,hero.flight);setText($.op,hero.operator||(hero.registration?'Private':''));
     const r=hero.route;
@@ -216,8 +216,9 @@ function render(m){
   }
   showPhotoIn($.pic,hero,()=>{$.photo.hidden=$.pic.hidden;$.key.hidden=!$.pic.hidden;});
   const L=m.log;
-  setText($.cargo,String(L.cargoTonight));setText($.seen,fmt.int(L.today));
-  setText($['cargo-by'],L.cargoBy.length?L.cargoBy.slice(0,4).map(([b,n])=>`${b} ${n}`).join(' · '):L.night?'No cargo yet tonight':'Cargo counts 6 pm – 6 am');
+  setText($.cargo,String(L.cargoTonight));setText($.seen,fmt.int(L.today));setText($.mil,String(L.militaryToday||0));
+  $['mil-by']._alts=(L.militaryTypes||[]).length?militaryAlts(L).map(t=>`Military: ${t}`):['No military today'];$['mil-by'].textContent=$['mil-by']._alts[0];fitLine($['mil-by']);
+  setText($['cargo-by'],L.cargoBy.length?L.cargoBy.slice(0,4).map(([b,n])=>`${n} ${b}`).join(' · '):L.night?'No cargo yet tonight':'Cargo counts 6 pm – 6 am');
 }
 
 

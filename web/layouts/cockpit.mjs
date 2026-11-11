@@ -3,7 +3,7 @@
 // line runs to the selected (hero) aircraft. Speed and altitude tapes read out the
 // hero like a primary flight display. Map: airports and runways only.
 import {svg,el,setText,fmt,metric,KM,placeName,alertRadius,statusText,quietText,byInterest,
-  makeCanvas,paintMap,airportsNear,compass,number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,airlineAlts} from '../kit.mjs';
+  makeCanvas,paintMap,airportsNear,compass,number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,airlineAlts,headingAlts} from '../kit.mjs';
 
 const CX=300,CY=292,R=226,PPM0=R/BASE_RANGE;
 let PPM=PPM0,RANGE=BASE_RANGE; // at the current map radius (set before each draw)
@@ -51,6 +51,7 @@ function ui(){
       <div class="log">
         <div><span class="k">TODAY</span><b class="l-seen"></b></div>
         <div><span class="k">CARGO</span><b class="l-cargo"></b></div>
+        <div><span class="k">MIL</span><b class="l-mil"></b></div>
         <div><span class="k">HIGH</span><b class="l-high"></b></div>
       </div>
     </div>`;
@@ -60,9 +61,9 @@ function ui(){
   for(const id of ['rose','apts','line','traffic','own'])$.svg.append($[id]=svg('g'));
   nd.prepend($.canvas,$.svg);
   for(const c of ['gs','nd-alt','trk','wpt','wpt-d','wpt-t','warn','warn-b','tfc','status','range-v','city','clock','spd-tape','alt-tape',
-    'fl','op','rt','vs','type','nodata','quiet','pfd-mid','f-gs','f-trk','f-alt','f-dist','f-brg','f-cpa','l-seen','l-cargo','l-high','recent'])$[c]=root.querySelector('.'+c);
-  root.querySelector('.side').append($.pic=photoSlot());
-  fit($.city,$.fl,$.op,$.rt,$.type,$['f-gs'],$['f-trk'],$['f-alt'],$['f-dist'],$['f-brg'],$['f-cpa']);
+    'fl','op','rt','vs','type','nodata','quiet','pfd-mid','f-gs','f-trk','f-alt','f-dist','f-brg','f-cpa','l-seen','l-cargo','l-mil','l-high','recent'])$[c]=root.querySelector('.'+c);
+  root.querySelector('.side').append($.pic=photoSlot());$.sel=root.querySelector('.sel');
+  fit($.city,$.sel,$.fl,$.op,$.rt,$.type,$['f-gs'],$['f-trk'],$['f-alt'],$['f-dist'],$['f-brg'],$['f-cpa']);
 }
 
 function drawRose(){
@@ -143,7 +144,7 @@ function render(m){
   for(const a of visible){
     const p=P(a.x,a.y),isHero=a===hero;
     const kind=a.emergency?'ra':a.inside?'ta':'other';
-    const g=svg('g',{class:`tcas ${kind}${isHero?' hero':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`});
+    const g=svg('g',{class:`tcas ${kind}${isHero?' hero':''}${a.military?' mil':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`});
     if(kind==='ra')g.append(svg('rect',{x:-8,y:-8,width:16,height:16}));
     else if(kind==='ta')g.append(svg('circle',{r:8}));
     else g.append(svg('path',{d:'M0 -10L8 0L0 10L-8 0Z'}));
@@ -169,7 +170,7 @@ function render(m){
 
   setText($.tfc,`TFC ${visible.length}`);
   $.warn.hidden=!hero?.emergency;
-  if(hero?.emergency)setText($['warn-b'],`SQUAWK ${hero.squawk} · ${hero.emergency} · ${hero.flight}`);
+  if(hero?.emergency)setText($['warn-b'],`${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency} · ${hero.flight}`);
   $.nodata.hidden=!!hero;
   root.classList.toggle('quiet',!hero);
   if(!hero){
@@ -179,7 +180,7 @@ function render(m){
     tape($['spd-tape'],null,{step:10,label:20,span:120,w:74});
     tape($['alt-tape'],null,{step:100,label:500,span:1000,w:84,right:true});
   }else{
-    const spd=metric()?hero.speed_kt*1.852:hero.speed_kt,altv=fmt.altUnit()==='m'?hero.altitude_ft*.3048:hero.altitude_ft;
+    const spd=!number(hero.speed_kt)?null:metric()?hero.speed_kt*1.852:hero.speed_kt,altv=fmt.altUnit()==='m'?hero.altitude_ft*.3048:hero.altitude_ft;
     tape($['spd-tape'],number(spd)?spd:null,{step:10,label:20,span:120,w:74});
     tape($['alt-tape'],number(altv)?altv:null,fmt.altUnit()==='m'?{step:20,label:100,span:300,w:84,right:true}:{step:100,label:200,span:1000,w:84,right:true});
     setText($.gs,fmt.speedNum(hero.speed_kt));setText($['nd-alt'],fmt.alt(hero.altitude_ft));
@@ -188,6 +189,7 @@ function render(m){
     setText($['wpt-d'],fmt.dist(hero.ground));
     const c=hero.cpa;
     setText($['wpt-t'],!c?'':c.receding?'OUTBOUND':`CPA ${fmt.mmss(c.seconds)}`);
+    setText($.sel,'',headingAlts(hero,'SELECTED TRAFFIC').map(s=>s.toUpperCase()));
     setText($.fl,hero.flight);
     setText($.op,'',airlineAlts(hero.operator||(hero.registration?'PRIVATE':'')).map(s=>s.toUpperCase()));
     setText($.rt,hero.route?`${hero.route.origin} ▸ ${hero.route.destination}`:'NO ROUTE');
@@ -200,16 +202,28 @@ function render(m){
     setText($['f-brg'],`${deg(hero.bearing)}° ${compass(hero.bearing)}`);
     setText($['f-cpa'],!c?'---':c.receding?'OUTBND':`${fmt.mmss(c.seconds)} ${fmt.dist(c.miles).toUpperCase()}`);
   }
-  showPhotoIn($.pic,hero);
+  showPhotoIn($.pic,hero,fitSide);
   const rec=m.recent.slice(0,2);
   $.recent.replaceChildren(el('div','k','RECENT ABOVE'),...(rec.length?rec.map(a=>{
     const d=el('div','rec');d.append(el('b','',a.flight),el('span','',a.route?`${a.route.origin}▸${a.route.destination}`:a.aircraft_type||''),el('i','',fmt.ago(a.last_seen,now)));return d;
   }):[el('div','rec none','NONE YET')]));
   for(const s of $.recent.querySelectorAll('.rec span'))fitLine(s);
+  $.recent._all=[...$.recent.children];
   const L=m.log;
   setText($['l-seen'],fmt.int(L.today));
-  setText($['l-cargo'],String(L.cargoTonight));
+  setText($['l-cargo'],String(L.cargoTonight));setText($['l-mil'],String(L.militaryToday||0));
   setText($['l-high'],L.highest?fmt.alt(L.highest.value).toUpperCase():'---');
+  fitSide();
+}
+
+// The side column ends inside the screen: with a photo up, Recent above shows two rows, then
+// one, then none, until the photo, its QR and credit fit (checked again when a photo loads).
+function fitSide(){
+  const side=$.recent?.closest('.side');if(!side||!$.recent._all)return;
+  $.recent.replaceChildren(...$.recent._all);$.recent.hidden=false;
+  const over=()=>side.scrollHeight>side.clientHeight+1;
+  while(over()&&$.recent.children.length>1)$.recent.lastElementChild.remove();
+  if(over())$.recent.hidden=true;
 }
 
 export default {

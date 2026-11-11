@@ -1,7 +1,7 @@
 /* Layout 6, Atlas Dark: Atlas (atlas.mjs + atlas.css) on a charcoal map; this sheet loads on top. */
 .L-atlas-dark{--ui-ink:#e6e8ec;--ui-dim:rgba(230,232,236,.66);--ui-faint:rgba(230,232,236,.28);--ui-bg:#141619;--ui-shade:rgba(10,11,13,.82);
   --ui-on:#101215;--ui-glow:rgba(70,214,255,.25);
-  --at-ink:#e6e8ec;--at-dim:#9aa1ad;--at-paper:#121417;--at-red:#ff5b52;--at-cargo:#ffa23a;--at-accent:#46d6ff;--at-hero:#ffd23f}
+  --at-ink:#e6e8ec;--at-dim:#9aa1ad;--at-paper:#121417;--at-red:#ff5b52;--at-cargo:#ffa23a;--at-mil:#a7c46a;--at-accent:#46d6ff;--at-hero:#ffd23f}
 .L-atlas-dark .at-place{fill:#b9bec7;stroke:#121417}
 .L-atlas-dark .at-place.big{fill:#dfe2e7}
 .L-atlas-dark .at-field{fill:#c7cbe8;stroke:#121417}
@@ -14,6 +14,7 @@
 .L-atlas-dark .at-trail.hero{stroke:rgba(255,210,63,.85)}
 .L-atlas-dark .at-plane path{fill:var(--at-accent);stroke:#0b0c0e}
 .L-atlas-dark .at-plane.cargo path{fill:var(--at-cargo)}
+.L-atlas-dark .at-plane.mil path{fill:var(--at-mil)}
 .L-atlas-dark .at-plane.hero path{fill:var(--at-hero)}
 .L-atlas-dark .at-target{fill:rgba(255,210,63,.12);stroke:var(--at-hero)}
 .L-atlas-dark .at-tag{fill:rgba(20,22,26,.92);stroke:rgba(70,214,255,.55)}

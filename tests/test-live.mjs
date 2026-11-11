@@ -2,7 +2,7 @@
 // tests/test_office_aircraft_routes.py (route selection) plus the standalone parts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher} from '../web/live.mjs';
+import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher,resetOutage} from '../web/live.mjs';
 
 const NOW=Date.parse('2026-09-24T20:00:00Z')/1000;
 const AIRLINE={hex:'112233',callsign:'UAL2202',registration:'N123UA',latitude:45.78,longitude:-111.15,observed:NOW,inside:true,live:true};
@@ -93,24 +93,99 @@ test('selection keeps fresh in-boundary aircraft; history keeps the last 20 dist
   assert.equal(h.length,20);assert.equal(h[0].hex,'a00024');assert.equal(new Set(h.map(a=>a.hex)).size,20);
 });
 
-test('enricher: one request per 5 s, 1 h hit / 30 min miss cache, routes kept 6 h',async()=>{
+test('enricher: one request per 5 s, hits and 404s cached 24 h, routes kept 6 h',async t=>{
   const ledger=new Ledger(),calls=[];
   const payload={callsign:'UAL2202',number:'2202',_airports:[{iata:'BZN',lat:45.7775,lon:-111.153,name:'x'},{iata:'ORD',lat:41.9786,lon:-87.9048}]};
   const enricher=new Enricher(ledger,async url=>{calls.push(url);return url.includes('UAL2202')?{status:200,payload}:{status:404,payload:null};});
+  // The 5 s pace runs on performance.now(): here it follows the ticks' clock.
+  const real=performance.now,tick=(ac,now)=>{performance.now=()=>now*1000;return enricher.tick(ac,now);};
+  t.after(()=>{performance.now=real;});
   const a={...AIRLINE,observed:1000},b={...a,hex:'445566',callsign:'DAL9'};
-  const routes=await enricher.tick([a,b],1000);
+  const routes=await tick([a,b],1000);
   assert.deepEqual(calls,['https://vrs-standing-data.adsb.lol/routes/UA/UAL2202.json']);
   assert.equal(routes.length,2);assert.ok(routes.some(r=>r.historical));
-  await enricher.tick([a,b],1003);assert.equal(calls.length,1);
-  await enricher.tick([a,b],1006);assert.equal(calls.length,2);assert.match(calls[1],/routes\/DA\/DAL9\.json$/);
-  await enricher.tick([a,b],1006+1799);assert.equal(calls.length,2);
-  await enricher.tick([a,b],1006+1801);assert.equal(calls.length,3);
-  await enricher.tick([a],1000+3599);assert.equal(calls.length,3);
-  await enricher.tick([a],1000+3601);assert.equal(calls.length,4);
+  await tick([a,b],1003);assert.equal(calls.length,1);
+  await tick([a,b],1006);assert.equal(calls.length,2);assert.match(calls[1],/routes\/DA\/DAL9\.json$/);
+  await tick([b],1006+86399);assert.equal(calls.length,2); // the 404, a day later
+  await tick([b],1006+86401);assert.equal(calls.length,3);
+  await tick([a],1000+86399);assert.equal(calls.length,3);
+  await tick([a],1000+86413);assert.equal(calls.length,4);
   const restored=new Ledger(JSON.parse(JSON.stringify(ledger)));
-  assert.equal(restored.get('lol:UAL2202',1000).name,undefined);
-  assert.ok(restored.routes(1000+3601+6*3600-1).length>=1);
-  assert.equal(restored.routes(1000+3601+6*3600+1).length,0);
+  assert.equal(restored.get('lol:UAL2202',1000+86413).name,undefined);
+  assert.ok(restored.routes(1000+86413+6*3600-1).length>=1);
+  assert.equal(restored.routes(1000+86413+6*3600+1).length,0);
+});
+// A feed restart (a map step, an alert change, a new place) starts a new Enricher: the 5 s pace holds
+// across it, also when the ledger with the saved pace was not written (a restart during a lookup).
+test('enricher: the 5 s pace holds across a feed restart, with or without the saved ledger',async t=>{
+  resetOutage();
+  const real=performance.now;let p=1000;performance.now=()=>p;
+  t.after(()=>{performance.now=real;resetOutage();});
+  const asked=[],request=async url=>{asked.push(url);return {status:404,payload:null};};
+  const a=n=>({...AIRLINE,hex:'a0000'+n,callsign:'UAL10'+n,observed:1000});
+  const first=new Ledger();
+  await new Enricher(first,request).tick([a(1)],1000);assert.equal(asked.length,1);
+  p=2500;await new Enricher(new Ledger(),request).tick([a(2)],1001);assert.equal(asked.length,1,'a restart 1.5 s on waits (ledger not saved)');
+  p=4000;await new Enricher(new Ledger(JSON.parse(JSON.stringify(first))),request).tick([a(2)],1003);assert.equal(asked.length,1,'with the saved ledger too');
+  p=6000;await new Enricher(new Ledger(),request).tick([a(2)],1005);assert.equal(asked.length,2,'asked once the 5 s are up');
+  assert.match(asked[1],/UAL102\.json$/);
+});
+
+test('route lookups: the 5 s pace is kept in memory, so a lookup that succeeds saves no slow-down note; a 429 (15 min) or another error (1 min) does, and a saved one, in seconds or the build before\'s true, holds at the next start',async t=>{
+  resetOutage(); // the pace lives in the module (it holds across a feed restart)
+  const real=performance.now;let p=1000;performance.now=()=>p;t.after(()=>{performance.now=real;resetOutage();});
+  const now=Date.now()/1000,asked=[];let reply={status:200,payload:CHAIN};
+  const ledger=new Ledger(),enricher=new Enricher(ledger,async url=>{asked.push(url);return reply;});
+  const a={...AIRLINE,observed:now},b={...a,hex:'445566',callsign:'DAL9'};
+  await enricher.tick([a,b],now);
+  assert.equal(asked.length,1);assert.equal(ledger.rows.has('cooldown:adsblol'),false,'a lookup that succeeded: no note');
+  p+=3000;await enricher.tick([a,b],now);assert.equal(asked.length,1,'the 5 s pace holds all the same');
+  p+=2000;reply={status:500,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,2);
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+60,value:60},'a 5xx: a minute, saved');
+  p+=60000;reply={status:429,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,3);
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+900,value:900},'a 429: 15 min, saved');
+  p+=900000;reply={status:404,payload:null};await enricher.tick([a,b],now);assert.equal(asked.length,4,'asked again once it is over');
+  assert.deepEqual(ledger.rows.get('cooldown:adsblol'),{expires:now+900,value:900},'a miss writes nothing new');
+  for(const value of [600,true]){
+    const again=[],e=new Enricher(new Ledger({'cooldown:adsblol':{expires:now+600,value}}),async url=>{again.push(url);return {status:404,payload:null};});
+    await e.tick([a],now);assert.equal(again.length,0,`a saved ${value}: still paused`);
+    p+=601000;await e.tick([a],now);assert.equal(again.length,1,`a saved ${value}: over`);
+  }
+});
+test('route re-check from a saved sighting: a plane that left the zone before its turn is looked up from its sighting, whose heading, speed and climb rate decide the leg (a same-callsign round trip, or a leg near the shared airport); without them the route stays blank',async t=>{
+  resetOutage(); // the 5 s pace lives in the module: each Enricher below waits its turn
+  const real=performance.now;let p=1000;performance.now=()=>p;t.after(()=>{performance.now=real;resetOutage();});
+  const payloads={UAL2202:CHAIN,AAL2939:AA2939,SKW3676:SKW3676},asked=[];
+  const request=async url=>{const call=/\/([A-Z0-9]+)\.json$/.exec(url)[1];asked.push(call);return payloads[call]?{status:200,payload:payloads[call]}:{status:404,payload:null};};
+  // Two planes inside the zone with no route yet: the nearer takes the one lookup of these 5 s, the
+  // other is noted. 5 s on it has left the zone (from history now, not live): its lookup, a
+  // DFW-FCA-DFW round trip, is judged at the saved sighting, whose heading points along FCA-DFW.
+  const near={...AIRLINE,observed:NOW,miles:1};
+  const passing={...PASSING,hex:'aa2939',observed:NOW,heading:130,altitude_ft:30000,vertical_rate:0,miles:3};
+  const gone={hex:'aa2939',callsign:'AAL2939',registration:'N123UA',observed:NOW,live:false,inside:true};
+  const L=new Ledger(),e=new Enricher(L,request);
+  await e.tick([near,passing],NOW);
+  assert.deepEqual(asked,['UAL2202']);
+  const seen=L.get('sighting:aa2939:AAL2939',NOW);
+  assert.deepEqual(Object.keys(seen),['latitude','longitude','heading','speed_kt','altitude_ft','vertical_rate','observed']);
+  p+=5000;const routes=await e.tick([gone],NOW+5);
+  assert.deepEqual(asked,['UAL2202','AAL2939'],'looked up from the sighting');
+  const leg=r=>{const x=r.find(x=>x.hex==='aa2939'&&!x.historical);return x?[x.origin,x.destination]:null;};
+  assert.deepEqual(leg(routes),['FCA','DFW']);
+  assert.ok(routes.some(x=>x.hex==='aa2939'&&x.historical),'kept for Recently above');
+  // The same sighting without its heading, speed or climb rate: the round trip can't be told apart.
+  for(const drop of [['heading','speed_kt','vertical_rate'],['heading'],['speed_kt']]){
+    const row=Object.fromEntries(Object.entries(seen).filter(([k])=>!drop.includes(k)));
+    const e2=new Enricher(new Ledger({'sighting:aa2939:AAL2939':{expires:NOW+3600,value:row}}),request);
+    p+=5000;assert.equal(leg(await e2.tick([gone],NOW+5)),null,`without ${drop}: no leg`);
+  }
+  // Near the shared airport of a SLC-BZN-SLC round trip the saved climb rate decides the leg.
+  const bzn={latitude:45.60,longitude:-111.10,heading:340,speed_kt:200,altitude_ft:9000,observed:NOW},skw={hex:'3676aa',callsign:'SKW3676',registration:'N288SY',observed:NOW,live:false,inside:true};
+  for(const [rate,expected] of [[-900,['SLC','BZN']],[2500,['BZN','SLC']],[null,null]]){
+    const e3=new Enricher(new Ledger({'sighting:3676aa:SKW3676':{expires:NOW+3600,value:{...bzn,vertical_rate:rate}}}),request);
+    p+=5000;const r=(await e3.tick([skw],NOW+5)).find(x=>x.hex==='3676aa'&&!x.historical);
+    assert.deepEqual(r?[r.origin,r.destination]:null,expected,`climb rate ${rate}`);
+  }
 });
 test('selection: in Window view only planes inside the wedge (or overhead) count as inside',()=>{
   const now=1700000000,home={latitude:39.05,longitude:-84.65};
@@ -133,4 +208,19 @@ test('route: a multi-leg flight counts only the leg it is flying (MUC-LHR-DFW ov
   const a={callsign:'BAW1',latitude:39.05,longitude:-84.65,heading:245,speed_kt:480,vertical_rate:0,altitude_ft:36000,observed:1700000000};
   const r=commercialRoute(lol,a);
   assert.equal(r.origin,'LHR');assert.equal(r.destination,'DFW');assert.equal(r.from.lat,51.47);
+});
+test('ledger: a row put again with the same value only moves its expiry (nothing to save); another value, a new row, a removal or the prune dirties it; a pause (cooldown) is urgent',()=>{
+  const L=new Ledger();
+  L.put('sighting:a1:FIX1',{latitude:39.06,observed:5},100,0);assert.ok(L.dirty,'a new row');assert.equal(L.urgent,false);
+  L.dirty=false;L.put('sighting:a1:FIX1',{latitude:39.06,observed:5},200,0);
+  assert.equal(L.dirty,false,'the same value: not dirty');assert.equal(L.rows.get('sighting:a1:FIX1').expires,200,'its expiry moved');
+  L.put('sighting:a1:FIX1',{latitude:39.06,observed:6},300,0);assert.ok(L.dirty,'another value');
+  L.dirty=false;L.put('lol:UAL1',{},400,0);assert.ok(L.dirty,'a miss cached');
+  L.dirty=false;L.put('lol:UAL1',{},500,0);assert.equal(L.dirty,false,'the miss checked again');
+  L.delete('lol:UAL1');assert.ok(L.dirty,'a removal');
+  L.dirty=false;L.put('cooldown:adsblol',60,60,0);assert.ok(L.dirty&&L.urgent,'a pause: dirty and urgent');
+  L.dirty=L.urgent=false;L.put('cooldown:adsblol',60,120,10);assert.ok(L.urgent&&!L.dirty,'the pause set again: urgent though its value is the same');
+  // The minute's prune of expired rows is a change too, also under a put that changed nothing itself.
+  L.urgent=false;L.put('sighting:a1:FIX1',{latitude:39.06,observed:6},400,200);
+  assert.ok(L.dirty&&!L.urgent,'the pause expired and pruned: dirty');assert.equal(L.rows.has('cooldown:adsblol'),false);
 });

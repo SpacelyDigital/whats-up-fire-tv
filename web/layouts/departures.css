@@ -54,6 +54,8 @@
 /* Aircraft photo between the ticker and the map inset, bottom-aligned with the inset. */
 .L-departures .ph-wrap{flex:none;align-self:flex-end;max-width:200px}
 .L-departures .ph{gap:4px 6px}
-.L-departures .ph-img{height:72px;max-width:120px;border:1px solid var(--amber-faint);border-radius:3px}
+.L-departures .ph-img{height:72px;max-width:120px;border:1px solid var(--amber-faint)}
+.L-departures .ph.model .ph-img{border-radius:3px}
 .L-departures .ph-qr{width:72px;height:72px;border-radius:3px}
 .L-departures .ph-cap{font:500 12px 'Barlow Condensed';letter-spacing:.04em;color:var(--amber-dim);opacity:1}
+.L-departures .dots .dot.mil{fill:#b4cf6e}

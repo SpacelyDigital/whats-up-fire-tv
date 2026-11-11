@@ -9,6 +9,24 @@ import {VideoPlayer} from '@amazon-devices/react-native-w3cmedia';
 // playback to defeat the screensaver may not pass review.
 export const SILENT_LOOP_URL = 'file:///pkg/assets/media/keep-awake.mp4';
 
+// The loop is not media: it must not appear in the system's media controls or be paused
+// by them. w3cmedia registers every player with a legacy Player Session unless the
+// (unexported) MediaPlayer.isPlayerSessionEnabled is false; switch it off on the class in
+// VideoPlayer's prototype chain that owns it. The app plays no other video. The chime's
+// AudioPlayer shares the flag and needs no media controls either.
+function noPlayerSession() {
+  try {
+    for (let c: any = VideoPlayer; c && c !== Function.prototype; c = Object.getPrototypeOf(c)) {
+      if (Object.prototype.hasOwnProperty.call(c, 'isPlayerSessionEnabled')) {
+        c.isPlayerSessionEnabled = false;
+        return;
+      }
+    }
+  } catch {
+    // older or newer library: leave it as it is
+  }
+}
+
 let player: VideoPlayer | null = null;
 let starting: Promise<void> | null = null;
 let surface: string | null = null;
@@ -28,6 +46,7 @@ export function startLoop(): Promise<void> {
   }
   if (!starting) {
     starting = (async () => {
+      noPlayerSession();
       const p = new VideoPlayer();
       await p.initialize();
       p.muted = true;

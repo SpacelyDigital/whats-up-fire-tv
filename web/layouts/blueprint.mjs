@@ -3,9 +3,11 @@
 // silhouettes with drafting callouts on leader lines, the hero gets a dimension line
 // from home, and the data lives in a title block and a revision table.
 import {svg,el,setText,fmt,placeName,statusText,quietText,shapeFor,byInterest,makeCanvas,paintMap,toView,
-  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts} from '../kit.mjs';
+  compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,LIMIT=10.4,VIEW={cx:372,cy:292,ppm:24.5}; // the whole map radius fits below home (248 px); the frame keeps its size
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return p.x>-10&&p.x<W+10&&p.y>-10&&p.y<H+10;};
 // The survey limit: linework stops at a drafted border where the detail map ends.
 const CLIPPED={...VIEW,clip:{x:VIEW.cx-LIMIT*VIEW.ppm,y:VIEW.cy-LIMIT*VIEW.ppm,w:2*LIMIT*VIEW.ppm,h:2*LIMIT*VIEW.ppm}};
 const PAPER='#0c2d5a';
@@ -60,7 +62,7 @@ function ui(){
     <div class="bp-scale"></div>`);
   for(const c of ['city','clock','date','status','rev-b','stamp','stamp-a','stamp-b','fl','op','type','route','alt','spd','hdg','cpa','vs','note','scale'])
     $[c]=root.querySelector('.bp-'+c);
-  fit($.city);
+  $.obj=root.querySelector('.bp-obj i');fit($.city,$.obj);
   $.cells=[...root.querySelectorAll('.bp-block .bp-cell:not(.bp-note):not(.bp-foot)')];
   $.side=root.querySelector('.bp-side');$.fig=root.querySelector('.bp-fig');$.fig.append($.pic=photoSlot());
 }
@@ -125,10 +127,10 @@ function render(m){
   const home=toView(VIEW,0,0);boxes.push({x:home.x-60,y:home.y-14,w:120,h:40});
   showPhotoIn($.pic,hero,()=>{$.fig.hidden=$.pic.hidden;});
   if(!$.fig.hidden)boxes.push({x:$.side.offsetLeft-6,y:$.side.offsetTop-6,w:$.side.offsetWidth+12,h:$.side.offsetHeight+12});
-  const shown=byInterest(m).filter(a=>{const p=toView(VIEW,a.x,a.y);return p.x>-10&&p.x<W+10&&p.y>-10&&p.y<H+10;});
+  const shown=byInterest(m).filter(shows);
   for(const a of shown){
     const p=toView(VIEW,a.x,a.y),isHero=a===hero;
-    const g=svg('g',{class:`bp-plane${isHero?' hero':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${a.heading||0}) scale(${(isHero?32:22)/64})`});
+    const g=svg('g',{class:`bp-plane${isHero?' hero':''}${a.military?' mil':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${a.heading||0}) scale(${(isHero?32:22)/64})`});
     g.append(svg('path',{d:shapeFor(a)}));planes.push(g);
     // Heading vector: a short construction line ahead of the nose.
     if(number(a.heading)){const r=a.heading*Math.PI/180,l=isHero?34:22;
@@ -152,11 +154,11 @@ function render(m){
   $.dims.replaceChildren(...(hero?dimension(home,toView(VIEW,hero.x,hero.y),fmt.dist(hero.ground).toUpperCase()):[]));
 
   $.stamp.hidden=!hero?.emergency;
-  if(hero?.emergency){setText($['stamp-a'],`SQUAWK ${hero.squawk}`);setText($['stamp-b'],hero.emergency);}
+  if(hero?.emergency){setText($['stamp-a'],hero.squawk?`SQUAWK ${hero.squawk}`:'DECLARED');setText($['stamp-b'],hero.emergency);}
   for(const c of $.cells)c.hidden=!hero;$.note.hidden=!!hero;
   if(!hero)setText($.note,`NOTE 1: ${quietText(m,demo).toUpperCase()}`);
   if(hero){
-    setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
+    setText($.obj,'',headingAlts(hero,'Object'));setText($.fl,hero.flight);setText($.op,(hero.operator||'').toUpperCase());
     $.type._alts=[...new Set([hero.type,hero.aircraft_type,'UNKNOWN'].filter(Boolean).map(s=>s.toUpperCase()))];fitLine($.type);
     setText($.route,hero.route?`${hero.route.origin} → ${hero.route.destination}`:'NOT FILED');
     setText($.alt,fmt.alt(hero.altitude_ft).toUpperCase());setText($.spd,fmt.speed(hero.speed_kt).toUpperCase());
@@ -174,7 +176,7 @@ export default {
   name:'Blueprint',map:'detail',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
-  refresh(){drawMap();},
+  render,shows,
+  refresh(){construction();}, // units and the alert zone: the rings, scale and wedge; the map itself shows no distance
   unmount(){root=null;$={};maps={};},
 };

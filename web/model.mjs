@@ -1,14 +1,16 @@
-// The display model: live aircraft (live.mjs: adsb.fi + ADSB.lol routes) enriched
+// The display model: live aircraft (live.mjs: adsb.fi, or adsb.lol standing in, + ADSB.lol routes) enriched
 // with operator, cargo brand, look-up angles, closest approach, trend and a daily
 // logbook. ?demo=1 makes a synthetic sky around whatever home is set (&scene=emergency:
-// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off).
-import {IDS,airspace,recentSightings,number,inZone,OVERHEAD_MI} from './core.mjs';
+// a 7700 squawk; &scene=quiet: nothing in range; &scene=long: long names everywhere, to check nothing is cut off;
+// &still=1: the planes hold where they start, for checks that step through them in order).
+import {IDS,airspace,recentSightings,number,inZone,inBearings,norm,ABOVE_MI,designator} from './core.mjs';
 import {RouteLookup} from './routes.mjs';
-import {startLive,haversine,store} from './live.mjs';
+import {startLive,haversine,store,text,HISTORY_KEY} from './live.mjs';
 import {AIRCRAFT_TYPES} from './aircraft-types.mjs';
 
-export const query=new URLSearchParams(typeof location!=='undefined'?location.search:'');
-export const demo=query.get('demo')==='1',scene=query.get('scene')||'';
+// Developer/screenshot URL hooks; the release build (window.__whatsupRelease) has none.
+export const query=new URLSearchParams(typeof location!=='undefined'&&!globalThis.window?.__whatsupRelease?location.search:'');
+export const demo=query.get('demo')==='1',scene=query.get('scene')||'',still=query.get('still')==='1';
 let HOME={latitude:0,longitude:0,elevationFt:0},TZ='UTC';
 export const tz=()=>TZ;
 
@@ -49,13 +51,13 @@ export function cargoBrand(callsign,owner){
   return '';
 }
 export const EMERGENCY={'7500':'HIJACK','7600':'RADIO FAILURE','7700':'EMERGENCY'};
-const titleCase=s=>s.toLowerCase().replace(/[,.]?\s+(inc|co|llc|ltd|corp|corporation|company|plc|gmbh|sa|ag)\.?$/,'').replace(/\b(\w)/g,c=>c.toUpperCase());
 export const typeName=code=>code?AIRCRAFT_TYPES[String(code).toUpperCase()]||code:'';
 export const compass=deg=>['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(deg/22.5)%16];
 
 // Miles east/north of home.
 export function offset(lat,lon){
-  return {x:(lon-HOME.longitude)*69.172*Math.cos(HOME.latitude*Math.PI/180),y:(lat-HOME.latitude)*69.0};
+  const dLon=((lon-HOME.longitude+540)%360)-180; // across the date line the short way round
+  return {x:dLon*69.172*Math.cos(HOME.latitude*Math.PI/180),y:(lat-HOME.latitude)*69.0};
 }
 function derive(a){
   const {x,y}=offset(a.latitude,a.longitude),ground=Math.hypot(x,y);
@@ -77,26 +79,72 @@ function derive(a){
 const LOG_KEY='whatsup.logbook.v1';
 const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
 const localHour=t=>Number(new Date(t).toLocaleString('en-US',{hour:'numeric',hourCycle:'h23',timeZone:TZ}));
-const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?localDay(t-86400000):null;};
-export const resetLog=()=>store.remove(LOG_KEY);
+// Before 06:00 the night belongs to the previous calendar date (counted on the date itself,
+// not 24 h back: after a 23-hour spring-forward day that would land two dates back).
+const shiftDay=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10);},prevDay=d=>shiftDay(d,-1);
+// The log that counts for `day` (a reply's local day): that day's, or the next day's, which the other
+// feed's clock (seconds ahead) may have begun already. The day never rolls back; a log dated further
+// ahead is damage (a TV clock that was wrong) and does not count.
+const logOf=(log,day)=>log&&(log.day===day||log.day===shiftDay(day,1))?log:null;
+const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?prevDay(localDay(t)):null;};
+export const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
+// The logbook lives in memory and is saved every 5 min, at the local midnight change and
+// when the app leaves the screen (flushLog), not on every poll: it can be ~350 KB, and
+// writing it twice per poll wore the stick's flash and stalled the page.
+const LOG_FLUSH_MS=300000;
+let pendingLog=null,lastLogSave=0;
+export function flushLog(){if(pendingLog){store.set(LOG_KEY,pendingLog);pendingLog=null;lastLogSave=Date.now();}}
+function saveLogSoon(log,now){
+  const newDay=pendingLog&&pendingLog.day!==log.day;
+  pendingLog=log;
+  if(newDay||now-lastLogSave>=LOG_FLUSH_MS)flushLog();
+}
+// A saved logbook as loaded from storage: repaired field by field (old shapes, or a value
+// damaged on the stick's flash), or dropped when it isn't a logbook at all, so a bad value
+// can never stop the dashboard.
+const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
+export function saneLog(log){
+  if(!plain(log)||typeof log.day!=='string')return null;
+  if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
+  const rec=v=>plain(v)&&typeof v.name==='string'&&Number.isFinite(v.value)?v:null,text=v=>v===undefined||typeof v==='string';
+  // What the stats show is text and numbers only (a type 7 read "Rare 7"; a brand {} "[object Object]").
+  const plane=v=>plain(v)&&(v.d===undefined||Number.isFinite(v.d))&&text(v.t)&&text(v.f)&&
+    (v.o===undefined||plain(v.o)&&Number.isFinite(v.o.mi)&&typeof v.o.city==='string'&&typeof v.o.code==='string');
+  return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
+    planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plane(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
+    typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isInteger(n)&&n>=0)):{},highest:rec(log.highest),fastest:rec(log.fastest),
+    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?
+      {...log.cargo,seen:Object.fromEntries(Object.entries(log.cargo.seen).filter(([,b])=>typeof b==='string'))}:{night:null,seen:{}},
+    mil:plain(log.mil)?Object.fromEntries(Object.entries(log.mil).filter(([,t])=>typeof t==='string')):{}};
+}
 export function updateLog(log,planes,now){
   const day=localDay(now);
-  if(!log||log.day!==day)log={day,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}}};
+  if(!logOf(log,day))log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
   // Today's aircraft (any distance the feed covers): closest approach, type, callsign and
   // origin. Rarest and Farthest pick from those that came within the map radius, so they
   // follow zooming. Older logs (no planes yet): today's local types count as close (0 mi).
   if(!log.planes){log.planes={};for(const t of log.typesToday||[])log.planes[`old-${t}`]={t,d:0};}
+  // Plane keys are 'x'+hex: an all-digit hex is an integer-like key, which objects keep
+  // first, so the 4000 cap evicted those planes first and they were counted again.
+  if(!log.pk){const old=log.planes;log.planes={};for(const [k,v] of Object.entries(old))log.planes[/^[0-9a-f]{6}$/.test(k)?'x'+k:k]=v;log.pk=1;}
   delete log.typesZone;delete log.zoneSeen;
   const night=tonightKey(now);
   if(log.cargo.night!==night||Array.isArray(log.cargo.seen))log.cargo={night,seen:{}};
+  // Counted once per update, not per new plane: a reply of 300 newcomers into a full log read the 4,000
+  // keys and searched the 3,000 seen once for each (over 100 ms per poll at full speed on a full log).
+  let types=Object.keys(log.typesAll).length;const seen=new Set(log.seen);
   for(const a of planes){
     const from=a.route?.from,d=Math.round(a.distance_mi*10)/10;
-    let rec=log.planes[a.hex];
+    let rec=log.planes['x'+a.hex];
     if(!rec){
-      rec=log.planes[a.hex]={d};
+      rec=log.planes['x'+a.hex]={d};
       // All-time type tallies: once per aircraft per day, wherever it was seen.
-      if(a.aircraft_type)log.typesAll[a.aircraft_type]=(log.typesAll[a.aircraft_type]||0)+1;
-      const keys=Object.keys(log.planes);if(keys.length>4000)delete log.planes[keys[0]];
+      if(a.aircraft_type&&/^[A-Z0-9]{2,4}$/.test(a.aircraft_type)){
+        if(!Object.hasOwn(log.typesAll,a.aircraft_type))types++;
+        log.typesAll[a.aircraft_type]=(log.typesAll[a.aircraft_type]||0)+1;
+        // Bounded: ICAO designators only, at most 600 kept (the rarest-ever pick reads it).
+        if(types>600){const ks=Object.keys(log.typesAll);ks.sort((x,y)=>log.typesAll[y]-log.typesAll[x]);for(const k of ks.slice(600))delete log.typesAll[k];types=600;}
+      }
     }
     rec.d=Math.min(rec.d,d);
     if(a.aircraft_type)rec.t=a.aircraft_type;
@@ -104,22 +152,29 @@ export function updateLog(log,planes,now){
     if(from&&number(from.lat)&&number(from.lon)&&!rec.o)
       rec.o={code:a.route.origin,city:from.city||a.route.origin,mi:Math.round(haversine(from.lat,from.lon,HOME.latitude,HOME.longitude))};
     if(a.distance_mi>LOG_MILES)continue; // Seen/Highest/Fastest/Cargo: the local area only
-    if(!log.seen.includes(a.hex)){
-      log.seen.push(a.hex);if(log.seen.length>3000)log.seen.shift();
+    if(!seen.has(a.hex)){
+      seen.add(a.hex);log.seen.push(a.hex);
       if(a.aircraft_type&&!log.typesToday.includes(a.aircraft_type))log.typesToday.push(a.aircraft_type);
     }
     const name=a.flight;
     if(number(a.altitude_ft)&&(!log.highest||a.altitude_ft>log.highest.value))log.highest={name,value:a.altitude_ft};
     if(number(a.speed_kt)&&(!log.fastest||a.speed_kt>log.fastest.value))log.fastest={name,value:a.speed_kt};
-    if(night&&a.cargo&&!log.cargo.seen[a.hex])log.cargo.seen[a.hex]=a.cargo;
+    // Amazon is told by the owner, which the backup feed (adsb.lol) doesn't send: a plane first
+    // logged under its callsign's operator (ATN: ATI) becomes Amazon once the owner is known.
+    if(night&&a.cargo&&(!log.cargo.seen[a.hex]||a.cargo==='Amazon'))log.cargo.seen[a.hex]=a.cargo;
+    // Military today: once per aircraft per day, same local area as Seen; kept with its type.
+    if(a.military){log.mil=log.mil||{};if(!(a.hex in log.mil)){log.mil[a.hex]=String(a.aircraft_type||'').slice(0,4);const k=Object.keys(log.mil);if(k.length>500)delete log.mil[k[0]];}}
   }
+  // Bounded, the oldest first (keys keep their insertion order): at most 4,000 planes and 3,000 seen.
+  const keys=Object.keys(log.planes);for(let i=0;i<keys.length-4000;i++)delete log.planes[keys[i]];
+  if(log.seen.length>3000)log.seen.splice(0,log.seen.length-3000);
   return log;
 }
 // Rarest and Farthest among today's aircraft that came within `radius` miles.
 export function pickRarest(log,radius){
   let best=null;
   for(const p of Object.values(log?.planes||{})){
-    if(!p.t||p.d>radius)continue;
+    if(!p.t||p.d>radius||designator(p.t)!==p.t)continue; // a saved "b738" or ZZZZ is never tallied: it won with 0
     const n=log.typesAll[p.t]||0;
     if(!best||n<best.count)best={code:p.t,name:typeName(p.t),count:n};
   }
@@ -138,88 +193,168 @@ export function cargoCounts(seen){
   const counts={};for(const brand of Object.values(seen||{}))counts[brand]=(counts[brand]||0)+1;
   return Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
 }
+// Military today by type, most seen first: [[short name, count]] ("C-17", 2).
+export function militaryTypes(mil){
+  const n={};for(const t of Object.values(mil||{})){const k=shortType(t)||'Unknown';n[k]=(n[k]||0)+1;}
+  return Object.entries(n).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+}
 export function logSummary(log){
-  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoTonight:0,cargoBy:[],night:false};
+  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoTonight:0,cargoBy:[],night:false,militaryToday:0,militaryTypes:[]};
   const cargoBy=cargoCounts(log.cargo.seen);
   // Rarest/Farthest are read when drawn, so zooming the map changes them at once.
   return {today:log.seen.length,highest:log.highest,fastest:log.fastest,night:!!log.cargo.night,
     get rarest(){return pickRarest(log,logRadius());},get farthest(){return pickFarthest(log,logRadius());},
-    cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy};
+    cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy,militaryToday:Object.keys(log.mil||{}).length,militaryTypes:militaryTypes(log.mil)};
 }
 
-// Trend: compare with the reading ~30 s ago; the samples double as the trail.
+// Trend: compare with the newest reading at least 20 s old (not the oldest kept, up to 90 s old: a plane
+// levelled off read as climbing for over a minute); the samples double as the trail.
 const samples=new Map();
 function trend(a,now){
   const list=(samples.get(a.hex)||[]).filter(s=>now-s.t<=90000);
   list.push({t:now,alt:a.altitude_ft,gs:a.speed_kt,lat:a.latitude,lon:a.longitude});samples.set(a.hex,list);
-  const old=list.find(s=>now-s.t>=20000)||list[0];
+  let old=list[0];for(let i=list.length-1;i>=0;i--)if(now-list[i].t>=20000){old=list[i];break;}
   const sign=(d,dead)=>!number(d)||Math.abs(d)<dead?0:Math.sign(d);
   return {alt:sign(a.altitude_ft-old.alt,150),speed:sign(a.speed_kt-old.gs,8),trail:list};
 }
 function pruneSamples(now){for(const [k,l] of samples)if(now-l[l.length-1].t>120000)samples.delete(k);}
 
+// Military: adsb.fi marks it in the readsb dbFlags field, bit 1 (the same flag behind its
+// /api/v2/mil list); the field is only present when it isn't 0.
+export const isMilitary=raw=>(Number(raw?.dbFlags)&1)===1;
+// A type's short name, as the app writes it elsewhere: "C-17 Globemaster III" -> "C-17".
+export const shortType=code=>{const n=typeName(code),w=n.split(' ')[0];return /\d/.test(w)?w:code||'';};
+const squawkOf=r=>{const sq=typeof r.squawk==='string'?text(r.squawk):Number.isInteger(r.squawk)&&r.squawk>=0?String(r.squawk).padStart(4,'0'):'';return /^[0-7]{4}$/.test(sq)?sq:'';}; // text (cleaned as callsigns are) or a number's 4 digits: four octal digits, or none
+// Emergencies: the 7500/7600/7700 squawks, or a declared emergency (lifeguard and minimum
+// fuel are priority flights, not emergencies). Own keys only: "constructor" is no squawk.
+const DECLARED={general:'EMERGENCY',nordo:'RADIO FAILURE',unlawful:'HIJACK',downed:'EMERGENCY'},own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const emergencyOf=(r={})=>{const s=squawkOf(r),e=String(r.emergency||'');return own(EMERGENCY,s)?EMERGENCY[s]:own(DECLARED,e)?DECLARED[e]:'';};
 function enrich(a,raw,route,now){
-  const r=raw||{},owner=typeof r.ownOp==='string'?r.ownOp.trim():'';
+  const r=raw||{},owner=typeof r.ownOp==='string'?r.ownOp.slice(0,80).trim():''; // capped: remote text through regexes
   const call=(a.callsign||'').toUpperCase();
-  const airline=/^[A-Z]{3}\d/.test(call)?OPERATORS[call.slice(0,3)]:'';
+  const airline=/^[A-Z]{3}\d/.test(call)&&Object.prototype.hasOwnProperty.call(OPERATORS,call.slice(0,3))?OPERATORS[call.slice(0,3)]:'';
   const cargo=cargoBrand(call,owner);
-  const operator=(cargo==='Amazon'?'Amazon Air':'')||airline||
-    (owner&&!/BANK|TRUST|LEAS|FINANCE|CAPITAL|WELLS FARGO|WILMINGTON|HOLDINGS/i.test(owner)?titleCase(owner):'');
+  // The registered owner is never shown: for a private aircraft it can be a person's name
+  // (or a holding company named after one). It only tells Amazon's cargo flights apart.
+  const operator=(cargo==='Amazon'?'Amazon Air':'')||airline;
   const flight=a.callsign||a.registration||a.hex.toUpperCase();
-  const squawk=typeof r.squawk==='string'?r.squawk:'';
-  const emergency=EMERGENCY[squawk]||(r.emergency&&r.emergency!=='none'?String(r.emergency).toUpperCase():'');
+  const squawk=squawkOf(r),emergency=emergencyOf(r);
   let progress=null;
   if(route?.from&&route?.to&&number(route.from.lat)&&number(route.to.lat)){
     const flown=haversine(route.from.lat,route.from.lon,a.latitude,a.longitude),left=haversine(a.latitude,a.longitude,route.to.lat,route.to.lon);
     progress={flown,left,share:flown/Math.max(1,flown+left)};
   }
   const vertical=number(r.baro_rate)?r.baro_rate:number(r.geom_rate)?r.geom_rate:null;
-  return {...a,flight,operator,registration:a.registration||r.r||'',type:typeName(a.aircraft_type),
+  const military=isMilitary(r);
+  // The cleaned registration only: the feed's raw one could be any type ("[object Object]").
+  return {...a,flight,operator,military,registration:a.registration||'',type:typeName(a.aircraft_type),
     year:/^\d{4}$/.test(String(r.year||''))?String(r.year):'',squawk,emergency,vertical,
     cargo,route,progress,...derive(a),trend:trend(a,now)};
 }
 
 // The hero: an emergency first, then the nearest inside the alert zone, then the one
 // arriving soonest, then the nearest. In Window view, "inside" means in the window's
-// wedge (or right overhead) and "approaching" means its closest point falls in the wedge.
-function inAlert(a,config){
+// wedge (or right above) and "approaching" means its closest point falls in the wedge.
+// `loose`: for the plane the card already calls inside, 0.25 mi past the radius (the window 3° wider each side, 0.25 mi further out).
+function inAlert(a,config,loose){
   const z=config.zone;
-  return z?.kind==='window'?inZone(z,a.x,a.y):a.distance_mi<=config.radiusMiles;
+  return z?.kind==='window'?(loose?wider:inZone)(z,a.x,a.y,.25):a.distance_mi<=config.radiusMiles+(loose?.25:0);
 }
-function pickHero(planes,config){
-  const z=config.zone,win=z?.kind==='window';
-  const approaching=a=>a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(win?inZone(z,a.cpa.x,a.cpa.y):
-    a.cpa.miles<config.radiusMiles+1);
-  const hero=planes.find(a=>a.emergency)||planes.find(a=>a.inside)||
-    planes.filter(approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
-    planes.find(a=>a.ground<=config.rangeMiles)||null; // 'Nearest' only from planes on the map
-  if(hero)hero.status=hero.emergency?'Emergency':hero.inside?(win&&hero.ground>OVERHEAD_MI?'In your window':'Above you now'):
-    approaching(hero)?'Approaching':'Nearest';
+// Every plane carries it (a.approaching), so a board's remark says what the card would. `loose`: for the plane
+// the card already calls Approaching, 0.5 mi past the cut-off, or the window 3° wider each side and 0.5 mi further out.
+const wider=(z,x,y,mi=.5)=>{const d=Math.hypot(x,y);return d<=ABOVE_MI+mi||d<=z.miles+mi&&(norm(z.to-z.from)>=354||inBearings(Math.atan2(x,y)*180/Math.PI,z.from-3,z.to+3));};
+function approaching(a,config,loose){
+  const z=config.zone;
+  return !!a.cpa&&!a.cpa.receding&&a.cpa.seconds<600&&a.ground<=config.rangeMiles&&(z?.kind==='window'?(loose?wider:inZone)(z,a.cpa.x,a.cpa.y):
+    a.cpa.miles<config.radiusMiles+1+(loose?.5:0));
+}
+// The plane on the card (held.hex) keeps it unless another is clearly first: an emergency, one higher in that order,
+// or one as high and 0.25 mi closer (of two approaching, 0.25 mi of its flight sooner). Called Approaching (held.app),
+// it stays so with the slack above; called inside (held.inside), it stays so to 0.25 mi outside the zone (3° past a
+// window's side), below a plane really inside and never on its way in; one called Nearest gets none. The zone itself
+// (a.inside: the chime's count, the drawing) follows the true position; a.held marks the plane the slack holds, so a
+// board's row reads with the card. Noisy positions near a cut-off or a tie no longer swap the card, its heading, or
+// VoiceView's line every poll.
+function pickHero(planes,config,held={}){
+  const win=config.zone?.kind==='window',onMap=a=>a.ground<=config.rangeMiles,was=planes.find(a=>a.hex===held.hex&&onMap(a));
+  if(was&&held.app)was.approaching=approaching(was,config,true);
+  const near=!!was&&held.inside&&!was.inside&&inAlert(was,config,true); // just outside: inside still, to the card
+  let hero=planes.find(a=>a.emergency&&onMap(a))||planes.find(a=>a.inside)|| // an emergency off the map stays off the card
+    planes.filter(a=>a.approaching).sort((a,b)=>a.cpa.seconds-b.cpa.seconds)[0]||
+    planes.find(onMap)||null; // 'Nearest' only from planes on the map
+  if(was&&hero!==was&&!hero.emergency){
+    const rank=a=>a.inside?3:a.approaching?1:0,r=rank(hero),p=near?2:rank(was);
+    // As high: how much closer the new one is, in miles (of two approaching, how far ahead in its flight).
+    if(p>r||p===r&&(r===1?(was.cpa.seconds-hero.cpa.seconds)*hero.speed_kt*1.15078/3600:was.ground-hero.ground)<=.25)hero=was;
+  }
+  const inside=!!hero&&(hero.inside||hero===was&&near);
+  if(inside&&!hero.inside)hero.held=true;
+  held.hex=hero?.hex;held.app=!!hero?.approaching;held.inside=inside;
+  if(hero)hero.status=hero.emergency?'Emergency':inside?(win&&hero.ground>ABOVE_MI+(hero.held?.25:0)?'In your window':'Above you now'):
+    hero.approaching?'Approaching':'Nearest';
   return hero;
 }
 
 // --- Live
 const MAX_PLANES=300,LOG_MILES=17.3; // 15 NM
-function liveSource(config,onModel){
-  const routes=new RouteLookup(),started=Date.now();let log=store.get(LOG_KEY),lastOk=0;
-  return startLive((states,ok)=>{
-    if(ok)lastOk=Date.now();
-    const now=Date.now();
-    const {fresh,all}=airspace(states,now,now-lastOk<15000);
+// Seconds to the next poll; `at` is performance.now() ms, as live.mjs times it. app.mjs counts the
+// outage line down with it between polls.
+export const retryIn=at=>at?Math.max(0,Math.round((at-performance.now())/1000)):0;
+// `was`: the feed this one replaces. For the same place (a new map radius, alert radius or zone) it
+// carries on from that one's last reply: the planes stay until the next reply, an outage's countdown too.
+function liveSource(config,onModel,was){
+  const where=`${config.latitude},${config.longitude}`,w=was?.carry,c=w?.where===where?w:{};
+  const routes=new RouteLookup(),held={};let log=pendingLog||saneLog(store.get(LOG_KEY)),lastOk=c.lastOk??-Infinity,okAt=c.okAt??-Infinity,lastGood=c.lastGood||null,known=c.retryAt||0,due=known,stale=0,judge=null,hidden=!!config.paused,last=null;
+  // The planes carry over; 'Recently above' and the logbook only as they stand now: a fresh start (Confirm on a
+  // guess that replaced a damaged place, a new Alert zone) cleared them, and the old picture must not bring them back.
+  if(lastGood)lastGood={...lastGood,recent:store.get(HISTORY_KEY)?.length?lastGood.recent:[],log:log?lastGood.log:logSummary(null)};
+  const update=(states,ok)=>{
+    last={states,ok};clearTimeout(stale);judge=null;
+    if(ok){lastOk=performance.now();okAt=Date.now();}
+    if(ok||states.retryAt)known=0; // this feed's own reply or failure from now on
+    const now=Date.now(),age=Math.max(performance.now()-lastOk,now-okAt),retryAt=due=states.retryAt||known,wait=retryIn(retryAt);
+    // One failed check (or a few) doesn't blank the sky: the last good picture stays up to
+    // 60 s old (wide maps poll every 15 s), then "No live data, reconnecting in N s", at 60 s
+    // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds). It is old
+    // when either clock says so: a TV clock stepped back can't make it young again, nor can a standby
+    // that performance.now() doesn't count.
+    if(!ok&&lastGood&&age<60000){judge=()=>update(states,false);if(!hidden)stale=setTimeout(judge,60000-age);return onModel({...lastGood,now,retryIn:wait});}
+    const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
+    const {fresh,all}=airspace(states,feedNow,age<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
     const raw=new Map((states[IDS.feed]?.attributes?.ac||[]).filter(r=>r&&typeof r==='object').map(r=>[String(r.hex).toLowerCase(),r])); // one bad entry must not drop the update
     // A 250-mile map over a busy region can hold 500+ aircraft: draw the nearest MAX_PLANES
-    // (the feed is sorted by distance) to keep the stick's memory and frame rate in hand.
-    const planes=all.slice(0,MAX_PLANES).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
-    for(const a of planes)a.inside=inAlert(a,config);
+    // (the feed is sorted by distance) to keep the stick's memory and frame rate in hand. An
+    // emergency on the map is always among them (it takes the card), in place of the farthest.
+    const sos=all.length>MAX_PLANES?all.filter(a=>emergencyOf(raw.get(a.hex))&&derive(a).ground<=config.rangeMiles):[];
+    const keep=new Set([...sos,...all.filter(a=>!sos.includes(a))].slice(0,MAX_PLANES));
+    const planes=all.filter(a=>keep.has(a)).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
+    for(const a of planes){a.inside=inAlert(a,config);a.approaching=approaching(a,config);}
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
-    if(fresh){log=updateLog(log,planes,now);store.set(LOG_KEY,log);}
-    const recent=recentSightings(states,planes.filter(a=>a.inside),now).map(a=>({...a,type:typeName(a.aircraft_type),
-      route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase()}));
-    onModel({now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:!lastOk&&now-started<15000,planes,hero:pickHero(planes,config),recent,log:logSummary(log)});
-  },config);
+    // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
+    // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
+    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,now);}
+    // 'Recently above': the sightings are stamped by the feed's clock, as positions are, and judged by it;
+    // the layouts age them against the TV's (m.now), so the stamps shown are moved onto it.
+    const recent=recentSightings(states,planes.filter(a=>a.inside),feedNow).map(a=>({...a,type:typeName(a.aircraft_type),
+      route:routes.get(a),cargo:cargoBrand(a.callsign,''),flight:a.callsign||a.registration||a.hex.toUpperCase(),last_seen:a.last_seen-(states.skew||0)}));
+    // Today's tallies are today's: after midnight with no fresh feed yet, yesterday's don't show (a log the
+    // other feed's clock has moved past midnight already stays: logOf).
+    // source: the feed these positions came from (adsb.fi, or adsb.lol standing in), for the credit line.
+    // Connecting: neither a reply nor a failure yet (the first failure ends it).
+    const model={now,live:true,fresh,noCoverage:!!states.coverage?.none,connecting:lastOk<0&&!retryAt,planes,hero:pickHero(planes,config,held),recent,log:logSummary(logOf(log,localDay(feedNow))),retryIn:wait,retryAt,source:states.source||''};
+    if(ok&&fresh)lastGood=model;
+    onModel(model);
+  };
+  const live=startLive(update,config);
+  // Hidden, the last picture is not re-judged; back on screen it is, at once (its 60 s re-armed).
+  return {...live,stop(){clearTimeout(stale);live.stop();},pause(){hidden=true;clearTimeout(stale);live.pause();},
+    resume(){if(!hidden)return;hidden=false;live.resume();judge?.();},
+    // Once a minute during an outage (app.mjs keepTime): the last failed update again, so the time, the
+    // logbook day, the recent sightings and the countdown move on together.
+    tick(){if(last&&!last.ok)update(last.states,false);},get carry(){return {where,lastOk,okAt,lastGood,retryAt:due};}};
 }
 
 // --- Demo: plausible flights around home, moving in real time. Local airports
@@ -250,9 +385,12 @@ function demoSource(config,onModel,airports){
     ['a7c3b9','SWA1987','N8817L','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg(h4,h2)],
     ['a03b7e','N451PA','N451PA','C172','','1977',2.5,3.1,2400,96,300,300,null],
     ['a0c9f5','N8UH','N8UH','EC35','UNIVERSITY HOSPITAL','2009',-1.2,3.7,1300,118,20,0,null],
+    ['ae1471','RCH481','05-5143','C17','','2005',-4.6,-3.9,12500,330,40,1200,null],
+    ['ae04c2','PKSN21','58-0010','K35R','','1958',1.5,-7.0,21000,380,250,0,null], // south of home, clear of the other tags
   ];
+  const MILITARY=new Set(['ae1471','ae04c2']);
   const started=Date.now(),log={today:184,highest:{name:'UAE2VL',value:41000},fastest:{name:'SWA1987',value:512},
-    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},night:true,cargoTonight:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]]};
+    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},night:true,cargoTonight:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]],militaryToday:3,militaryTypes:[['C-17',2],['KC-135',1]]};
   if(scene==='long')Object.assign(log,{rarest:{code:'A124',name:typeName('A124'),count:1},
     farthest:{name:'GEC8401',value:4310,from:'Frankfurt am Main',code:'FRA'},cargoBy:[['UPS',9],['FedEx',5],['Amazon',3],['ABX',2],['DHL',2]]});
   const recentRows=[['a6d1e2','UAL1840','B739',leg('DEN','BOS'),3],['a3c4d5','ATN3121','B763',leg('LAX','HOME'),12],
@@ -266,22 +404,23 @@ function demoSource(config,onModel,airports){
     DEMO[0]=['0d0a1b','MAA6521','XA-MAAZZ','A124','AEROTRANSPORTES MAS DE CARGA SA DE CV','1991',1.6,-1.9,34000,451,331,0,leg('FRA','DFW')];
     DEMO[1]=['a1b2c3','N1234567','N1234567','GLF6','INTERNATIONAL BUSINESS AVIATION SERVICES LLC','2021',-3,2,45000,520,90,0,null];
     Object.assign(log,{rarest:{code:'A124',name:typeName('A124'),count:1},farthest:{name:'MAA6521',value:9876,from:'Santa Cruz de la Sierra',code:'VVI'},
-      cargoBy:[['UPS',19],['FedEx',15],['Amazon',13],['ABX',12],['DHL',12],['Atlas',10]]});
+      cargoBy:[['UPS',19],['FedEx',15],['Amazon',13],['ABX',12],['DHL',12],['Atlas',10]],
+      militaryToday:22,militaryTypes:[['KC-135',9],['C-130J',7],['UH-60',4],['CH-47',2]]});
   }
   if(scene==='long'){
     DEMO[0]=['3c4b26','GEC8401','D-ALFH','B77L','LUFTHANSA CARGO AG','2013',1.6,-1.9,34000,451,331,0,leg('FRA','DFW')];
     DEMO[5]=['a7c3b9','SWA4499','N8731J','B38M','SOUTHWEST AIRLINES CO','2019',6.9,-5.2,37000,462,198,0,leg('DFW','FRA')];
   }
   const tick=()=>{
-    const now=Date.now(),t=(now-started)/1000;
+    const now=Date.now(),t=still?0:(now-started)/1000;
     const planes=DEMO.map(([hex,callsign,registration,aircraft_type,ownOp,year,e,n,alt,gs,track,fpm,route])=>{
       const v=gs*1.15078/3600,east=e+v*t*Math.sin(track*Math.PI/180),north=n+v*t*Math.cos(track*Math.PI/180);
       const latitude=HOME.latitude+north/69,longitude=HOME.longitude+east/(69.172*Math.cos(HOME.latitude*Math.PI/180));
       const a={hex,callsign,registration,aircraft_type,latitude,longitude,altitude_ft:Math.round(alt+fpm*t/60),speed_kt:gs,
         heading:track,position_timestamp:now/1000-1};
       a.distance_mi=Math.hypot(east,north);a.inside=a.distance_mi<=config.radiusMiles;
-      const raw={ownOp,year,squawk:scene==='emergency'&&hex===DEMO[0][0]?'7700':'2214',baro_rate:fpm};
-      const p=enrich(a,raw,route?{...route,flight:callsign}:null,now);p.inside=inAlert(p,config);return p;
+      const raw={ownOp,year,squawk:scene==='emergency'&&hex===DEMO[0][0]?'7700':'2214',baro_rate:fpm,dbFlags:MILITARY.has(hex)?1:0};
+      const p=enrich(a,raw,route?{...route,flight:callsign}:null,now);p.inside=inAlert(p,config);p.approaching=approaching(p,config);return p;
     }).filter(a=>a.distance_mi<config.rangeMiles+3&&scene!=='quiet')
       .sort((a,b)=>Number(b.inside)-Number(a.inside)||a.distance_mi-b.distance_mi);
     const recent=recentRows.map(([hex,flight,code,route,mins])=>({hex,flight,callsign:flight,aircraft_type:code,
@@ -292,10 +431,10 @@ function demoSource(config,onModel,airports){
   return {stop(){clearInterval(timer);}};
 }
 
-// Start the feed for a place; returns {stop}.
-export function start(place,config,onModel,airports){
+// Start the feed for a place; returns {stop}. `was`: the feed it replaces (liveSource).
+export function start(place,config,onModel,airports,was){
   HOME={latitude:place.latitude,longitude:place.longitude,elevationFt:(place.elevationM||0)*3.2808};TZ=place.timeZone;
   samples.clear();
   const cfg={...config,latitude:place.latitude,longitude:place.longitude};
-  return demo?demoSource(cfg,onModel,airports):liveSource(cfg,onModel);
+  return demo?demoSource(cfg,onModel,airports):liveSource(cfg,onModel,was);
 }

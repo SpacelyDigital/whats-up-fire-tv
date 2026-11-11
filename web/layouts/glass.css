@@ -4,7 +4,7 @@
 @font-face{font-family:'Inter';src:url(../fonts/Inter.woff2) format('woff2');font-weight:300 900;font-display:block}
 .L-glass{--ui-ink:#cfe6ff;--ui-dim:rgba(207,230,255,.62);--ui-faint:rgba(207,230,255,.26);--ui-bg:rgba(14,20,30,.96);--ui-shade:rgba(2,4,8,.72);
   --ui-on:#03060a;--ui-glow:rgba(90,180,255,.25);--ui-font:'Inter',system-ui,sans-serif;--ui-radius:14px;
-  --gl-ink:#e8f3ff;--gl-dim:rgba(214,232,255,.6);--gl-accent:#5ab4ff;--gl-red:#ff4d5e;--gl-cargo:#ffc56b}
+  --gl-ink:#e8f3ff;--gl-dim:rgba(214,232,255,.6);--gl-accent:#5ab4ff;--gl-red:#ff4d5e;--gl-cargo:#ffc56b;--gl-mil:#bcd681}
 .L-glass .layout{background:#04060a;color:var(--gl-ink);font-family:'Inter',system-ui,sans-serif}
 .L-glass .gl-canvas,.L-glass .gl-svg{position:absolute;left:0;top:0;width:960px;height:540px}
 .L-glass .gl-vignette{position:absolute;inset:0;pointer-events:none;
@@ -32,7 +32,7 @@
 .L-glass .gl-status.off{color:var(--gl-red)}
 .L-glass .gl-date{font:400 13px Inter;color:var(--gl-dim)}
 .L-glass .gl-col{position:absolute;left:640px;top:18px;width:298px;bottom:18px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
-.L-glass .gl-kicker{font:400 9.5px Michroma;letter-spacing:.16em;text-transform:uppercase;color:var(--gl-accent)}
+.L-glass .gl-kicker{white-space:nowrap;font:400 9.5px Michroma;letter-spacing:.16em;text-transform:uppercase;color:var(--gl-accent)}
 .L-glass .gl-flight{font:400 30px/1.2 Michroma;margin-top:6px;white-space:nowrap;overflow:hidden}
 .L-glass .gl-sub{font:500 14px/1.35 Inter;color:var(--gl-dim)}
 .L-glass .gl-route{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-top:10px}
@@ -54,12 +54,13 @@
 .L-glass .gl-row em{font-style:normal;color:var(--gl-accent);font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
 .L-glass .gl-row.none{display:block;color:var(--gl-dim)}
 .L-glass .gl-arrow{font-style:normal;font-size:10px;color:var(--gl-accent);display:inline-block;text-align:center}
-.L-glass .gl-tally{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.L-glass .gl-tally{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .L-glass .gl-mini{padding:9px 14px}
 .L-glass .gl-mini span{display:block;font:400 8.5px Michroma;letter-spacing:.14em;text-transform:uppercase;color:var(--gl-dim)}
 .L-glass .gl-mini b{display:block;font:400 26px/1.3 Michroma}
 .L-glass .gl-mini i{display:block;font:500 12px Inter;font-style:normal;color:var(--gl-dim);white-space:nowrap;overflow:hidden}
 .L-glass .gl-mini.cargo b{color:var(--gl-cargo)}
+.L-glass .gl-mini.mil b{color:var(--gl-mil)}
 .L-glass .gl-tiles b.gl-look{font:700 17px/1.35 Inter}
 
 /* Emergency: a red glass banner, the hero card glows red */
@@ -76,6 +77,9 @@
 /* Aircraft photo card, bottom left. */
 .L-glass .gl-photo{position:absolute;left:22px;bottom:18px;padding:10px 12px 8px;max-width:330px}
 .L-glass .gl-photo .ph{justify-content:flex-start;gap:5px 8px}
-.L-glass .gl-photo .ph-img{height:60px;border-radius:8px}
+.L-glass .gl-photo .ph-img{height:60px} /* whole photo: no rounded corners over it */
+.L-glass .gl-photo .ph.model .ph-img{border-radius:8px}
 .L-glass .gl-photo .ph-qr{width:60px;height:60px;border-radius:6px}
 .L-glass .gl-photo .ph-cap{text-align:left;font:500 10.5px Inter;color:var(--gl-dim);opacity:1}
+.L-glass .gl-plane.mil path{fill:var(--gl-mil)}
+.L-glass .gl-mini{min-width:0}

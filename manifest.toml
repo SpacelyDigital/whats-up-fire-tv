@@ -1,7 +1,7 @@
 schema-version = 1
 
 [package]
-title = "What's Up"
+title = "What's Up: Planes Over Your Home"
 icon = "@image/whatsup_icon.png"
 version = "0.1.0"
 id = "com.spacelydigital.whatsup"

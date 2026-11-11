@@ -1,13 +1,12 @@
 // node scripts/shot.mjs <url> <out.png> [waitMs]  — 960x540 CSS at 2x (1920x1080), via local Chrome DevTools.
-// SHOT_PORT picks the DevTools port (default: a random one, so several can run at once); SHOT_PROFILE keeps
-// a Chrome profile between runs (saved maps and settings), else a fresh one each time.
+// SHOT_PORT picks the DevTools port (default: one the browser picks, so several can run at once); SHOT_PROFILE keeps
+// a browser profile between runs (saved maps and settings), else a fresh one each time.
 // SHOT_KEYS="ArrowRight,Enter" presses keys after the wait, SHOT_KEYWAIT ms apart (default 1500).
-import {spawn} from 'node:child_process';import {writeFileSync,mkdtempSync,mkdirSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {writeFileSync,mkdtempSync,mkdirSync} from 'node:fs';import {tmpdir} from 'node:os';
 const [url,out,wait=6000]=process.argv.slice(2);
-const port=Number(process.env.SHOT_PORT)||9400+Math.floor(Math.random()*500),profile=process.env.SHOT_PROFILE||mkdtempSync(tmpdir()+'/shot');
+const profile=process.env.SHOT_PROFILE||mkdtempSync(tmpdir()+'/shot');
 mkdirSync(profile,{recursive:true});
-const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-  '--user-data-dir='+profile,'--hide-scrollbars','--window-size=960,540','about:blank'],{stdio:'ignore'});
+const {chrome,port}=await launch(profile,['--hide-scrollbars','--window-size=960,540','about:blank'],Number(process.env.SHOT_PORT)||0);
 let tabs;for(let i=0;i<40&&!tabs;i++){await new Promise(r=>setTimeout(r,250));try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
 const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map(),logs=[];
 ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}

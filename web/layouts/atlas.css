@@ -2,7 +2,7 @@
 @font-face{font-family:'Inter';src:url(../fonts/Inter.woff2) format('woff2');font-weight:300 900;font-display:block}
 .L-atlas{--ui-ink:#1e2a4a;--ui-dim:rgba(30,42,74,.68);--ui-faint:rgba(30,42,74,.3);--ui-bg:#fbf8f1;--ui-shade:rgba(240,235,224,.8);
   --ui-on:#fbf8f1;--ui-glow:rgba(30,42,74,.15);--ui-font:'Inter',system-ui,sans-serif;--ui-radius:6px;
-  --at-ink:#1e2a4a;--at-dim:#5c6478;--at-paper:#f4efe5;--at-red:#c8372d;--at-cargo:#a2581b}
+  --at-ink:#1e2a4a;--at-dim:#5c6478;--at-paper:#f4efe5;--at-red:#c8372d;--at-cargo:#a2581b;--at-mil:#56682b}
 .L-atlas .layout{background:var(--at-paper);color:var(--at-ink);font-family:'Inter',system-ui,sans-serif}
 .L-atlas .at-map{position:absolute;left:0;top:0;width:700px;height:540px;overflow:hidden;background:var(--at-paper)}
 .L-atlas .at-canvas,.L-atlas .at-svg{position:absolute;left:0;top:0;width:700px;height:540px}
@@ -20,6 +20,7 @@
 .L-atlas .at-trail.hero{stroke:rgba(200,55,45,.75);stroke-width:3}
 .L-atlas .at-plane path{fill:var(--at-ink);stroke:#fff;stroke-width:7;paint-order:stroke;stroke-linejoin:round}
 .L-atlas .at-plane.cargo path{fill:var(--at-cargo)}
+.L-atlas .at-plane.mil path{fill:var(--at-mil)}
 .L-atlas .at-plane.hero path{fill:var(--at-red)}
 .L-atlas .at-target{fill:rgba(200,55,45,.12);stroke:var(--at-red);stroke-width:2;animation:at-pulse 2.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes at-pulse{0%{opacity:1}70%{opacity:.25}100%{opacity:1}}
@@ -45,7 +46,7 @@
 .L-atlas .at-status:empty{display:none}
 .L-atlas .at-date{font:500 14px Inter;color:var(--at-dim);margin-top:2px;padding-bottom:9px;border-bottom:2px solid var(--at-ink)}
 .L-atlas .at-hero{display:flex;flex-direction:column;gap:4px}
-.L-atlas .at-kicker{font:700 12.5px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--at-red)}
+.L-atlas .at-kicker{white-space:nowrap;font:700 12.5px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--at-red)}
 .L-atlas .at-flight{display:flex;flex-direction:column;gap:1px}
 .L-atlas .at-fl{font:900 32px/1.05 Inter;letter-spacing:-.02em}
 .L-atlas .at-op{font:600 15px/1.25 Inter;color:var(--at-dim)}
@@ -63,24 +64,33 @@
 .L-atlas .tight .at-sil{width:48px;height:16px}
 /* Photo of the aircraft (Planespotters): photo, QR to its page, photographer credit. */
 /* Photo (+ QR) centred as a pair; the credit spans the full column, centred on the same axis. */
-.L-atlas .at-pic{display:grid;grid-template-columns:1fr auto auto 1fr;grid-template-rows:auto auto;column-gap:5px;row-gap:3px;align-items:center}
-.L-atlas .at-img{grid-row:1;grid-column:2;width:auto;max-width:100%;height:62px;object-fit:contain;border-radius:3px;justify-self:end}
-.L-atlas .at-qr{grid-row:1;grid-column:3;width:58px;height:58px;image-rendering:pixelated;background:#fff;border-radius:2px}
-.L-atlas .at-credit{grid-row:2;grid-column:1/-1;justify-self:stretch;text-align:center;padding:0 3px;font:600 10.5px/1.2 Inter;color:var(--at-dim);white-space:nowrap;overflow:hidden;min-width:0}
-.L-atlas .photo .at-sil,.L-atlas .photo .at-reg{display:none}
+/* Type and registration on the left, the photo on the right across both lines, its credit
+   on one line under them. */
+.L-atlas .at-id{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:2px;align-items:center;margin-top:4px}
+.L-atlas .at-id .at-type{grid-column:1;grid-row:1;margin-top:0}
+.L-atlas .at-id .at-reg{grid-column:1;grid-row:2;white-space:nowrap;overflow:hidden;min-width:0}
+.L-atlas .at-typet{white-space:nowrap;overflow:hidden;min-width:0;flex:1}
+.L-atlas .at-pic{grid-column:2;grid-row:1/3;display:flex;gap:4px;align-items:center}
+.L-atlas .at-pic[hidden]{display:none}
+.L-atlas .at-img{display:block;width:auto;height:44px;max-width:66px;object-fit:contain} /* whole photo: no rounded corners */
+.L-atlas .at-qr{display:block;width:44px;height:44px;image-rendering:pixelated;background:#fff;border-radius:2px}
+.L-atlas .at-pic.model .at-img{height:56px;max-width:112px;border-radius:3px}
 .L-atlas .at-pic.model .at-qr{display:none}
-.L-atlas .at-pic.model .at-img{grid-column:2/4;justify-self:center}
-.L-atlas .at-pic.model .at-credit{font-style:italic}
-.L-atlas .photo .at-typet{white-space:nowrap;overflow:hidden;min-width:0;flex:1}
+.L-atlas .at-credit{grid-column:1/-1;grid-row:3;text-align:right;padding-right:2px;font:600 10.5px/1.2 Inter;color:var(--at-dim);white-space:nowrap;overflow:hidden;min-width:0}
+.L-atlas .at-pic[hidden]~.at-credit{display:none}
+.L-atlas .at-pic.model~.at-credit{font-style:italic}
+.L-atlas .photo .at-sil{display:none}
 .L-atlas .at-reg{font:600 13.5px/1.3 Inter;color:var(--at-dim)}
 .L-atlas .at-reg:empty{display:none}
 .L-atlas .at-quiet{font:600 20px/1.45 Inter;color:var(--at-dim)}
 .L-atlas h4{margin:0 0 4px;font:800 11.5px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--at-ink)}
 .L-atlas .at-books{padding-top:10px;border-top:2px solid var(--at-ink)}
-.L-atlas .at-cargo{display:flex;gap:12px;align-items:center;margin-bottom:8px}
-.L-atlas .at-cargo>div{flex:1;min-width:0}
-.L-atlas .at-cargo-n{font:900 38px/1 Inter;color:var(--at-cargo);font-variant-numeric:tabular-nums}
-.L-atlas .at-cargo-by{white-space:nowrap;overflow:hidden;min-width:0;font:600 13.5px/1.35 Inter;color:var(--at-dim)}
+/* Cargo and Military: one number column, so the headings line up. */
+.L-atlas .at-counts{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:6px;align-items:center;margin-bottom:8px}
+.L-atlas .at-ct{min-width:0}
+.L-atlas .at-cargo-n,.L-atlas .at-mil-n{font:900 38px/1 Inter;color:var(--at-cargo);font-variant-numeric:tabular-nums}
+.L-atlas .at-mil-n{color:var(--at-mil)}
+.L-atlas .at-cargo-by,.L-atlas .at-mil-by{white-space:nowrap;overflow:hidden;min-width:0;font:600 13.5px/1.35 Inter;color:var(--at-dim)}
 .L-atlas .at-log{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 8px;margin:0}
 .L-atlas .at-log div{min-width:0}.L-atlas .at-log .wide{grid-column:1/-1;display:flex;gap:8px;align-items:baseline}
 .L-atlas .at-log .wide dt{flex:none}.L-atlas .at-log .wide dd{flex:1;min-width:0;white-space:nowrap;overflow:hidden}
@@ -92,7 +102,7 @@
 .L-atlas .at-rr.none{display:block;color:var(--at-dim);line-height:1.4}
 
 /* Emergency: a red notice heads the column and the target turns red */
-.L-atlas .at-alert{background:var(--at-red);color:#fff;font:900 13px Inter;letter-spacing:.04em;text-transform:uppercase;padding:5px 8px;margin-bottom:6px;border-radius:3px;
+.L-atlas .at-alert{background:var(--at-red);color:#fff;font:900 13px Inter;letter-spacing:.04em;text-transform:uppercase;padding:5px 8px;margin-bottom:6px;border-radius:3px;white-space:nowrap;overflow:hidden;
   animation:at-flash 1.2s steps(2) infinite}
 @keyframes at-flash{50%{background:#7d1610}}
 .L-atlas .emergency .at-side{box-shadow:inset 0 0 0 4px var(--at-red)}
@@ -102,7 +112,7 @@
 /* Tight: a busy hero with long names; smaller type rather than anything cut off. */
 .L-atlas .at-side.tight{gap:4px;padding-top:10px;padding-bottom:10px}
 .L-atlas .tight .at-fl{font-size:28px}.L-atlas .tight .at-stats{gap:3px 12px}.L-atlas .tight .at-stats dd{font-size:15.5px}
-.L-atlas .tight .at-cargo-n{font-size:32px}.L-atlas .tight .at-cargo{margin-bottom:4px}
+.L-atlas .tight .at-cargo-n,.L-atlas .tight .at-mil-n{font-size:32px}.L-atlas .tight .at-counts{margin-bottom:4px;row-gap:3px}
 .L-atlas .tight .at-route{font-size:15.5px}.L-atlas .tight .at-type{font-size:14px;margin-top:2px}.L-atlas .tight .at-books{padding-top:6px}
 /* Tighter: the least useful lines go before any text would be cut. */
 .L-atlas .tighter .at-prog{display:none}

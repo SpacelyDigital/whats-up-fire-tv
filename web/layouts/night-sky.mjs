@@ -2,10 +2,13 @@
 // contrails that fade over several minutes, the coastline and rivers barely there,
 // and small serif labels.
 import {el,svg,setText,fmt,metric,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,
-  TrailBook,placeBox,number,ppmOf,alertRadius,range,zonePath,fit,placeAlts} from '../kit.mjs';
+  TrailBook,placeBox,number,ppmOf,alertRadius,range,zonePath,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,TRAIL_AGE=8*60000;
 const VIEW={cx:480,cy:300,ppm:24};
+// The planes in this sky: the ones counted, labelled, and offered by Left/Right (browse.mjs). Stars
+// are also drawn just past the edges, half in view; those are neither counted nor offered.
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return p.x>=0&&p.y>=0&&p.x<=W&&p.y<=H;};
 const MAP=[
   {layer:'water',fill:'rgba(120,150,205,.075)'},
   {layer:'rivers',stroke:'rgba(150,175,215,.14)',width:1},
@@ -34,16 +37,23 @@ function ui(){
       <div class="over"><div class="pre">the sky over</div><div class="city"></div></div>
       <div class="time"><div class="clock"></div><div class="date"></div></div>
     </header>
+    <div class="sr-only hero-sr"></div>
     <div class="quiet-note" hidden><div class="big">A quiet sky.</div><div class="small"></div></div>
     <footer class="foot"><div></div><div class="count"></div></footer>`;
-  for(const c of ['twinkles','city','clock','date','quiet-note','count'])$[c]=root.querySelector('.'+c);
+  for(const c of ['twinkles','city','clock','date','quiet-note','count','hero-sr'])$[c]=root.querySelector('.'+c);
   $.canvas=makeCanvas(W,H,'sky');root.prepend($.canvas);
   $.svg=svg('svg',{class:'stars',viewBox:`0 0 ${W} ${H}`,'aria-hidden':'true'});
   const defs=svg('defs');
-  for(const [id,c] of [['ns-halo','#dfeaff'],['ns-halo-warm','#ffd9a0'],['ns-halo-red','#ff5a4a']]){
+  for(const [id,c] of [['ns-halo','#dfeaff'],['ns-halo-warm','#ffd9a0'],['ns-halo-mil','#cfe6a0'],['ns-halo-red','#ff5a4a']]){
     const r=svg('radialGradient',{id});
     r.append(svg('stop',{offset:'0','stop-color':c,'stop-opacity':.55}),svg('stop',{offset:'.35','stop-color':c,'stop-opacity':.16}),svg('stop',{offset:'1','stop-color':c,'stop-opacity':0}));
     defs.append(r);
+  }
+  // A trail's tone: the stops each track's gradient takes through href (its own line runs from tail to head).
+  for(const [id,c] of [['ns-trail-cool','#dbe8ff'],['ns-trail-warm','#ffe0b0'],['ns-trail-mil','#d6ebab'],['ns-trail-red','#ff6b5c']]){
+    const l=svg('linearGradient',{id});
+    l.append(svg('stop',{offset:'0','stop-color':c,'stop-opacity':0}),svg('stop',{offset:'1','stop-color':c,'stop-opacity':.6}));
+    defs.append(l);
   }
   $.grads=svg('g');defs.append($.grads);
   $.svg.append(defs);
@@ -59,31 +69,47 @@ function drawHome(){
   $.home.replaceChildren(svg('path',{class:'ring',d:zonePath((x,y)=>({x:cx+x*ppm,y:cy-y*ppm}))}),svg('circle',{class:'me',cx,cy,r:3.2}));
 }
 
+// Trails are in miles from home: a new home starts them afresh (they stayed up to 8 min).
+let trailHome='',drawn=new Map(),gid=0;
+const attr=(e,o)=>{for(const k in o)if(e.getAttribute(k)!==o[k])e.setAttribute(k,o[k]);};
 function render(m){
+  const p=ctx?.place(),key=p?`${p.latitude},${p.longitude}`:'';
+  if(key!==trailHome){trailHome=key;trails.clear();}
   const {now,hero}=m;
-  fit($.city);setText($.city,placeName(),placeAlts());
+  fit($.city,$.count);setText($.city,placeName(),placeAlts());
   setText($.clock,fmt.clock(now));
   setText($.date,`${fmt.date(now,{weekday:'long',day:'numeric',month:'long'})} · ${statusText(m,demo).toLowerCase()}`);
   trails.update(m.planes,now);
   root.classList.toggle('emergency',!!hero?.emergency);
+  // The card for screen readers (the drawn label sits in the decorative SVG), as the other layouts' cards read:
+  // status, flight, the emergency with its squawk, type, route or operator, altitude, distance.
+  const hr=hero?.route;
+  setText($['hero-sr'],hero?[hero.status,hero.flight,hero.emergency&&`${hero.squawk?`squawk ${hero.squawk} `:''}${hero.emergency.toLowerCase()}`,hero.type||hero.aircraft_type,
+    hr?`${city(hr.from?.city)||hr.origin} to ${city(hr.to?.city)||hr.destination}`:hero.operator,number(hero.altitude_ft)?fmt.alt(hero.altitude_ft):'',fmt.dist(hero.ground)].filter(Boolean).join(', '):'');
 
-  // Contrails: every remembered track, alive or not, fading with age.
-  const live=new Map(m.planes.map(a=>[a.hex,a]));
-  const paths=[],grads=[];let gi=0;
-  for(const [hex,pts] of trails.map){
+  // Contrails: every plane present and the 60 most recently departed (a hub sky turning over leaves hundreds
+  // fading within the 8 min; the rest are forgotten), each fading with age. A track keeps its gradient (the tone's
+  // stops shared, its own line from tail to head) and its two paths from one render to the next; the fade is the
+  // stroke's opacity.
+  const live=new Map(m.planes.map(a=>[a.hex,a])),kept=new Set();
+  for(const [hex,pts] of trails.prune(m.planes,60)){
     const a=live.get(hex),list=pts.map(p=>toView(VIEW,p.x,p.y));
     if(a)list.push(toView(VIEW,a.x,a.y));
     if(list.length<2)continue;
     const fade=a?1:Math.max(0,1-(now-pts[pts.length-1].t)/TRAIL_AGE);
-    const head=list[list.length-1],tail=list[0],id=`ns-g${gi++}`;
-    const grad=svg('linearGradient',{id,gradientUnits:'userSpaceOnUse',x1:tail.x.toFixed(1),y1:tail.y.toFixed(1),x2:head.x.toFixed(1),y2:head.y.toFixed(1)});
-    const tone=a?.emergency?'#ff6b5c':a?.cargo?'#ffe0b0':'#dbe8ff';
-    grad.append(svg('stop',{offset:'0','stop-color':tone,'stop-opacity':0}),svg('stop',{offset:'1','stop-color':tone,'stop-opacity':(.6*fade).toFixed(2)}));
-    grads.push(grad);
-    const d=`M${list.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('L')}`;
-    paths.push(svg('path',{class:'glow',d,stroke:`url(#${id})`}),svg('path',{class:'core',d,stroke:`url(#${id})`}));
+    const head=list[list.length-1],tail=list[0],tone=a?.emergency?'red':a?.military?'mil':a?.cargo?'warm':'cool';
+    let t=drawn.get(hex);
+    if(!t){
+      const id=`ns-g${gid++}`;
+      drawn.set(hex,t={grad:svg('linearGradient',{id,gradientUnits:'userSpaceOnUse'}),glow:svg('path',{class:'glow',stroke:`url(#${id})`}),core:svg('path',{class:'core',stroke:`url(#${id})`})});
+      $.grads.append(t.grad);$.trails.append(t.glow,t.core);
+    }
+    kept.add(hex);
+    attr(t.grad,{href:`#ns-trail-${tone}`,x1:tail.x.toFixed(1),y1:tail.y.toFixed(1),x2:head.x.toFixed(1),y2:head.y.toFixed(1)});
+    const d=`M${list.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('L')}`,op=fade.toFixed(2);
+    attr(t.glow,{d,'stroke-opacity':op});attr(t.core,{d,'stroke-opacity':op});
   }
-  $.grads.replaceChildren(...grads);$.trails.replaceChildren(...paths);
+  for(const [hex,t] of drawn)if(!kept.has(hex)){drawn.delete(hex);t.grad.remove();t.glow.remove();t.core.remove();}
 
   // Stars: low aircraft burn brighter.
   const stars=[],labels=[],boxes=[{x:0,y:0,w:W,h:96},{x:0,y:H-50,w:W,h:50},{x:VIEW.cx-8,y:VIEW.cy-8,w:16,h:16}];
@@ -92,18 +118,18 @@ function render(m){
     const p=toView(VIEW,a.x,a.y);
     if(p.x<-20||p.y<-20||p.x>W+20||p.y>H+20)continue;
     const low=number(a.altitude_ft)?Math.max(0,Math.min(1,1-a.altitude_ft/40000)):.5,isHero=a===hero;
-    const halo=a.emergency?'ns-halo-red':a.cargo?'ns-halo-warm':'ns-halo';
+    const halo=a.emergency?'ns-halo-red':a.military?'ns-halo-mil':a.cargo?'ns-halo-warm':'ns-halo';
     const g=svg('g',{class:`star${isHero?' hero':''}${a.emergency?' sos':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`});
     g.append(svg('circle',{class:'halo',r:(isHero?26:12+low*8).toFixed(1),fill:`url(#${halo})`}),
       svg('circle',{class:'dot',r:(isHero?3.2:1.6+low*1.2).toFixed(1)}));
     stars.push(g);
   }
   for(const a of order.slice(0,8)){
+    if(!shows(a))continue;
     const p=toView(VIEW,a.x,a.y),isHero=a===hero;
-    if(p.x<0||p.y<0||p.x>W||p.y>H)continue;
     if(isHero){
       const r=a.route;
-      const l1=a.emergency?`${a.flight} · squawk ${a.squawk} · ${a.emergency.toLowerCase()}`:a.flight;
+      const l1=a.emergency?`${a.flight} · ${a.squawk?`squawk ${a.squawk} · `:''}${a.emergency.toLowerCase()}`:a.flight;
       const l2=[r?`${city(r.from?.city)||r.origin} to ${city(r.to?.city)||r.destination}`:a.operator||a.type||'',fmt.alt(a.altitude_ft)].filter(Boolean).join(', ');
       const w=Math.max(l1.length*9.5,l2.length*7.4)+8,h=40;
       // Near an edge none of the spots may fit: keep it clear of the header and footer.
@@ -123,15 +149,17 @@ function render(m){
   $['quiet-note'].hidden=!!hero;
   if(!hero)setText($['quiet-note'].lastChild,(demo||m.fresh)&&!m.noCoverage?`Nothing within ${fmt.dist(range(),0)} right now.`:quietText(m,demo));
   // Everything drawn counts (the sky reaches a little past the map radius at the sides).
-  const n=m.planes.filter(a=>{const p=toView(VIEW,a.x,a.y);return p.x>=0&&p.y>=0&&p.x<=W&&p.y<=H;}).length;
-  setText($.count,`${n?`${n} aircraft in this sky`:'no aircraft in this sky'} · ${fmt.int(m.log.today)} seen today`);
+  const n=m.planes.filter(shows).length;
+  // Browsing (Left/Right): the chosen plane's number in the list, and where it is.
+  const seen=`${fmt.int(m.log.today)} seen today`,head=headingAlts(hero,'');
+  setText($.count,'',hero?.browse?[...head.map(h=>`${h} · ${seen}`),...head]:[`${n?`${n} aircraft in this sky`:'no aircraft in this sky'} · ${seen}`]);
 }
 
 export default {
   name:'Night Sky',map:'base',
-  mount(r,c){root=r;ctx=c;demo=c.demo;$={};trails=new TrailBook(TRAIL_AGE,4000);radius=alertRadius();ui();paint();},
+  mount(r,c){root=r;ctx=c;demo=c.demo;$={};trails=new TrailBook(TRAIL_AGE,4000);drawn=new Map();radius=alertRadius();ui();paint();},
   setMap(m){maps=m;paint();},
-  render,
+  render,shows,
   refresh(){radius=alertRadius();drawHome();},
-  unmount(){trails?.clear();trails=null;root=null;$={};maps={};ctx=null;},
+  unmount(){trails?.clear();trails=null;drawn=new Map();root=null;$={};maps={};ctx=null;},
 };

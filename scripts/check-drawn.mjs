@@ -5,7 +5,7 @@
 // at two map radii, draws a plane mark inside its map for every one of the snapshot's
 // airborne aircraft within the map radius, each one by its hex (data-hex on the marks).
 // Exit code 1 if any is missing.
-import {spawn} from 'node:child_process';import {readFileSync,mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
+import {launch} from './browser.mjs';import {readFileSync,mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
 const HOME={latitude:41.85003,longitude:-87.65005}; // ?q=Chicago (Open-Meteo's first result)
@@ -29,12 +29,12 @@ const miles=a=>{const c=Math.cos(HOME.latitude*Math.PI/180);return Math.hypot((a
 const expected=r=>feed.ac.filter(a=>typeof a.alt_baro==='number'&&miles(a)<=r*.98).map(a=>a.hex.toLowerCase()); // 2%: flat-earth vs the app's distance at the rim
 
 async function page(){
-  const port=9400+Math.floor(Math.random()*500);
-  const chrome=spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new',`--remote-debugging-port=${port}`,
-    '--user-data-dir='+mkdtempSync(tmpdir()+'/drawn'),'--window-size=960,540','about:blank'],{stdio:'ignore'});
+  const {chrome,port}=await launch(mkdtempSync(tmpdir()+'/drawn'),['--window-size=960,540','about:blank']);
   let tabs;for(let i=0;i<40&&!tabs;i++){await new Promise(r=>setTimeout(r,250));try{tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json();}catch{}}
-  const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map();
-  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}};
+  const ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);let id=0;const waiting=new Map(),errors=[];
+  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiting.has(m.id)){waiting.get(m.id)(m.result);waiting.delete(m.id);}
+    if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.exception?.description?.split('\n')[0]||m.params.exceptionDetails.text);
+    if(m.method==='Runtime.consoleAPICalled'&&m.params.type==='error')errors.push('console.error: '+m.params.args.map(a=>a.value??a.description).join(' ').slice(0,160));};
   await new Promise(r=>ws.onopen=r);
   const send=(method,params={})=>new Promise(r=>{waiting.set(++id,r);ws.send(JSON.stringify({id,method,params}));});
   await send('Page.enable');await send('Runtime.enable');
@@ -43,8 +43,13 @@ async function page(){
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const FEED=${JSON.stringify(feed)};let v;
     Object.defineProperty(window,'ReactNativeWebView',{configurable:true,get:()=>v,set:b=>{const pm=b.postMessage.bind(b);
       b.postMessage=d=>{const r=JSON.parse(d);(window.__urls=window.__urls||[]).push(r.url);if(/opendata\\.adsb\\.fi/.test(r.url||''))return setTimeout(()=>window.__whatsupReply(r.id,200,JSON.stringify({...FEED,now:Date.now()})),30);pm(d);};v=b;}});})();`});
-  return {send,close(){ws.close();chrome.kill();}};
+  return {send,errors,close(){ws.close();chrome.kill();}};
 }
+// On a miss, what the page was doing: its layout, the cog, open screens, the status line, the
+// marks it has anywhere, how many feed replies it was served, and its errors.
+const STATE=`(()=>{const st=document.getElementById('stage'),u=window.__urls||[];return {layout:st?.dataset.layout,cog:document.getElementById('busy')?.classList.contains('on'),
+  screens:[...document.querySelectorAll('.overlay')].filter(o=>!o.hidden).map(o=>o.id),status:(document.getElementById('layout')?.innerText||'').replace(/\\s+/g,' ').slice(0,160),
+  feedAsked:u.filter(x=>/opendata\\.adsb\\.fi/.test(x)).length,asked:u.length}})()`;
 
 const only=process.argv.slice(2),fails=[];
 for(const [layout,{marks,area}] of Object.entries(LAYOUTS)){
@@ -53,14 +58,18 @@ for(const [layout,{marks,area}] of Object.entries(LAYOUTS)){
     const p=await page();
     const url=`${BASE}?q=Chicago&layout=${layout}&map=${map}${zone==='window'?'&window=90-180-25':''}`;
     await p.send('Page.navigate',{url});await new Promise(r=>setTimeout(r,9000));
-    const js=`(()=>{const st=document.getElementById('stage').getBoundingClientRect(),A=${JSON.stringify(area)};
-      const box=typeof A==='string'?(r=>({x:r.x-st.x,y:r.y-st.y,w:r.width,h:r.height}))(document.querySelector('#stage '+A).getBoundingClientRect()):A;
+    // Stage pixels (k: the stage's scale on screen; the store build draws it at 90%).
+    const js=`(()=>{const st=document.getElementById('stage').getBoundingClientRect(),k=st.width/960,A=${JSON.stringify(area)};
+      const box=typeof A==='string'?(r=>({x:(r.x-st.x)/k,y:(r.y-st.y)/k,w:r.width/k,h:r.height/k}))(document.querySelector('#stage '+A).getBoundingClientRect()):A;
       const inside=(x,y)=>box.r?Math.hypot(x-box.cx,y-box.cy)<=box.r:x>=box.x&&x<=box.x+box.w&&y>=box.y&&y<=box.y+box.h;
-      return [...document.querySelectorAll('#stage .layout ${marks}')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&inside(r.x+r.width/2-st.x,r.y+r.height/2-st.y);}).map(e=>e.dataset.hex);})()`;
-    const drawn=(await p.send('Runtime.evaluate',{expression:js,returnByValue:true})).result?.value;
+      return [...document.querySelectorAll('#stage .layout ${marks}')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&inside((r.x+r.width/2-st.x)/k,(r.y+r.height/2-st.y)/k);}).map(e=>e.dataset.hex);})()`;
+    // A loaded machine, or slow map tiles, can need more than the 9 s: look again for up to 16 s.
+    const want=expected(map);let drawn=[];
+    for(let i=0;i<=32;i++){drawn=(await p.send('Runtime.evaluate',{expression:js,returnByValue:true})).result?.value||[];if(want.every(h=>drawn.includes(h)))break;await new Promise(r=>setTimeout(r,500));}
     if(process.env.CHECK_DEBUG)console.log('  drawn:',(drawn||[]).join(' '),'\n  urls:',(await p.send('Runtime.evaluate',{expression:'JSON.stringify(window.__urls)',returnByValue:true})).result?.value);
+    const shown=new Set(drawn),missing=want.filter(h=>!shown.has(h)),ok=!missing.length;
+    if(!ok)console.log('  page:',JSON.stringify((await p.send('Runtime.evaluate',{expression:STATE,returnByValue:true})).result?.value),'errors:',JSON.stringify(p.errors.slice(0,5)));
     p.close();
-    const want=expected(map),shown=new Set(drawn||[]),missing=want.filter(h=>!shown.has(h)),ok=!missing.length;
     console.log(`${ok?'ok  ':'FAIL'} ${layout.padEnd(16)} ${String(map).padStart(2)} mi ${zone.padEnd(6)} feed ${want.length} airborne within the radius, map draws ${want.length-missing.length} of them${missing.length?` (missing ${missing.join(' ')})`:''}`);
     if(!ok)fails.push(layout);
   }

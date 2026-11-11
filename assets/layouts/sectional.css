@@ -46,7 +46,7 @@
 .L-sectional .box{background:#fbf8ee;border:1.5px solid var(--ink);box-shadow:2px 2px 0 rgba(42,38,34,.18)}
 .L-sectional .box header{display:flex;justify-content:space-between;background:#cfe0ef;border-bottom:1.2px solid var(--ink);padding:1px 8px;
   font:700 13px var(--bc);letter-spacing:.12em;text-transform:uppercase}
-.L-sectional .box header .tr{color:var(--mag)}
+.L-sectional .box header .tr{color:var(--mag);min-width:0;white-space:nowrap}
 .L-sectional .layout .title{padding:6px 10px 6px;border-width:2.5px;text-align:center}
 .L-sectional .city{font:700 28px/1.05 var(--bc);letter-spacing:.06em;white-space:nowrap;overflow:hidden}
 .L-sectional .sub{display:flex;justify-content:center;gap:10px;font:600 15px var(--bc);letter-spacing:.06em;margin-top:2px}
@@ -62,7 +62,7 @@
 .L-sectional .none{padding:10px;display:flex;flex-direction:column;gap:4px}
 .L-sectional .none b{font:700 22px var(--bc);color:var(--blue);letter-spacing:.08em}
 .L-sectional .none span{font:500 17px/1.3 var(--bc)}
-.L-sectional .tonight .tn{display:grid;grid-template-columns:1fr 1fr;padding:4px 10px 0}
+.L-sectional .tonight .tn{display:grid;grid-template-columns:1fr 1fr 1.3fr;padding:4px 10px 0}
 .L-sectional .tn div{display:flex;flex-direction:column}
 .L-sectional .tn b{font:700 30px/1 var(--bc);color:var(--mag)}
 .L-sectional .tn span{font:500 14px var(--bc)}
@@ -86,3 +86,7 @@
 .L-sectional .layout .photo .ph-qr{width:56px;height:56px}
 .L-sectional .layout .photo .ph-cap{font:600 11px var(--bc);color:var(--ink);opacity:.8}
 .L-sectional .emergency .photo{display:none}
+.L-sectional .tn b.mil{color:#56682b}
+.L-sectional .mil-by{padding:0 10px 6px;font:600 14px/1.25 var(--bc);color:#56682b;white-space:nowrap;overflow:hidden}
+.L-sectional .tonight .cargo-by{padding-bottom:2px}
+.L-sectional .ac.mil path{fill:#56682b}

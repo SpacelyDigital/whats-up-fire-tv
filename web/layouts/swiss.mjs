@@ -1,6 +1,6 @@
 // Layout 8, Swiss: an off-white poster. One giant number (how far away the nearest
 // aircraft is) dominates; the map is only the river/coastline and a red home dot.
-import {svg,setText,fmt,metric,KM,placeName,statusText,quietText,makeCanvas,paintMap,toView,planeIcon,number,BASE_RANGE,range,photoSlot,showPhotoIn,fit,placeAlts} from '../kit.mjs';
+import {svg,setText,fmt,metric,KM,placeName,statusText,quietText,makeCanvas,paintMap,toView,planeIcon,number,BASE_RANGE,range,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const MAPSIZE=284,MAP=[
   {layer:'water',fill:'#d3cdc0'},
@@ -23,12 +23,14 @@ function ui(){
       <div class="status"></div>
     </div>`;
   for(const c of ['city','clock','kicker','giant','num','unit','flight','route','mapbox','marks','facts','status'])$[c]=root.querySelector('.'+c);
-  fit($.city,$.route);
+  fit($.city,$.kicker,$.route,$.facts);
   $.side=root.querySelector('.side');$.side.append($.pic=photoSlot());
   $.canvas=makeCanvas(MAPSIZE,MAPSIZE,'map');$.mapbox.prepend($.canvas);
   view={cx:MAPSIZE/2,cy:MAPSIZE/2,ppm:MAPSIZE/2/BASE_RANGE,clip:{x:0,y:0,w:MAPSIZE,h:MAPSIZE}};
 }
 const drawMap=()=>paintMap($.canvas,maps,view,MAP);
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{if(!view)return false;const p=toView(view,a.x,a.y);return !(p.x<4||p.y<4||p.x>MAPSIZE-4||p.y>MAPSIZE-4);};
 
 // Size the number so it fills the left of the poster without running into the map.
 function giant(text){
@@ -45,12 +47,12 @@ function render(m){
   root.classList.toggle('emergency',emergency);
   root.classList.toggle('quiet',!hero);
   if(emergency){
-    setText($.kicker,`Squawk ${hero.squawk||''} · ${hero.emergency[0]+hero.emergency.slice(1).toLowerCase()}`);
-    giant(hero.squawk||'7700');setText($.unit,hero.emergency==='EMERGENCY'?'declared':hero.emergency.toLowerCase());
+    setText($.kicker,`${hero.squawk?`Squawk ${hero.squawk} · `:''}${hero.emergency[0]+hero.emergency.slice(1).toLowerCase()}`);
+    giant(/^7[567]00$/.test(hero.squawk)?hero.squawk:'EMERGENCY');setText($.unit,hero.emergency==='EMERGENCY'?'declared':hero.emergency.toLowerCase());
     setText($.flight,hero.flight);
   }else if(hero){
     const d=metric()?hero.ground*KM:hero.ground;
-    setText($.kicker,hero.status);
+    setText($.kicker,'',headingAlts(hero,hero.status));
     giant(d<10?d.toFixed(1):String(Math.round(d)));setText($.unit,metric()?'km away':'miles away');
     setText($.flight,hero.flight);
   }else{
@@ -66,9 +68,9 @@ function render(m){
 
   const marks=[svg('circle',{class:'home',cx:view.cx,cy:view.cy,r:5})];
   for(const a of m.planes){
+    if(!shows(a))continue;
     const p=toView(view,a.x,a.y);
-    if(p.x<4||p.y<4||p.x>MAPSIZE-4||p.y>MAPSIZE-4)continue;
-    marks.push(planeIcon(a,p,a===hero?16:9,a===hero?'plane hero':'plane'));
+    marks.push(planeIcon(a,p,a===hero?16:9,`plane${a===hero?' hero':''}${a.military?' mil':''}`));
   }
   $.marks.replaceChildren(...marks);
   showPhotoIn($.pic,hero);
@@ -78,7 +80,7 @@ export default {
   name:'Swiss',map:'base',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){},
   unmount(){root=null;$={};maps={};},
 };

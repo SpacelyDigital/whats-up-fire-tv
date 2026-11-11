@@ -15,9 +15,13 @@
 // longitude, altitude_ft, speed_kt, heading, vertical (fpm), squawk, emergency,
 // route {origin,destination,from,to}, progress {flown,left,share}, x/y (miles east/
 // north of home), ground (miles), bearing, elevation (deg up), cpa {seconds,miles,
-// receding}, inside (within the alert radius), trend {alt,speed,trail[]}, year;
-// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency').
-import {number,zoneOutline} from './core.mjs';
+// receding}, inside (within the alert radius), approaching (as the card's 'Approaching'), trend {alt,speed,trail[]}, year;
+// hero also has status ('Above you now', 'Approaching', 'Nearest', 'Emergency'); while Left/Right
+// browse the planes the hero is the chosen plane, with status 'Plane 3 of 9' and browse
+// {index, count} (headingAlts words the card's heading).
+import {PROFILE} from './profile.mjs';
+import {number,zoneOutline,snapped,GRID_PAD_MI,dLon} from './core.mjs';
+export {snapped,GRID_PAD_MI};
 import {SILHOUETTES,silhouetteFamily} from './silhouettes.mjs';
 import {photoFor,qrFor,qrColours,modelPhoto} from './photos.mjs';
 export {photoFor,qrFor,modelPhoto};
@@ -29,11 +33,26 @@ export function themedQr(link){
 // The aircraft picture block shared by the non-Atlas layouts: photo of this aircraft
 // (Planespotters, credit + QR, per their terms) -> bundled model photo -> nothing (the
 // layout keeps its own text). Styled per layout via .ph / .ph-img / .ph-qr / .ph-cap.
+// A model photo's author, shortened for a tight caption: an agency credit keeps the
+// agency ("U.S. Air Force photo"), a person becomes "J. Herzog".
+// A Planespotters credit, longest first; every wording keeps the photographer and the site.
+export const psCredit=name=>[...new Set([`Photo © ${name} / Planespotters.net`,`© ${name} / Planespotters.net`,
+  `© ${shortAuthor(name)} / Planespotters.net`,`© ${shortAuthor(name)} / Planespotters`])];
+// Only a person's name becomes "J. Herzog" (Hans-Jürgen Weber "H. Weber", Anne-Marie McDonald
+// "A. McDonald"); usernames, studios and agencies ("BWard 1997", "Curimedia Photography",
+// "Armada Argentina") stay as credited.
+const ORG=/\b(Armada|Envoy|Photography|Aviat(?:ion|or)|Museum|Archives?|Navy|Army|Force|Ministry|Ministerstwo|Marina|Secretar[ií]a|Agency|Department)\b/i;
+const personName=a=>{const w=a.split(/\s+/);return w.length>=2&&w.length<=3&&w.every(x=>/^(?:Mc|Mac|De|Di|La|Le)?\p{Lu}(?:\p{Ll}+|['’]\p{Lu}?\p{Ll}+)(?:['’-]\p{Lu}?\p{Ll}+)*$|^\p{Lu}\.$|^(van|von|de|da|di|der|den|le|la|du)$/u.test(x))&&!ORG.test(a);};
+export const shortAuthor=a=>/^Author unknown$/.test(a)?a:/ photo( by |$)/.test(a)?a.replace(/ by .*$/,''):
+  personName(a.replace(/,.*$/,''))?a.replace(/,.*$/,'').replace(/^(\S)\S*\s+(?=\S)/,'$1. '):a;
 export function photoSlot(cls=''){
   const s=el('div',`ph ${cls}`);s.hidden=true;
   s.append(s._img=el('img','ph-img'),s._qr=el('img','ph-qr'),s._cap=el('div','ph-cap'));
+  s._cap._whole=true; // attribution: wraps rather than losing words
   s._img.alt='';s._qr.alt='';return s;
 }
+// Alt text for an aircraft's photo, for screen readers: "Photo of a Boeing 737-800".
+export const photoAlt=a=>{const t=a?.type||a?.aircraft_type||'aircraft';return `Photo of ${/^[aeiou]/i.test(t)?'an':'a'} ${t}`;};
 // Show the picture for aircraft `a` in slot `s`; `relayout()` runs when it appears or goes.
 export function showPhotoIn(s,a,relayout=()=>{}){
   const hex=a?.hex||'';
@@ -43,15 +62,20 @@ export function showPhotoIn(s,a,relayout=()=>{}){
   photoFor(a).then(p=>{
     if(s._hex!==hex||!s.isConnected)return;
     const qr=p&&themedQr(p.link);
-    if(p&&qr){s._img.src=p.src;s._qr.src=qr;s._cap._alts=[`© ${p.photographer} · Planespotters.net`,`© ${p.photographer}`];}
+    // A Planespotters image that fails to load: the bundled model photo instead (or none).
+    s._img.onerror=()=>{if(s._hex!==hex||s.classList.contains('model'))return;const m=modelPhoto(a);
+      if(!m){s.hidden=true;relayout();return;}
+      s.classList.add('model');s._qr.removeAttribute('src');s._img.src=m.src;s._img.alt=`Typical ${m.model}`;
+      s._cap._alts=[`Typical ${m.model} · ${m.author} · ${m.license}`,`${m.author} · ${m.license}`,`${shortAuthor(m.author)} · ${m.license}`];fitLine(s._cap);};
+    if(p&&qr){s._img.src=p.src;s._qr.src=qr;s._img.alt=photoAlt(a);s._qr.alt='QR code for this photo on Planespotters.net';s._cap._alts=psCredit(p.photographer);}
     else{
       const m=modelPhoto(a);if(!m)return;
-      const short=m.author.replace(/^(\S)\S*\s+(?=\S)/,'$1. ').replace(/,.*$/,'');
-      s.classList.add('model');s._img.src=m.src;
+      const short=shortAuthor(m.author);
+      s.classList.add('model');s._img.src=m.src;s._img.alt=`Typical ${m.model}`;s._qr.alt='';
       s._cap._alts=[`Typical ${m.model} · ${m.author} · ${m.license}`,`Model photo · ${m.author} · ${m.license}`,`${m.author} · ${m.license}`,`${short} · ${m.license}`];
     }
     s._cap.textContent=s._cap._alts[0];s.hidden=false;
-    const fit=()=>{if(s._hex===hex){fitLine(s._cap);relayout();}};
+    const fit=()=>{if(s._hex===hex&&s.isConnected){fitLine(s._cap);relayout();}}; // not after a layout switch (seed 211)
     s._img.onload=fit; // the photo's width decides the room left for the credit
     requestAnimationFrame(fit);
   });
@@ -61,7 +85,7 @@ import {placeLabel} from './place.mjs';
 import {tz,compass,offset} from './model.mjs';
 
 export {number,compass,offset,placeLabel,MAP_ATTRIBUTION};
-export const DATA_ATTRIBUTION='Aircraft: adsb.fi · Routes: ADSB.lol';
+export const DATA_ATTRIBUTION=`${PROFILE.feed==='adsb.fi'?'Aircraft: adsb.fi':'Positions: adsb.lol (ODbL)'} · Routes: ADSB.lol`;
 // Map radius in miles (Settings > Map radius). Layouts are drawn for a 10-mile view
 // (BASE_RANGE); paintMap and toView scale every view by zoom() = 10 / map radius, so
 // fixed pixel sizes in a layout stay put while distances shrink or grow.
@@ -89,17 +113,23 @@ export const setText=(e,v,alts)=>{
 // that fits, shrunk if need be), so a long name never runs out of its box or ends in "…".
 const fitted=new Set();
 export const fit=(...es)=>{for(const e of es.flat())if(e){e._fit=true;fitted.add(e);}};
+// The old layout's slots go with it (a switch among the Atlas layouts loads no font: no 'loadingdone').
+export const pruneFitted=()=>{for(const e of fitted)if(!e.isConnected)fitted.delete(e);};
 // Web fonts arrive after the first fit (wider than the fallback): fit them all again then.
 globalThis.document?.fonts?.addEventListener?.('loadingdone',()=>{
   for(const e of fitted){if(!e.isConnected){fitted.delete(e);continue;}if(e._alts)fitLine(e);}
 });
 // Shorter wordings for common long values, longest first.
 export const placeAlts=()=>[...new Set([placeName(),cityName()].filter(Boolean))];
-export const airlineAlts=name=>{
+export const airlineAlts=(name,cut=true)=>{
   const s=String(name||''),corp=s.replace(/[\s,]+(S\.?A\.?( de C\.?V\.?)?|LLC|Inc\.?|Co\.?|Corp\.?|AG|GmbH|Ltd\.?|plc|SpA|NV|BV)$/i,'').trim();
   const short=corp.replace(/\s+(Air ?Lines|Airlines|Airways|Aviation|International|Express|Cargo|Services|Transportes?|Aerotransportes)\b/gi,'').trim();
-  return [...new Set([s,corp,short,short.split(/\s+/)[0]].filter(Boolean))];
+  return [...new Set([s,corp,short,cut&&short.split(/\s+/)[0]].filter(Boolean))];
 };
+// A Departures cell of n flaps: a city too long for it gives its airport code (SFO, never "SAN" or
+// "INDIANAPOLI"); an operator its short name, else the callsign's airline code (ANZ, not "AIR NEW").
+export const boardCity=(name,code,n)=>{const s=String(name||'').toUpperCase().trim();return s&&s.length<=n?s:String(code||'').toUpperCase();};
+export const boardOperator=(name,call,n)=>airlineAlts(name,false).map(s=>s.toUpperCase()).find(s=>s.length<=n)||String(call||'').slice(0,3).toUpperCase();
 export const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 // First spot (dx,dy offsets from p) where a w x h box fits inside bounds without hitting boxes.
 export function placeBox(boxes,p,w,h,spots,bounds){
@@ -117,7 +147,7 @@ export const useSettings=s=>{S=s;};
 export const KM=1.609344;
 export const metric=()=>S.distance==='km';
 export const fmt={
-  int:v=>number(v)?Math.round(v).toLocaleString('en-US'):'—',
+  int:v=>number(v)?(Math.round(v)||0).toLocaleString('en-US'):'—', // ||0: never "-0"
   dist:(mi,d=1)=>!number(mi)?'—':S.distance==='km'?`${(mi*KM).toFixed(d)} km`:`${mi.toFixed(d)} mi`,
   far:mi=>!number(mi)?'—':S.distance==='km'?`${fmt.int(mi*KM)} km`:`${fmt.int(mi)} mi`,
   alt:ft=>!number(ft)?'—':S.altitude==='m'?`${fmt.int(ft*.3048)} m`:ft>=18000?`FL${Math.round(ft/100)}`:`${fmt.int(ft)} ft`,
@@ -127,7 +157,9 @@ export const fmt={
   speedNum:kt=>!number(kt)?'—':S.distance==='km'?fmt.int(kt*1.852):fmt.int(kt),
   speedUnit:()=>S.distance==='km'?'km/h':'kt',
   distUnit:()=>S.distance==='km'?'km':'mi',
-  vs:fpm=>!number(fpm)||Math.abs(fpm)<100?'level':S.altitude==='m'?`${fpm>0?'↑':'↓'}${(Math.abs(fpm)*.00508).toFixed(1)} m/s`:
+  // Hundreds of feet for tags ("045"), never negative ("0-1" below sea level).
+  hundreds:ft=>String(Math.max(0,Math.round((ft||0)/100))).padStart(3,'0'),
+  vs:fpm=>!number(fpm)?'—':Math.abs(fpm)<100?'level':S.altitude==='m'?`${fpm>0?'↑':'↓'}${(Math.abs(fpm)*.00508).toFixed(1)} m/s`:
     `${fpm>0?'↑':'↓'}${fmt.int(Math.abs(Math.round(fpm/50)*50))}`,
   mmss:s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`,
   ago:(stamp,now)=>{const m=Math.max(0,Math.floor((now/1000-stamp)/60));return m<1?'now':m<60?`${m}m`:`${Math.floor(m/60)}h`;},
@@ -144,10 +176,19 @@ export const windowView=()=>S.alertZone==='window';
 // SVG path of the alert zone; at(x,y) maps miles east/north of home to screen {x,y}.
 export const zonePath=at=>'M'+zoneOutline(alertZone()).map(([x,y])=>{const p=at(x,y);return `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;}).join('L')+'Z';
 export const routeText=(r,sep=' → ')=>r?`${r.origin}${sep}${r.destination}`:'';
+// The card's heading. While Left/Right browse the planes (browse.mjs) it gives the plane's place
+// in the list and where it is, "Plane 3 of 9 · 4.2 mi NE", with shorter wordings for a tight
+// line that all keep the number; otherwise `line`, the layout's own heading.
+export function headingAlts(hero,line){
+  const b=hero?.browse;if(!b)return [line];
+  const d=fmt.dist(hero.ground),at=`${d} ${compass(hero.bearing)}`;
+  return [`Plane ${b.index} of ${b.count} · ${at}`,`${b.index} of ${b.count} · ${at}`,`${b.index}/${b.count} · ${at}`,`${b.index}/${b.count} · ${d}`];
+}
 export const routeCities=r=>r?[r.from?.city||r.origin,r.to?.city||r.destination]:null;
 // "Live" / "Preview" / "Connecting…" / "No signal", and what to say when nothing is near.
-export const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting…':m.fresh?'Live':'No signal';
-export const quietText=(m,demo)=>!demo&&!m.fresh?(m.connecting?'Connecting to the live feed…':'No live data right now. Retrying every few seconds.'):
+export const statusText=(m,demo)=>demo?'Preview':m.connecting?'Connecting':m.fresh?'Live':'No signal';
+const fmtWait=s=>s<90?`${s} s`:`${Math.round(s/60)} min`;
+export const quietText=(m,demo)=>!demo&&!m.fresh?(m.connecting?'Connecting to the live feed':m.retryIn>=5?`No live data right now. Reconnecting in ${fmtWait(m.retryIn)}.`:'No live data right now. Reconnecting.'):
   m.noCoverage?'No receiver coverage here. The aircraft feed has no receivers near this location.':
   'Quiet skies. Nothing within range right now.';
 
@@ -167,19 +208,44 @@ export function silhouette(a,cls='sil'){
   const family=silhouetteFamily(a),e=svg('svg',{class:`${cls} ${family}`,viewBox:'0 0 120 40','aria-hidden':'true'});
   e.append(svg('path',{d:SILHOUETTES[family],'fill-rule':'nonzero'}));e.dataset.family=family;return e;
 }
+// One wording rewritten wherever it shows under `root`, as written or in capitals, a one-line slot
+// fitted again; nothing else is drawn. The outage line counts down this way between polls (app.mjs).
+export function swapText(root,was,now){
+  if(!root||was===now)return;
+  const W=was.toUpperCase(),has=s=>String(s).includes(was)||String(s).includes(W),swap=s=>String(s).split(was).join(now).split(W).join(now.toUpperCase());
+  for(const e of root.querySelectorAll('*'))if(e._alts?.some(has)){e._alts=e._alts.map(swap);if(e._key)e._key=e._alts.join('\u0001');fitLine(e);}
+  const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  for(let t=walk.nextNode();t;t=walk.nextNode())if(!t.parentNode?._alts&&has(t.data))t.data=swap(t.data);
+}
 // One line, never cut: try each wording (e._alts, longest first) shrinking the type down
-// to 11 px; if none fits, the shortest one goes down to 9 px.
+// to 11 px; if none fits, the shortest one goes down to 9 px. A notice (e._firm) takes a
+// shorter wording before it shrinks.
+// Wider than its box: scrollWidth rounds, so the text's own measured width decides too
+// (a 1.5 px overrun cut the last digit).
+const over=e=>{if(e.scrollWidth>e.clientWidth)return true;const r=document.createRange();r.selectNodeContents(e);
+  const cs=getComputedStyle(e),inner=e.getBoundingClientRect().width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-parseFloat(cs.borderLeftWidth)-parseFloat(cs.borderRightWidth);
+  return r.getBoundingClientRect().width>inner+.5;};
+export const overflows=over; // Settings values (app.mjs fitValue) use the same test
 export function fitLine(e){
   const alts=e._alts||[e.textContent];
   // Not laid out (hidden): show the full wording and fit again at the next setText.
   if(!e.isConnected||!e.getClientRects().length){e.textContent=alts[0];e.style.fontSize='';e._key=null;return;}
+  e.style.whiteSpace='';e.style.overflowWrap='';
   for(let i=0;i<alts.length;i++){
-    const floor=i===alts.length-1?9:11;
+    const floor=i===alts.length-1?9:e._firm?Infinity:11;
     e.textContent=alts[i];e.style.fontSize='';
     let size=parseFloat(getComputedStyle(e).fontSize);
-    while(e.scrollWidth>e.clientWidth+1&&size>floor){size-=.5;e.style.fontSize=`${size}px`;}
-    if(e.scrollWidth<=e.clientWidth+1)return;
+    while(over(e)&&size>floor){size-=.5;e.style.fontSize=`${size}px`;}
+    if(!over(e))return;
   }
+  // Text that must stay whole (a photo credit, e._whole) wraps onto another line instead.
+  if(e._whole){e.style.whiteSpace='normal';e.style.overflowWrap='anywhere';return;}
+  // Still too long at the smallest size (a 400-character name): drop whole words from the
+  // end, never ending in "…" (or a dangling slash), so at least it isn't cut through a word.
+  let t=e.textContent;
+  while(over(e)&&/\s\S+\s*$/.test(t.trim())){t=t.trim().replace(/\s+\S+$/,'').replace(/[\s,·:;–\/-]+$/,'');e.textContent=t;}
+  // One unbroken word longer than the row: it wraps rather than being cut.
+  if(over(e)){e.style.whiteSpace='normal';e.style.overflowWrap='anywhere';}
 }
 // The planes worth labelling first: hero, then those inside the alert ring, then nearest.
 export const byInterest=m=>[...new Set([m.hero,...m.planes.filter(a=>a.inside),...m.planes].filter(Boolean))];
@@ -199,6 +265,15 @@ export class TrailBook{
     }
   }
   get(hex){return this.map.get(hex)||[];}
+  // Keeps the tracks of the planes in `planes` and of the `keep` most recently departed (by last fix), forgetting the
+  // rest, so a busy sky turning over never piles up hundreds of fading trails; returns them, [hex,points], in the
+  // order first seen.
+  prune(planes,keep=60){
+    const live=new Set(planes.map(a=>a.hex)),gone=[];
+    for(const [hex,l] of this.map)if(!live.has(hex))gone.push([hex,l[l.length-1].t]);
+    for(const [hex] of gone.sort((a,b)=>b[1]-a[1]).slice(keep))this.map.delete(hex);
+    return [...this.map];
+  }
   clear(){this.map.clear();}
 }
 
@@ -214,7 +289,7 @@ export function makeCanvas(w,h,cls){
 export function mapShift(m,home=S.place){
   if(!m||!home)return [0,0];
   const cos=Math.cos(home.latitude*Math.PI/180);
-  return [(m.longitude-home.longitude)*69.172*cos,(m.latitude-home.latitude)*69];
+  return [dLon(m.longitude,home.longitude)*69.172*cos,(m.latitude-home.latitude)*69];
 }
 // view: {cx,cy (home, in canvas CSS px), ppm (px per mile at the 10-mile view), clip?: {r} circle or
 //   {x,y,w,h} rect, rotate?: deg (heading up), center?: place, fixed?: true = ignore the map radius}.
@@ -248,16 +323,21 @@ export function paintMap(canvas,maps,view,spec){
     const [sx,sy]=mapShift(m,view.center),ppm=ppmOf(view),div=m.per||1000; // detail maps: points per mile
     const X=(x,y)=>{x+=sx;y+=sy;return view.cx+(x*cr-y*sr)*ppm;},Y=(x,y)=>{x+=sx;y+=sy;return view.cy-(x*sr+y*cr)*ppm;};
     g.beginPath();
+    // A ring ends with a line back to its start, not closePath: on one path Chromium's closePath costs more for every
+    // subpath already there (the 10 mi street map's 9,500 rings: 0.9 s at 1x, 3.5 s at a stick's pace). The fill closes
+    // each subpath anyway, and a stroke with round caps (the default) looks the same; a butt or square cap would notch
+    // the ring where it starts, so the few rings stroked that way (runway areas) keep closePath.
+    const join=!!s.stroke&&!!s.cap&&s.cap!=='round';
     for(const f of m[s.layer]){
       if(s.classes&&!s.classes.includes(f.c))continue;
       if(s.not&&s.not.includes(f.c))continue;
-      const pts=f.p||f.r||f,closed=!!f.r||s.layer==='water'&&from==='base';
+      const pts=f.p||f.r||f,closed=!!f.r||s.layer==='water'&&from==='base';let x0,y0;
       if(ArrayBuffer.isView(pts)){
-        for(let i=0;i<pts.length;i+=2){const x=pts[i]/div,y=pts[i+1]/div;i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(X(x,y),Y(x,y));}
+        for(let i=0;i<pts.length;i+=2){const x=pts[i]/div,y=pts[i+1]/div;i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(x0=X(x,y),y0=Y(x,y));}
       }else{
-        for(let i=0;i<pts.length;i++){const [x,y]=pts[i];i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(X(x,y),Y(x,y));}
+        for(let i=0;i<pts.length;i++){const [x,y]=pts[i];i?g.lineTo(X(x,y),Y(x,y)):g.moveTo(x0=X(x,y),y0=Y(x,y));}
       }
-      if(closed)g.closePath();
+      if(closed&&pts.length){if(join)g.closePath();else g.lineTo(x0,y0);}
     }
     g.globalAlpha=s.alpha??1;
     g.shadowBlur=s.glow?s.glow*k:0;g.shadowColor=s.glowColor||s.stroke||s.fill||'transparent';
@@ -328,3 +408,11 @@ export function credits(cls='credits',{oneLine=false}={}){
   e.append(el('div','credit-data',DATA_ATTRIBUTION),el('div','credit-map',oneLine?`Map ${MAP_ATTRIBUTION}`:MAP_ATTRIBUTION));
   return e;
 }
+
+// Military today's sub-line, count first ("2 C-17 · 1 KC-135": "C-17 2" reads like C-172),
+// most seen first; shorter wordings drop types. With none: "none yet".
+export const militaryAlts=L=>{
+  const t=L?.militaryTypes||[];if(!t.length)return ['none yet'];
+  const w=n=>t.slice(0,n).map(([k,c])=>`${c} ${k}`).join(' · ');
+  return [...new Set([w(4),w(3),w(2),w(1)])];
+};

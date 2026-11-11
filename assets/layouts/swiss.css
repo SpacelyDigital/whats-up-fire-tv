@@ -1,7 +1,7 @@
 /* Layout 8, Swiss: International Typographic Style poster. Inter, off-white, one red. */
 @font-face{font-family:'Inter';src:url(../fonts/Inter.woff2) format('woff2');font-weight:300 900;font-display:block}
 .L-swiss{--paper:#f1eee6;--ink:#111;--grey:#7d7a72;--red:#e2231a;
-  --ui-ink:#111;--ui-dim:#5f5c55;--ui-faint:#b9b5ab;--ui-bg:#f1eee6;--ui-shade:rgba(241,238,230,.9);--ui-on:#f1eee6;
+  --ui-ink:#111111;--ui-dim:#5f5c55;--ui-faint:#b9b5ab;--ui-bg:#f1eee6;--ui-shade:rgba(241,238,230,.9);--ui-on:#f1eee6;
   --ui-glow:rgba(0,0,0,.08);--ui-alert:#e2231a;--ui-font:'Inter',sans-serif;--ui-radius:0px}
 .L-swiss .layout{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-feature-settings:'tnum'}
 .L-swiss .top{position:absolute;left:36px;right:36px;top:22px;display:flex;justify-content:space-between;align-items:baseline;font:700 24px/1 'Inter';letter-spacing:-.01em}
@@ -9,7 +9,7 @@
 .L-swiss .city:before{content:'';width:18px;height:18px;background:var(--red);flex:none}
 .L-swiss .clock{font-weight:700}
 .L-swiss .rule{position:absolute;left:36px;right:36px;top:60px;height:3px;background:var(--ink)}
-.L-swiss .kicker{position:absolute;left:36px;top:76px;font:700 18px 'Inter';color:var(--red);letter-spacing:.01em}
+.L-swiss .kicker{position:absolute;left:36px;top:76px;width:560px;white-space:nowrap;font:700 18px 'Inter';color:var(--red);letter-spacing:.01em}
 .L-swiss .giant{position:absolute;left:24px;top:84px;width:580px;height:300px;display:flex;align-items:flex-end;gap:6px}
 /* The gap after the number is in em, so it scales with the number: 1, 2 or 3 digits,
    miles or km, the red rule and unit keep the same breathing room. .065em undoes the
@@ -25,7 +25,7 @@
 .L-swiss .marks .home{fill:var(--red)}
 .L-swiss .marks .plane path{fill:var(--ink)}
 .L-swiss .marks .plane.hero path{fill:var(--red)}
-.L-swiss .facts{font:600 18px/1.3 'Inter';margin-top:14px;border-top:1px solid var(--ink);padding-top:8px}
+.L-swiss .facts{font:600 18px/1.3 'Inter';margin-top:14px;border-top:1px solid var(--ink);padding-top:8px;white-space:nowrap;overflow:hidden}
 .L-swiss .status{font:400 14px 'Inter';color:var(--grey);margin-top:4px}
 /* Quiet: the zero is grey, the poster still holds. */
 .L-swiss .quiet .num{color:#cfcabe}
@@ -47,3 +47,4 @@
 .L-swiss .ph-qr{width:60px;height:60px}
 .L-swiss .ph-cap{text-align:left;font:400 11px 'Inter';color:var(--grey);opacity:1}
 .L-swiss .emergency .ph{border-color:#fff}.L-swiss .emergency .ph-cap{color:rgba(255,255,255,.8)}
+.L-swiss .marks .plane.mil path{fill:#56682b}

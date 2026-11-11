@@ -1,0 +1,15 @@
+## Privacy policy (placeholder)
+
+This is a placeholder. The final policy text will replace it before release.
+
+## What is sent
+
+{{SERVICES}}
+
+## What is saved on this TV
+
+Your location, the place or address you chose, your settings, the planes seen today and the saved maps. Nothing is sent to the developer.
+
+## Erase
+
+Choose Erase all data below to remove everything this app stored on this TV.

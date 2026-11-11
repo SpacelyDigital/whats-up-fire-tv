@@ -44,43 +44,113 @@ describe('App', () => {
     expect(toJSON()).toBeTruthy();
   });
 
-  it('holds off the screensaver while shown and lets go when backgrounded or closed', () => {
+  // The page reports Settings > Keep screen awake through the bridge.
+  const sayAwake = (r: ReturnType<typeof render>, on: boolean) =>
+    act(() =>
+      r.UNSAFE_root.findByType('WebView' as any).props.onMessage({
+        nativeEvent: {data: JSON.stringify({type: 'awake', on})},
+      }),
+    );
+
+  it('holds off the screensaver only while shown AND the switch is on', () => {
     mockKeepAwake.start.mockClear();
     mockKeepAwake.stop.mockClear();
-    const {unmount} = render(<App />);
+    const r = render(<App />);
+    expect(mockKeepAwake.start).not.toHaveBeenCalled(); // off until the page says on
+    sayAwake(r, true);
     expect(mockKeepAwake.start).toHaveBeenCalledTimes(1);
-    mockAppState.listener('background');
+    act(() => mockAppState.listener('background'));
     expect(mockKeepAwake.stop).toHaveBeenCalledTimes(1);
-    mockAppState.listener('active');
+    act(() => mockAppState.listener('active'));
     expect(mockKeepAwake.start).toHaveBeenCalledTimes(2);
-    unmount();
+    sayAwake(r, false);
     expect(mockKeepAwake.stop).toHaveBeenCalledTimes(2);
+    act(() => mockAppState.listener('background'));
+    act(() => mockAppState.listener('active'));
+    expect(mockKeepAwake.start).toHaveBeenCalledTimes(2); // switch off: nothing reported
+    r.unmount();
   });
 
   it('plays the silent loop only while shown and Keep screen awake is on', () => {
     mockLoop.startLoop.mockClear();
     mockLoop.stopLoop.mockClear();
-    const {unmount} = render(<App />);
+    const r = render(<App />);
+    expect(mockLoop.startLoop).not.toHaveBeenCalled();
+    sayAwake(r, true);
     expect(mockLoop.startLoop).toHaveBeenCalled();
     act(() => mockAppState.listener('background'));
     expect(mockLoop.stopLoop).toHaveBeenCalled();
     mockLoop.startLoop.mockClear();
     act(() => mockAppState.listener('active'));
     expect(mockLoop.startLoop).toHaveBeenCalled();
-    unmount();
+    r.unmount();
   });
 
-  it('re-reports engagement every 4 minutes only while active', () => {
+  it('re-reports engagement every 4 minutes only while active and on', () => {
     jest.useFakeTimers();
     mockKeepAwake.start.mockClear();
-    mockKeepAwake.stop.mockClear();
-    const {unmount} = render(<App />);
+    const r = render(<App />);
+    jest.advanceTimersByTime(8 * 60 * 1000);
+    expect(mockKeepAwake.start).toHaveBeenCalledTimes(0);
+    sayAwake(r, true);
     jest.advanceTimersByTime(4 * 60 * 1000);
     expect(mockKeepAwake.start).toHaveBeenCalledTimes(2);
-    mockAppState.listener('background');
+    act(() => mockAppState.listener('background'));
     jest.advanceTimersByTime(8 * 60 * 1000);
     expect(mockKeepAwake.start).toHaveBeenCalledTimes(2);
-    unmount();
+    r.unmount();
     jest.useRealTimers();
+  });
+
+  // The fetch bridge: the backup positions (api.adsb.lol) only on the 0.05° grid, with the
+  // same User-Agent as adsb.fi; any other adsb.lol API URL is refused at once.
+  it('fetches the adsb.lol backup feed on the grid with the app User-Agent, nothing else there', async () => {
+    const inject = jest.fn();
+    const realFetch = global.fetch;
+    const realError = console.error;
+    console.error = jest.fn();
+    const fetchMock = jest.fn(async (url: string, _init: any) => ({
+      status: 200,
+      url,
+      headers: {get: () => null},
+      text: async () => '{"ac":[],"now":1}',
+    }));
+    (global as any).fetch = fetchMock;
+    const r = render(<App />, {createNodeMock: () => ({injectJavaScript: inject})});
+    const send = async (id: number, url: string) => {
+      act(() =>
+        r.UNSAFE_root.findByType('WebView' as any).props.onMessage({
+          nativeEvent: {data: JSON.stringify({type: 'get', id, url, timeoutMs: 4480})},
+        }),
+      );
+      await act(async () => {
+        await new Promise(done => setTimeout(done, 0));
+      });
+    };
+    try {
+      await send(1, 'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18');
+      await send(2, 'https://opendata.adsb.fi/api/v3/lat/39.05/lon/-84.65/dist/18');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const agent = (n: number) => fetchMock.mock.calls[n][1].headers['User-Agent'];
+      expect(agent(0)).toMatch(/^WhatsUp-FireTV\/\d+\.\d+ \(Spacely Digital; spacelydigital@gmail\.com\)$/);
+      expect(agent(0)).toBe(agent(1));
+      expect(inject.mock.calls.map(c => c[0]).join('\n')).toContain('__whatsupReply(1,200,');
+      const refused = [
+        'https://api.adsb.lol/v2/lat/39.0512/lon/-84.65/dist/18',
+        'https://api.adsb.lol/v2/mil',
+        'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18?key=x',
+        'http://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/18',
+        'https://api.adsb.lol/v2/lat/39.05/lon/-84.65/dist/1000',
+      ];
+      for (const [i, url] of refused.entries()) {
+        await send(10 + i, url);
+        expect(inject.mock.calls.at(-1)?.[0]).toContain(`__whatsupReply(${10 + i},"blocked","")`);
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      (global as any).fetch = realFetch;
+      console.error = realError;
+      r.unmount();
+    }
   });
 });

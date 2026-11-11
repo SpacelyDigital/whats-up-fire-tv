@@ -3,11 +3,13 @@
 // flat overlay, placed with the same perspective maths and lifted by altitude, so
 // their labels stay upright and readable. Map: water, rivers, motorways, runways.
 import {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,byInterest,paintMap,airportsNear,
-  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts} from '../kit.mjs';
+  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts,compass} from '../kit.mjs';
 
 // Floor: a W x H canvas (1 px per CSS px: a soft neon floor needs no more), home at its
 // centre, rotated about its centre by TILT under a perspective of PERSP px seen from VP.
 const W=1400,H=640,PPM=30,TILT=60,PERSP=600,VP={x:480,y:232},HOME_Y=380;
+// The planes this floor draws, those past its edge pinned to it (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>!(a.ground>range()*1.2);
 const LEFT=480-W/2,TOP=HOME_Y-H/2;
 const MAP=[
   {layer:'water',fill:'rgba(0,229,255,.16)',stroke:'rgba(0,229,255,.75)',width:1.6,glow:8},
@@ -48,7 +50,8 @@ function ui(){
     <div class="mayday" hidden><div class="m1">MAYDAY</div><div class="m2"></div></div>
     <div class="quiet" hidden><div class="q1">QUIET SKIES</div><div class="q2"></div></div>
     <div class="strip">
-      <span><i>CARGO TONIGHT</i><b class="s-cargo"></b></span>
+      <span><i>CARGO</i><b class="s-cargo"></b></span>
+      <span><i>MILITARY</i><b class="s-mil"></b></span>
       <span><i>SEEN TODAY</i><b class="s-seen"></b></span>
       <span><i>HIGHEST</i><b class="s-high"></b></span>
       <span><i>LAST ABOVE</i><b class="s-last"></b></span>
@@ -60,11 +63,13 @@ function ui(){
   $.canvas=floorCanvas();floor.append($.canvas);
   $.svg=svg('svg',{class:'fly',viewBox:'0 0 960 540','aria-hidden':'true'});
   for(const id of ['marks','stalks','jets','tags'])$.svg.append($[id]=svg('g'));
-  root.querySelector('.world').after($.svg);
-  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m2','quiet','q2',
-    's-cargo','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
+  // The hero's pulsing glow: a copy of its chevron on its own small layer under the overlay, moved to the hero.
+  $.pulse=svg('svg',{class:'pulse',viewBox:'-80 -80 160 160','aria-hidden':'true',style:'display:none'});$.pulse.append($.halo=svg('path',{d:CHEV}));
+  root.querySelector('.world').after($.pulse,$.svg);
+  for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m1','m2','quiet','q1','q2',
+    's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city);
+  fit($.city,$['h-label'],$.m1,$.q1);
 }
 
 function drawMap(){
@@ -101,15 +106,15 @@ function render(m){
   setText($['s-status'],statusText(m,demo));$['s-status'].classList.toggle('off',!demo&&!m.fresh&&!m.connecting);
   root.classList.toggle('emergency',!!hero?.emergency);
 
-  const stalks=[],jets=[],tags=[],boxes=[{x:0,y:0,w:960,h:VP.y-14},{x:0,y:470,w:600,h:70}];
+  const stalks=[],jets=[],tags=[],boxes=[{x:0,y:0,w:960,h:VP.y-14},{x:0,y:470,w:600,h:70}];let halo=null;
   const tagged=new Set(byInterest(m).slice(0,6));
   const order=[...m.planes].sort((a,b)=>(b===hero)-(a===hero)||b.y-a.y); // hero, then far (north) first
   for(const a of order){
-    if(a.ground>range()*1.2)continue;
+    if(!shows(a))continue;
     const g=project(a.x,a.y);
     let off=false,gx=g.x,gy=g.y;
     if(gy>522||gx<14||gx>946){off=true;gx=Math.max(24,Math.min(936,gx));gy=Math.min(gy,522);}
-    const isHero=a===hero,cls=`${isHero?'hero':''}${a.inside?' inside':''}${a.cargo?' cargo':''}${off?' off':''}`;
+    const isHero=a===hero,cls=`${isHero?'hero':''}${a.inside?' inside':''}${a.cargo?' cargo':''}${a.military?' mil':''}${off?' off':''}`;
     const lift=off?0:Math.min(70,(a.altitude_ft||0)/40000*70)*Math.min(1.25,g.s);
     const px=gx,py=gy-lift;
     if(!off){
@@ -122,34 +127,40 @@ function render(m){
       rot=Math.atan2(q.x-g.x,-(q.y-g.y))*180/Math.PI;
     }
     const size=off?.8:Math.max(.75,Math.min(1.35,.6+g.s*.45))*(isHero?1.35:1);
-    jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`}));
+    const spin=`rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`;
+    jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) ${spin}`}));
+    if(isHero)halo={x:px,y:py,spin,off};
     if(tagged.has(a)){
-      const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):`${String(Math.round((a.altitude_ft||0)/100)).padStart(3,'0')}`;
-      const l2=off?`↓ ${fmt.dist(a.ground,0)} S`:alt,w=Math.max(a.flight.length*11,l2.length*9)+4,h=32;
-      const spot=[[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
-        .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)));
-      if(spot||isHero){
-        const b=spot||{x:px+16,y:py-16,w,h};boxes.push(b);
-        tags.push(svg('text',{class:`tag ${cls}`,x:b.x,y:b.y+13},a.flight),svg('text',{class:`tag2 ${cls}`,x:b.x,y:b.y+28},l2));
-      }
+      const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):fmt.hundreds(a.altitude_ft);
+      const l2=off?`↓ ${fmt.dist(a.ground,0)} ${compass(a.bearing)}`:alt,h=32;
+      const place=t=>{const w=Math.max(a.flight.length*11,t.length*9)+4;
+        return [[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
+          .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)))||(isHero?{x:px+16,y:py-16,w,h}:null);};
+      // Short of room, a plane off the floor (the hero always has its spot) tries its distance alone (↓ 28 mi) before going untagged.
+      let t=l2,b=place(t);
+      if(!b&&off)b=place(t=l2.replace(/ \S+$/,''));
+      if(b){boxes.push(b);tags.push(svg('text',{class:`tag ${cls}`,x:b.x,y:b.y+13},a.flight),svg('text',{class:`tag2 ${cls}`,x:b.x,y:b.y+28},t));}
     }
   }
   $.stalks.replaceChildren(...stalks);$.jets.replaceChildren(...jets);$.tags.replaceChildren(...tags);
+  $.pulse.style.display=halo?'':'none';
+  if(halo){Object.assign($.pulse.style,{left:`${halo.x.toFixed(1)}px`,top:`${halo.y.toFixed(1)}px`});$.halo.setAttribute('transform',halo.spin);$.halo.classList.toggle('off',halo.off);}
 
   $.hcard.hidden=!hero;$.quiet.hidden=!!hero;$.mayday.hidden=!hero?.emergency;
   showPhotoIn($.pic,hero);
-  if(!hero)setText($.q2,quietText(m,demo));
+  if(!hero){setText($.q1,'QUIET SKIES');setText($.q2,quietText(m,demo));}
   else{
-    setText($['h-label'],`${hero.status} · ${fmt.dist(hero.ground)}`);
+    setText($['h-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     setText($['h-fl'],hero.flight);$['h-fl'].classList.toggle('long',hero.flight.length>8);
     setText($['h-rt'],hero.route?`${hero.route.from?.city||hero.route.origin} → ${hero.route.to?.city||hero.route.destination}`:(hero.operator||'Route not reported'));
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));
     const c=hero.cpa;setText($['h-cpa'],!c?'—':c.receding?'leaving':fmt.mmss(c.seconds));
     setText($['h-type'],[hero.operator,hero.type||hero.aircraft_type].filter(Boolean).join(' · '));
-    if(hero.emergency)setText($.m2,`${hero.flight} · SQUAWK ${hero.squawk} · ${hero.emergency}`);
+    // MAYDAY for a 7700 only; 7600, 7500 or a declared emergency say what it is.
+    if(hero.emergency){setText($.m1,hero.squawk==='7700'?'MAYDAY':hero.emergency);setText($.m2,`${hero.flight} · ${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`);}
   }
   const L=m.log;
-  setText($['s-cargo'],String(L.cargoTonight));setText($['s-seen'],fmt.int(L.today));
+  setText($['s-cargo'],String(L.cargoTonight));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));
   setText($['s-high'],L.highest?fmt.alt(L.highest.value):'—');
   const r=m.recent[0];setText($['s-last'],r?`${r.flight} ${fmt.ago(r.last_seen,now)}`:'—');
 }
@@ -158,7 +169,7 @@ export default {
   name:'Synthwave',map:'base',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){drawMap();},
   unmount(){root=null;$={};maps={};},
 };

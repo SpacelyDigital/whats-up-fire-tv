@@ -18,9 +18,11 @@ import {
 // The page (assets/, built from web/) asks the app to fetch for it: adsb.fi
 // sends no CORS header, so the WebView cannot read it directly. The other
 // services do send CORS headers; they are allowed here as a fallback. Only
-// these read-only GETs are reachable through the bridge.
+// these read-only GETs are reachable through the bridge, each with USER_AGENT.
 const ALLOWED = [
   /^https:\/\/opendata\.adsb\.fi\/api\/v3\/lat\/-?\d{1,2}\.\d{2}\/lon\/-?\d{1,3}\.\d{2}\/dist\/\d{1,3}$/,
+  // Backup positions, asked only while adsb.fi isn't answering (web/live.mjs).
+  /^https:\/\/api\.adsb\.lol\/v2\/lat\/-?\d{1,2}\.\d{2}\/lon\/-?\d{1,3}\.\d{2}\/dist\/\d{1,3}$/,
   /^https:\/\/vrs-standing-data\.adsb\.lol\/routes\/[A-Z0-9-]{2}\/[A-Z0-9-]{2,10}\.json$/,
   /^https:\/\/get\.geojs\.io\/v1\/ip\/geo\.json$/,
   /^https:\/\/geocoding-api\.open-meteo\.com\/v1\/search\?name=[^&#]{1,200}&count=\d{1,2}&language=en&format=json$/,
@@ -31,6 +33,7 @@ const ALLOWED = [
   /^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\d{1,2}\/\d{1,6}\/\d{1,6}\.pbf$/,
   /^https:\/\/api\.planespotters\.net\/pub\/photos\/(hex\/[0-9a-f]{6}|reg\/[A-Z0-9-]{2,10})$/,
 ];
+const isAllowed = (url: string) => ALLOWED.some(p => p.test(url));
 const MAX_BYTES = 2 * 1024 * 1024;
 // Names the app and a contact, as Nominatim's and Planespotters' API terms ask.
 const USER_AGENT = 'WhatsUp-FireTV/0.1 (Spacely Digital; spacelydigital@gmail.com)';
@@ -76,8 +79,18 @@ async function get(
       },
       signal: controller.signal,
     });
+    // A redirect may only land on another allowed URL (P2-1).
+    if (response.url && response.url !== url && !isAllowed(response.url)) {
+      return ['blocked', ''];
+    }
     if (response.status !== 200) {
-      return [response.status, ''];
+      // Tell the page how long the service asked it to wait (429/503), so it backs off.
+      return [response.status, response.headers.get('retry-after') || ''];
+    }
+    // Refuse an announced oversize body before downloading it (P2-2).
+    if (Number(response.headers.get('content-length')) > MAX_BYTES) {
+      controller.abort();
+      return ['oversize', ''];
     }
     if (binary) {
       const bytes = new Uint8Array(await response.arrayBuffer());
@@ -113,35 +126,42 @@ export const App = () => {
   const webRef = useRef<any>(null);
   // True while the page shows Settings or the location screen: Back closes it.
   const overlayRef = useRef(false);
-  // Settings > Keep screen awake (the page reports it on load and when it changes).
-  const [awake, setAwake] = useState(true);
+  // Settings > Keep screen awake (the page reports it on load and when it changes; off
+  // until it says otherwise).
+  const [awake, setAwake] = useState(false);
   const [active, setActive] = useState(AppState.currentState !== 'background');
   // Keep the splash screen up until the page has loaded.
   usePreventHideSplashScreen();
   const hideSplashScreenCallback = useHideSplashScreenCallback();
 
   useEffect(() => {
-    let active = AppState.currentState !== 'background';
-    engage(active);
-    // Re-report engagement every few minutes while shown: the platform may let a
-    // single long-running report lapse (seen on the stick after ~15-20 min).
-    const timer = setInterval(() => {
-      if (active) {
-        engage(false);
-        engage(true);
-      }
-    }, REASSERT_MS);
     const sub = AppState.addEventListener('change', state => {
-      active = state === 'active';
-      engage(active);
-      setActive(active);
+      setActive(state === 'active');
+      // The page pauses all polling while the app is not shown (and resumes on return).
+      webRef.current?.injectJavaScript(
+        `window.__whatsupActive&&window.__whatsupActive(${state === 'active'});true;`,
+      );
     });
+    return () => sub.remove();
+  }, []);
+
+  // The user-engagement report holds off the screensaver, so it runs only while the app is
+  // shown AND Settings > Keep screen awake is on. Re-reported every few minutes: the
+  // platform may let a single long-running report lapse (seen on the stick after ~15-20 min).
+  useEffect(() => {
+    if (!(awake && active)) {
+      return;
+    }
+    engage(true);
+    const timer = setInterval(() => {
+      engage(false);
+      engage(true);
+    }, REASSERT_MS);
     return () => {
       clearInterval(timer);
-      sub.remove();
       engage(false);
     };
-  }, []);
+  }, [awake, active]);
 
   // The silent loop plays only while the app is shown and the switch is on.
   useEffect(() => {
@@ -201,8 +221,9 @@ export const App = () => {
       return;
     }
     // Answer a refused URL at once, so the page never waits out its timeout.
-    if (!ALLOWED.some(pattern => pattern.test(request.url))) {
-      console.error(`[bridge] refused ${request.url.slice(0, 120)}`);
+    if (!isAllowed(request.url)) {
+      // The host only: a refused geocoder URL could carry a typed address (P2-4).
+      console.error(`[bridge] refused ${(/^https?:\/\/([^/?#]+)/.exec(request.url) || [])[1] || 'non-http URL'}`);
       webRef.current?.injectJavaScript(
         `window.__whatsupReply&&window.__whatsupReply(${request.id},"blocked","");true;`,
       );

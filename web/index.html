@@ -16,34 +16,72 @@
 <div class="stage" id="stage">
   <!-- The chosen layout (web/layouts/<id>.mjs) draws everything here. -->
   <div class="layout" id="layout"></div>
-  <div class="layout-note" id="layout-note"></div>
+  <div class="layout-note" id="layout-note" aria-live="polite"></div>
   <!-- Data and map credits: shown on open, layout switch and new map, then fade (full list in Settings). -->
   <div class="toast" id="toast" aria-live="polite"></div>
+  <!-- For screen readers (VoiceView): the closest plane, announced only when it changes. -->
+  <div class="sr-only" id="sr-live" aria-live="polite" aria-atomic="true"></div>
   <div class="busy" id="busy" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.3 2h3.4l.5 2.6 1.6.7 2.2-1.5 2.4 2.4-1.5 2.2.7 1.6 2.6.5v3.4l-2.6.5-.7 1.6 1.5 2.2-2.4 2.4-2.2-1.5-1.6.7-.5 2.6h-3.4l-.5-2.6-1.6-.7-2.2 1.5-2.4-2.4 1.5-2.2-.7-1.6L2 13.7v-3.4l2.6-.5.7-1.6-1.5-2.2 2.4-2.4 2.2 1.5 1.6-.7zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z" fill-rule="evenodd"/></svg></div>
-  <div class="credit-flash" id="credit-flash" aria-hidden="true">Aircraft adsb.fi · Routes ADSB.lol · Map © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors</div>
+  <div class="credit-flash" id="credit-flash" aria-hidden="true"><span class="cl" id="credit-a"></span><span class="cl" id="credit-b"></span></div>
 
   <!-- Adjust position: a close-up street map with a fixed dot; arrows move the map. -->
   <div class="adjust-view" id="adjust-view">
     <div class="adjust-map" id="adjust-map"></div>
     <svg class="adjust-svg" viewBox="0 0 540 540" aria-hidden="true"><g id="adjust-marks"></g></svg>
-    <div class="adjust-note" id="adjust-note"></div>
+    <div class="adjust-note" id="adjust-note" aria-live="polite"></div>
     <div class="adjust-credit">© OpenFreeMap © OpenMapTiles<br>© OpenStreetMap contributors</div>
   </div>
 
-  <!-- First launch: the location found from the connection. -->
-  <div class="overlay" id="welcome" hidden>
+  <!-- Before anything is fetched (first launch, or a new version of this text): what leaves the TV. -->
+  <div class="overlay" id="consent" hidden role="dialog" aria-modal="true" aria-labelledby="consent-title" aria-describedby="consent-body">
+    <div class="card wide consent">
+      <div class="title" id="consent-title">Before we start</div>
+      <p class="consent-body" id="consent-body"></p>
+      <div class="buttons">
+        <button class="btn" id="consent-ok" data-focus>Agree and continue</button>
+        <button class="btn" id="consent-policy" data-focus>Privacy policy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings > Privacy: the policy (assets/privacy.txt), scrolled with Up/Down, and Erase. -->
+  <div class="overlay" id="privacy" hidden role="dialog" aria-modal="true" aria-labelledby="privacy-title" aria-describedby="privacy-hint">
+    <div class="card wide privacy">
+      <div class="title" id="privacy-title">Privacy</div>
+      <div class="doc-wrap"><div class="doc" id="privacy-doc"></div><figure class="doc-qr-box" id="privacy-qr-box" hidden><img class="doc-qr" id="privacy-qr" alt="QR code for this policy online"><figcaption>Read online</figcaption></figure></div>
+      <p class="hint doc-hint" id="privacy-hint">Up and Down scroll · Back closes</p>
+      <div class="buttons">
+        <button class="btn" id="privacy-erase" data-focus>Erase all data</button>
+        <button class="btn" id="privacy-back" data-focus>Back</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="erase" hidden role="alertdialog" aria-modal="true" aria-labelledby="erase-title" aria-describedby="erase-body">
     <div class="card">
-      <div class="label" id="welcome-label">Is this right?</div>
+      <div class="title" id="erase-title">Erase all data?</div>
+      <p class="note" id="erase-body">Erase your location, settings, history and saved maps from this TV? The app then starts again from the first screen.</p>
+      <div class="buttons">
+        <button class="btn" id="erase-cancel" data-focus>Cancel</button>
+        <button class="btn" id="erase-ok" data-focus>Erase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- First launch: the location found from the connection. -->
+  <div class="overlay" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-label welcome-city" aria-describedby="welcome-note welcome-hint">
+    <div class="card">
+      <div class="label" id="welcome-label" aria-label="Is this right?">Is this right?</div>
       <div class="big-city" id="welcome-city"></div>
       <p class="note" id="welcome-note"></p>
       <div class="buttons">
         <button class="btn" id="welcome-ok" data-focus>Confirm</button>
         <button class="btn" id="welcome-change" data-focus>Change</button>
       </div>
+      <p class="hint" id="welcome-hint">On the main screen, press Select for Settings.</p>
     </div>
   </div>
 
-  <div class="overlay" id="settings" hidden>
+  <div class="overlay" id="settings" hidden role="dialog" aria-modal="true" aria-label="Settings">
     <div class="card wide settings">
       <div class="title">Settings</div>
       <div class="cols">
@@ -68,31 +106,28 @@
           <button class="row" id="set-awake" data-focus data-adjust data-edit><span>Keep screen awake</span><b id="set-awake-v"></b><i>OK to change</i></button>
           <button class="row" id="set-chime" data-focus data-adjust data-edit><span>Alert chime</span><b id="set-chime-v"></b><i>OK to change</i></button>
           <button class="row" id="set-about" data-focus><span>About &amp; credits</span><b></b><i>OK to open</i></button>
+          <button class="row" id="set-privacy" data-focus><span>Privacy</span><b>Policy and erase</b><i>OK to open</i></button>
         </div>
       </div>
-      <div class="tip-jar" aria-hidden="true"><img id="kofi-qr" alt=""><div><b id="kofi-a">Enjoying it? Buy me a coffee</b><span id="kofi-b">ko-fi.com/spacelydigital</span></div></div>
+      <div class="tip-jar" aria-hidden="true"><img id="kofi-qr" alt=""><div><b id="kofi-a">Enjoying it? Tip the developer</b><span id="kofi-b">Optional. The app stays free either way.</span></div></div>
       <button class="row done" id="set-done" data-focus><span>Done</span></button>
     </div>
   </div>
 
   <!-- Settings > About & credits. -->
-  <div class="overlay" id="about" hidden>
+  <!-- About & credits: assets/licenses.txt (scripts/build-credits.mjs), scrolled with Up/Down. -->
+  <div class="overlay" id="about" hidden role="dialog" aria-modal="true" aria-labelledby="about-title" aria-describedby="about-hint">
     <div class="card wide about">
-      <div class="title">About &amp; credits</div>
-      <p><b>What's Up</b> by Spacely Digital · spacelydigital@gmail.com</p>
-      <p>Free, no ads. If you enjoy it, you can buy me a coffee: ko-fi.com/spacelydigital</p>
-      <p>Aircraft positions: adsb.fi (personal, non-commercial use). Routes: ADSB.lol.</p>
-      <p>Map: © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors.</p>
-      <p>Place search: Open-Meteo (GeoNames data, CC BY 4.0). IP location: GeoJS, using GeoLite2 data from MaxMind.</p>
-      <p>Satellite imagery (Atlas Satellite): USGS The National Map (US, public domain); elsewhere Sentinel-2 cloudless 2016 by EOX IT Services GmbH, contains modified Copernicus Sentinel data 2016.</p>
-      <p>Aircraft photos: Planespotters.net (photographer credited with each photo). Model photos: Wikimedia Commons contributors (credited with each photo).</p>
-      <button class="row done" id="about-back" data-focus><span>Back</span></button>
+      <div class="title" id="about-title">About &amp; credits</div>
+      <div class="doc-wrap"><div class="doc" id="about-doc"></div><figure class="doc-qr-box"><img class="doc-qr" id="about-qr" alt="QR code for adsb.fi"><figcaption>adsb.fi</figcaption></figure></div>
+      <p class="hint doc-hint" id="about-hint">Up and Down scroll · Back closes</p>
+      <div class="buttons"><button class="btn" id="about-back" data-focus>Back</button></div>
     </div>
   </div>
 
-  <div class="overlay" id="confirm" hidden>
+  <div class="overlay" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-label confirm-main" aria-describedby="confirm-sub confirm-note">
     <div class="card">
-      <div class="label" id="confirm-label"></div>
+      <div class="label" id="confirm-label" aria-label="Use this location?"></div>
       <div class="big-city small" id="confirm-main"></div>
       <div class="confirm-sub" id="confirm-sub"></div>
       <p class="note" id="confirm-note"></p>
@@ -104,31 +139,31 @@
     </div>
   </div>
 
-  <div class="adjust-panel" id="adjust-panel">
+  <div class="adjust-panel" id="adjust-panel" role="dialog" aria-label="Adjust position" aria-describedby="adjust-help" tabindex="-1">
     <div class="title">Adjust position</div>
     <div class="adjust-where" id="adjust-where"></div>
-    <p>Move the map with the arrows until the dot sits on your home. Each press is about 50 m; hold to go faster.</p>
+    <p id="adjust-help">Move the map with the arrows until the dot sits on your home. Each press is about 50 m; hold to go faster.</p>
     <div class="adjust-moved" id="adjust-moved"></div>
     <p class="keys-help"><kbd>OK</kbd> save &nbsp; <kbd>Back</kbd> cancel</p>
-    <p class="note small">Your exact position stays on this device. Aircraft are fetched for the area rounded to about 1 km.</p>
+    <p class="note small">Your exact position stays on this device. Aircraft and maps are fetched for the area rounded to a few miles.</p>
   </div>
 
   <!-- Layout picker: the layout behind it is live; arrows switch, OK keeps, Back reverts. -->
-  <div class="picker" id="picker" hidden>
-    <button class="pick-arrow" id="pick-prev" data-focus>‹</button>
-    <div class="pick-body"><div class="pick-count" id="pick-count"></div><div class="pick-name" id="pick-name"></div>
+  <div class="picker" id="picker" hidden role="dialog" aria-label="Choose a layout">
+    <button class="pick-arrow" id="pick-prev" data-focus aria-label="Previous layout">‹</button>
+    <div class="pick-body" id="pick-body" tabindex="-1" role="group" aria-labelledby="pick-count"><div class="pick-count" id="pick-count"></div><div class="pick-name" id="pick-name" aria-live="polite"></div>
       <div class="pick-help"><kbd>‹ ›</kbd> preview &nbsp; <kbd>OK</kbd> keep &nbsp; <kbd>Back</kbd> cancel</div></div>
-    <button class="pick-arrow" id="pick-next" data-focus>›</button>
+    <button class="pick-arrow" id="pick-next" data-focus aria-label="Next layout">›</button>
   </div>
 
-  <div class="overlay" id="locate" hidden>
+  <div class="overlay" id="locate" hidden role="dialog" aria-modal="true" aria-label="Change location">
     <div class="card wide locate">
       <div class="title">Change location</div>
-      <div class="entry"><span id="entry-text"></span><span class="caret"></span></div>
+      <div class="entry" role="textbox" aria-label="Location" aria-describedby="entry-help"><span id="entry-text"></span><span class="caret"></span></div>
       <p class="note" id="entry-help">Type a ZIP or postal code, or a city name.</p>
       <div class="locate-body">
         <div class="keys" id="keys"></div>
-        <div class="results" id="results"></div>
+        <div class="results-col"><div class="results" id="results"></div><p class="src-note" id="results-src"></p><p class="src-note" id="search-src"></p></div>
       </div>
     </div>
   </div>

@@ -2,7 +2,7 @@
 (()=>{
 const __modules=window.__whatsupModules;
 const {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,byInterest,paintMap,airportsNear,
-  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts}=__modules["kit.mjs"];
+  number,BASE_RANGE,range,zoom,zonePath,photoSlot,showPhotoIn,fit,placeAlts,headingAlts}=__modules["kit.mjs"];
 // Layout 9, Synthwave: a neon sunset. The map is a glowing grid floor tilted with a
 // CSS 3D transform (looking north from behind home); planes are glowing chevrons in a
 // flat overlay, placed with the same perspective maths and lifted by altitude, so
@@ -51,7 +51,8 @@ function ui(){
     <div class="mayday" hidden><div class="m1">MAYDAY</div><div class="m2"></div></div>
     <div class="quiet" hidden><div class="q1">QUIET SKIES</div><div class="q2"></div></div>
     <div class="strip">
-      <span><i>CARGO TONIGHT</i><b class="s-cargo"></b></span>
+      <span><i>CARGO</i><b class="s-cargo"></b></span>
+      <span><i>MILITARY</i><b class="s-mil"></b></span>
       <span><i>SEEN TODAY</i><b class="s-seen"></b></span>
       <span><i>HIGHEST</i><b class="s-high"></b></span>
       <span><i>LAST ABOVE</i><b class="s-last"></b></span>
@@ -65,9 +66,9 @@ function ui(){
   for(const id of ['marks','stalks','jets','tags'])$.svg.append($[id]=svg('g'));
   root.querySelector('.world').after($.svg);
   for(const c of ['city','clock','date','hcard','h-label','h-fl','h-rt','h-alt','h-spd','h-cpa','h-type','mayday','m2','quiet','q2',
-    's-cargo','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
+    's-cargo','s-mil','s-seen','s-high','s-last','s-status'])$[c]=root.querySelector('.'+c);
   $.hcard.append($.pic=photoSlot());
-  fit($.city);
+  fit($.city,$['h-label']);
 }
 
 function drawMap(){
@@ -112,7 +113,7 @@ function render(m){
     const g=project(a.x,a.y);
     let off=false,gx=g.x,gy=g.y;
     if(gy>522||gx<14||gx>946){off=true;gx=Math.max(24,Math.min(936,gx));gy=Math.min(gy,522);}
-    const isHero=a===hero,cls=`${isHero?'hero':''}${a.inside?' inside':''}${a.cargo?' cargo':''}${off?' off':''}`;
+    const isHero=a===hero,cls=`${isHero?'hero':''}${a.inside?' inside':''}${a.cargo?' cargo':''}${a.military?' mil':''}${off?' off':''}`;
     const lift=off?0:Math.min(70,(a.altitude_ft||0)/40000*70)*Math.min(1.25,g.s);
     const px=gx,py=gy-lift;
     if(!off){
@@ -127,7 +128,7 @@ function render(m){
     const size=off?.8:Math.max(.75,Math.min(1.35,.6+g.s*.45))*(isHero?1.35:1);
     jets.push(svg('path',{class:`jet ${cls}`,'data-hex':a.hex,d:CHEV,transform:`translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${size.toFixed(2)})`}));
     if(tagged.has(a)){
-      const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):`${String(Math.round((a.altitude_ft||0)/100)).padStart(3,'0')}`;
+      const alt=fmt.altUnit()==='m'?fmt.alt(a.altitude_ft):fmt.hundreds(a.altitude_ft);
       const l2=off?`↓ ${fmt.dist(a.ground,0)} S`:alt,w=Math.max(a.flight.length*11,l2.length*9)+4,h=32;
       const spot=[[16,-16],[-16-w,-16],[16,-40],[-16-w,-40],[16,10],[-16-w,10]].map(([dx,dy])=>({x:px+dx,y:py+dy,w,h}))
         .find(b=>b.x>4&&b.x+w<956&&b.y+h<536&&!boxes.some(o=>overlap(o,b)));
@@ -143,7 +144,7 @@ function render(m){
   showPhotoIn($.pic,hero);
   if(!hero)setText($.q2,quietText(m,demo));
   else{
-    setText($['h-label'],`${hero.status} · ${fmt.dist(hero.ground)}`);
+    setText($['h-label'],'',headingAlts(hero,`${hero.status} · ${fmt.dist(hero.ground)}`));
     setText($['h-fl'],hero.flight);$['h-fl'].classList.toggle('long',hero.flight.length>8);
     setText($['h-rt'],hero.route?`${hero.route.from?.city||hero.route.origin} → ${hero.route.to?.city||hero.route.destination}`:(hero.operator||'Route not reported'));
     setText($['h-alt'],fmt.alt(hero.altitude_ft));setText($['h-spd'],fmt.speed(hero.speed_kt));
@@ -152,7 +153,7 @@ function render(m){
     if(hero.emergency)setText($.m2,`${hero.flight} · SQUAWK ${hero.squawk} · ${hero.emergency}`);
   }
   const L=m.log;
-  setText($['s-cargo'],String(L.cargoTonight));setText($['s-seen'],fmt.int(L.today));
+  setText($['s-cargo'],String(L.cargoTonight));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));
   setText($['s-high'],L.highest?fmt.alt(L.highest.value):'—');
   const r=m.recent[0];setText($['s-last'],r?`${r.flight} ${fmt.ago(r.last_seen,now)}`:'—');
 }

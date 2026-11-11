@@ -8,12 +8,16 @@
 //   rail, waterways, landuse, parks, aeroways and place names. Built only when a
 //   layout asks for it (Atlas, Glass, Blueprint, ...).
 import {getJson,getBytes,store} from './live.mjs';
+import {snapped,GRID_PAD_MI,number,dLon as eastOf} from './core.mjs';
 
 export const MAP_ATTRIBUTION='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors';
 const TILEJSON='https://tiles.openfreemap.org/planet';
 const TILE_URL=/^https:\/\/tiles\.openfreemap\.org\/planet\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.pbf$/;
-const KEY='whatsup.map.v2',VERSION=4,MAX_AGE=30*86400000; // v3: airfields, v4: shore
-const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=4; // v2: shore, v3: whole-radius reach, v4: inner side streets
+const KEY='whatsup.map.v2',VERSION=5,MAX_AGE=30*86400000; // v3: airfields, v4: shore, v5: no failed tile, and not every tile empty (a v4 map can be blank or have holes)
+// Built within the last 30 days. A map "built" in the future (damage, or a TV clock that was
+// ahead) counts as old, so it is rebuilt rather than kept for ever.
+const freshMap=m=>{const age=Date.now()-m.built;return age>=0&&age<MAX_AGE;};
+const DETAIL_KEY='whatsup.detail.v1',DETAIL_VERSION=5; // v2: shore, v3: whole-radius reach, v4: inner side streets, v5: as VERSION
 // z10: one tile is ~19 mi wide at 40° latitude, so a 10-mile scope needs 4-9 tiles,
 // and z10 already carries runways and IATA-coded airport labels. Wider map radii use
 // lower zooms (fewer, coarser tiles: 2-9 at any radius); OpenMapTiles drops minor
@@ -74,27 +78,55 @@ const touches=(pts,lim)=>{
   return x1>=-lim&&x0<=lim&&y1>=-lim&&y0<=lim;
 };
 
+// No TileJSON or a tile not fetched: the network, not a fault (the app logs it as a warning).
+const netError=m=>Object.assign(new Error(m),{net:true});
+// The tile URL (it names the current planet build) is asked for once an hour, not per build.
+const templates=new Map(); // keyed by the fetch function (the app's is always the same)
 async function tileTemplate(net){
+  const known=templates.get(net.getJson);if(known&&Date.now()-known.at<3600000)return known.url;
   const {status,payload}=await net.getJson(TILEJSON,8000);
   const url=status===200&&Array.isArray(payload?.tiles)?payload.tiles[0]:'';
-  if(!TILE_URL.test(url))throw new Error(`tilejson ${status}`);
+  if(!TILE_URL.test(url))throw netError(`tilejson ${status}`);
+  templates.set(net.getJson,{url,at:Date.now()});
   return url;
 }
 
 // Calls fn(tile, helpers) for each tile at `zoom` covering `lim` miles around home.
 // Tiles are decoded one at a time so only one is in memory. Returns the number fetched.
-async function eachTile(home,lim,zoom,template,net,MVT,fn){
+// The tile set is chosen around the snapped grid point (core.mjs), widened to still cover
+// `lim` around the true home, so tile requests only reveal the grid cell; geometry is still
+// measured from the true home, and callers keep only what lies within `lim` of it.
+// A tile that fails twice fails the whole build (a map with a hole was saved for 30 days);
+// `alive()` false (the user moved on) stops it between tiles.
+export const STALE='stale';
+const MAX_TILES=90;
+async function eachTile(home,lim,zoom,template,net,MVT,fn,alive=()=>true,requireData=false){
   const cos=Math.cos(home.latitude*DEG);
-  const toMiles=(lon,lat)=>[(lon-home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
-  const dLat=lim/69,dLon=lim/(69.172*cos);
-  const x0=Math.floor(tileX(home.longitude-dLon,zoom)),x1=Math.floor(tileX(home.longitude+dLon,zoom));
-  const y0=Math.floor(tileY(home.latitude+dLat,zoom)),y1=Math.floor(tileY(home.latitude-dLat,zoom));
-  let fetched=0;
+  const toMiles=(lon,lat)=>[eastOf(lon,home.longitude)*69.172*cos,(lat-home.latitude)*69.0];
+  const c=snapped(home),wide=lim+GRID_PAD_MI,ccos=Math.cos(c.latitude*DEG);
+  const dLat=wide/69,dLon=wide/(69.172*ccos);
+  // Far north or south a mile spans more tiles: step down up to two zooms to stay within
+  // MAX_TILES (Alaska and Nordic homes asked for hundreds). Rows stop at the tile grid's top
+  // and bottom (~85°): near the poles the wide radii asked for rows past them (-1: refused).
+  let x0,x1,y0,y1;
+  for(let z=zoom;;z--){
+    x0=Math.floor(tileX(c.longitude-dLon,z));x1=Math.floor(tileX(c.longitude+dLon,z));
+    y0=Math.max(0,Math.floor(tileY(c.latitude+dLat,z)));y1=Math.min(2**z-1,Math.floor(tileY(c.latitude-dLat,z)));
+    if((x1-x0+1)*(y1-y0+1)<=MAX_TILES||z<=Math.max(2,zoom-2)){zoom=z;break;}
+  }
+  const n=2**zoom;
+  let fetched=0,withData=0;
   for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++){
-    const bytes=await net.getBytes(template.replace('{z}',zoom).replace('{x}',tx).replace('{y}',ty));
-    if(!bytes)continue;
+    if(!alive())throw new Error(STALE);
+    // Across the date line the tile column wraps (geometry keeps the unwrapped column, so it
+    // still lands east or west of home correctly).
+    const url=template.replace('{z}',zoom).replace('{x}',((tx%n)+n)%n).replace('{y}',ty);
+    let bytes=await net.getBytes(url);
+    if(!bytes){await new Promise(r=>setTimeout(r,1500));if(!alive())throw new Error(STALE);bytes=await net.getBytes(url);}
+    if(!bytes)throw netError('map tile unavailable'); // no tile numbers: they place the home
     fetched++;
     const tile=new MVT.VectorTile(new MVT.Pbf(bytes));
+    if(Object.keys(tile.layers).length)withData++;
     const each=(name,f)=>{const layer=tile.layers[name];if(layer)for(let i=0;i<layer.length;i++)f(layer.feature(i),layer.extent);};
     const geom=(f,extent)=>f.loadGeometry().map(ring=>ring.map(p=>toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom))));
     const point=(f,extent)=>{const [[p]]=f.loadGeometry();return toMiles(lonOf(tx+p.x/extent,zoom),latOf(ty+p.y/extent,zoom));};
@@ -116,6 +148,9 @@ async function eachTile(home,lim,zoom,template,net,MVT,fn){
     };
     fn({each,geom,point,shore});
   }
+  // Every tile empty (even open sea carries a water layer): something answered 200 with
+  // nothing. That is a failed build, never a blank map saved for 30 days.
+  if(requireData&&fetched&&!withData)throw new Error('map tiles empty'); // main passes only: the small extra passes may be empty
   return fetched;
 }
 const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').slice(0,60);
@@ -123,7 +158,7 @@ const nameOf=pr=>String(pr.name_en||pr['name:en']||pr.name_int||pr.name||'').sli
 // Build the map for home; `range` in miles. Throws when tiles can't be fetched.
 // detail: a close-up street map (Adjust position) instead of the radar's major roads.
 // `net` and `MVT` are replaceable for tests.
-export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,zoom=zoomFor(range),detail=false}={}){
+export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,zoom=zoomFor(range),detail=false,alive=()=>true}={}){
   if(!MVT)throw new Error('mvt.js missing');
   // Wide layouts (Glass) show ~1.5x the radius sideways; the 10-mile map keeps its original reach.
   const lim=range<=10?range+1.5:range*1.5,k=Math.max(1,range/10); // simplify/clip coarser as the view widens
@@ -181,19 +216,17 @@ export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*100)/100,y:Math.round(y*100)/100});
     });
-  });
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   if(zoom<10&&range<=AIRFIELD_MAX_RANGE){
     const flim=range*.85; // Atlas, the layout that shows airfields, sees ~0.7x the radius sideways
-    try{
-      await eachTile(home,flim,10,template,net,MVT,({each,point})=>each('aerodrome_label',(f,e)=>{
-        if(f.type!==1)return;
-        const pr=f.properties,name=nameOf(pr),[x,y]=point(f,e);
-        if(!name||Math.abs(x)>flim||Math.abs(y)>flim||out.airfields.length>=200||out.airfields.some(a=>a.name===name))return;
-        out.airfields.push({name,code:String(pr.iata||pr.icao||'').toUpperCase(),iata:String(pr.iata||''),
-          kind:String(pr.class||''),x:Math.round(x*100)/100,y:Math.round(y*100)/100});
-      }));
-    }catch(e){/* the big airports from the map itself still show */}
+    await eachTile(home,flim,10,template,net,MVT,({each,point})=>each('aerodrome_label',(f,e)=>{
+      if(f.type!==1)return;
+      const pr=f.properties,name=nameOf(pr),[x,y]=point(f,e);
+      if(!name||Math.abs(x)>flim||Math.abs(y)>flim||out.airfields.length>=200||out.airfields.some(a=>a.name===name))return;
+      out.airfields.push({name,code:String(pr.iata||pr.icao||'').toUpperCase(),iata:String(pr.iata||''),
+        kind:String(pr.class||''),x:Math.round(x*100)/100,y:Math.round(y*100)/100});
+    }),alive);
   }
   out.shields=[...shields.values()].map(({ref,x,y})=>({ref,x:Math.round(x*100)/100,y:Math.round(y*100)/100}));
   const order={city:0,town:1,suburb:2};
@@ -204,23 +237,66 @@ export async function buildMap(home,range,{net={getJson,getBytes},MVT=globalThis
   return out;
 }
 
-// Saved maps: one per map radius (each at its own tile zoom), the 3 most recently
-// used kept. A saved map near this home (within ~1 km: drawing shifts it), younger
-// than 30 days, else null. The 10-mile map keeps the original key, so maps saved
-// before map radius existed still count.
+// Saved maps: one per map radius (each at its own tile zoom), the current radius plus the
+// one before kept. A saved map near this home (within ~1 km: drawing shifts it), younger
+// than 30 days, else null; with {stale:true} an older one too (shown while a new one is
+// built, so an offline launch isn't blank). The 10-mile map keeps the original key, so
+// maps saved before map radius existed still count.
 const keyFor=range=>range===10?KEY:`${KEY}.r${range}`;
-const RECENT_KEY='whatsup.map.recent';
-export function savedMap(home,range){
+const RECENT_KEY='whatsup.map.recent',KEEP_MAPS=2;
+const recentMaps=()=>{const r=store.get(RECENT_KEY);return Array.isArray(r)?r:[];}; // a damaged value counts as none
+// Every layer as buildMap writes it: lines and rings of [x,y], roads {c,p}, labels with text and x/y.
+// A damaged one (storage) is dropped and the map built again: the layouts' drawing threw on it for 30 days.
+const line=l=>Array.isArray(l)&&l.every(p=>Array.isArray(p)&&number(p[0])&&number(p[1]));
+const label=k=>f=>typeof f?.[k]==='string'&&number(f.x)&&number(f.y);
+const LAYERS={water:line,shore:line,rivers:line,runways:line,roads:f=>line(f?.p),airports:label('code'),airfields:label('name'),shields:label('ref'),places:label('name')};
+export function savedMap(home,range,{stale=false}={}){
   const m=store.get(keyFor(range));
   const same=m&&m.v===VERSION&&m.range===range&&Math.abs(m.latitude-home.latitude)<.01&&
-    Math.abs(m.longitude-home.longitude)<.01&&Date.now()-m.built<MAX_AGE;
+    Math.abs(eastOf(m.longitude,home.longitude))<.01&&(stale||freshMap(m));
+  if(same&&!Object.entries(LAYERS).every(([k,ok])=>Array.isArray(m[k])&&m[k].every(ok))){store.remove(keyFor(range));return null;}
   return same?m:null;
 }
+// The radius shown goes to the front of the list, saved here or trusted from storage (app.mjs applyPlace), so the
+// two kept are the current and the previous size shown, and making room (evictMaps) never takes the map on screen.
+export function touchMap(range){
+  const recent=[range,...recentMaps().filter(r=>r!==range)];
+  for(const r of recent.slice(KEEP_MAPS))store.remove(keyFor(r));
+  store.set(RECENT_KEY,recent.slice(0,KEEP_MAPS));
+}
 export function saveMap(m){
-  const recent=[m.range,...(store.get(RECENT_KEY)||[]).filter(r=>r!==m.range)];
-  for(const r of recent.slice(3))store.remove(keyFor(r));
-  store.set(RECENT_KEY,recent.slice(0,3));
-  store.set(keyFor(m.range),m);
+  touchMap(m.range);
+  if(store.set(keyFor(m.range),m))return true;
+  // Storage full: drop the other saved maps (not this radius's) and try once more.
+  evictMaps({keepBase:m.range});
+  if(store.set(keyFor(m.range),m))return true;
+  console.error(`map ${m.range} mi not saved: storage full`);return false;
+}
+// Frees saved maps, oldest kinds first: wide detail, then the other detail slots, then
+// base maps for other radii.
+// Any other save that finds storage full (logbook, settings) frees the saved maps but the
+// newest base map.
+store.onFull=()=>evictMaps({keepBase:recentMaps()[0]??null});
+// Written only by unreleased builds of 5 November 2026 (a list of street maps, one map per wider size), never read:
+// dropped with the slots, so a device that ran one of them is not left with storage full until Erase all data.
+const DEAD_KEYS=['whatsup.detail.recent',...[15,25,50,100,150,250].map(r=>`${DETAIL_KEY}.r${r}`)];
+const dropDetail=keep=>{for(const k of [`${DETAIL_KEY}.wide`,`${DETAIL_KEY}.r10`,DETAIL_KEY,...DEAD_KEYS])if(k!==keep)try{localStorage.removeItem(k);}catch{/* none */}};
+export function evictMaps({keepBase=null,keepDetail=null}={}){
+  dropDetail(keepDetail);
+  for(const r of recentMaps())if(r!==keepBase)store.remove(keyFor(r));
+  store.set(RECENT_KEY,keepBase?[keepBase]:[]);
+}
+// At launch the saved maps this build never reads go, instead of taking the TV's storage until Erase
+// (up to 3.3 MB): the first build's whatsup.map.v1, and base and street maps of an older format, such
+// as the 10-mile street map older builds kept in .wide. Only the start of each is checked (not parsed):
+// {"v":N, as buildMap and buildDetail write it.
+export function dropOldMaps(){
+  try{
+    for(const k of Object.keys(localStorage)){
+      const v=k===KEY||k.startsWith(`${KEY}.r`)?VERSION:k===DETAIL_KEY||k.startsWith(`${DETAIL_KEY}.`)?DETAIL_VERSION:0;
+      if(k==='whatsup.map.v1'||v&&!localStorage.getItem(k)?.startsWith(`{"v":${v},`))store.remove(k);
+    }
+  }catch{/* no storage */}
 }
 
 // --- Detail map. Coordinates in thousandths of a mile (~5 ft). Each line or ring is
@@ -261,6 +337,8 @@ function decode(s){
   return out;
 }
 const DETAIL_LAYERS=['water','shore','waterways','roads','landuse','parks','aero','buildings'];
+// A line or ring as encoder writes it: whole-number pairs. Anything else decodes to NaN and draws as nothing.
+const DELTAS=/^-?\d+,-?\d+(?:,-?\d+,-?\d+)*$/;
 // Saved form -> drawable form (p: line, r: ring, both Int16Array in 1/per mi; per defaults to 1000).
 export function decodeDetail(m){
   if(!m)return null;
@@ -268,7 +346,7 @@ export function decodeDetail(m){
   for(const k of DETAIL_LAYERS)out[k]=m[k].map(f=>f.p?{...f,p:decode(f.p)}:{...f,r:decode(f.r)});
   return out;
 }
-export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,range=DETAIL_RANGE,buildings=BUILDING_RANGE,zoom=12,key='street',inner=0}={}){
+export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.window?.WhatsUpMVT,range=DETAIL_RANGE,buildings=BUILDING_RANGE,zoom=12,key='street',inner=0,alive=()=>true}={}){
   if(!MVT)throw new Error('mvt.js missing');
   const lim=range+.5,template=await tileTemplate(net),per=perMile(range),encode=encoder(per),k=Math.max(1,range/10.5);
   const out={v:DETAIL_VERSION,latitude:home.latitude,longitude:home.longitude,range,zoom,key,per,buildingRange:buildings,inner,built:Date.now(),
@@ -312,32 +390,28 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
       if(!name||Math.abs(x)>lim||Math.abs(y)>lim||places.has(name))return;
       places.set(name,{name,c,rank:Number(pr.rank)||20,x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000});
     });
-  });
+  },alive,true);
   if(!fetched)throw new Error('no tiles');
   // Side streets near home from z12 (the wide map's own zoom doesn't carry them).
   if(inner>0){
     const ilim=inner+.2;
-    try{
-      await eachTile(home,ilim,12,template,net,MVT,({each,geom})=>{
-        each('transportation',(f,e)=>{
-          const c=String(f.properties.class||'');
-          if(f.type!==2||(c!=='minor'&&c!=='service'))return;
-          for(const l of geom(f,e).flatMap(l=>clipLine(l,ilim)))if(l.some(([x,y])=>Math.hypot(x,y)<=ilim))out.roads.push({c,p:encode(simplify(l,.006))});
-        });
+    await eachTile(home,ilim,12,template,net,MVT,({each,geom})=>{
+      each('transportation',(f,e)=>{
+        const c=String(f.properties.class||'');
+        if(f.type!==2||(c!=='minor'&&c!=='service'))return;
+        for(const l of geom(f,e).flatMap(l=>clipLine(l,ilim)))if(l.some(([x,y])=>Math.hypot(x,y)<=ilim))out.roads.push({c,p:encode(simplify(l,.006))});
       });
-    }catch(e){/* main roads without side streets are still a map */}
+    },alive);
   }
   const order={city:0,town:1,suburb:2,village:3,quarter:4,neighbourhood:5};
   out.places=[...places.values()].sort((a,b)=>order[a.c]-order[b.c]||a.rank-b.rank).slice(0,80);
   if(buildings>0){
     const found=[],blim=buildings+.15;
-    try{
-      await eachTile(home,blim,14,template,net,MVT,({each,geom})=>{
-        each('building',(f,e)=>{if(f.type===3)for(const r of geom(f,e))if(r.length>3&&touches(r,blim)){
-          const s=simplify(r,.003);if(s.length>3)found.push(s);
-        }});
-      });
-    }catch(e){/* streets without buildings are still a map */}
+    await eachTile(home,blim,14,template,net,MVT,({each,geom})=>{
+      each('building',(f,e)=>{if(f.type===3)for(const r of geom(f,e))if(r.length>3&&touches(r,blim)){
+        const s=simplify(r,.003);if(s.length>3)found.push(s);
+      }});
+    },alive);
     const dist=r=>Math.min(...r.map(([x,y])=>Math.max(Math.abs(x),Math.abs(y))));
     let points=0;
     for(const r of found.map(r=>[dist(r),r]).sort((a,b)=>a[0]-b[0]).map(([,r])=>r)){
@@ -349,18 +423,32 @@ export async function buildDetail(home,{net={getJson,getBytes},MVT=globalThis.wi
 }
 
 // The detail map is saved straight to localStorage (not kept in memory by `store`),
-// so a layout that doesn't draw it costs nothing. Too big for the quota: not saved.
-// Two slots: the street map (up to 15 mi) and the most recent wide map.
-const detailKey=spec=>spec.key==='street'?DETAIL_KEY:`${DETAIL_KEY}.wide`;
-export function savedDetail(home,spec=detailSpec(10)){
+// so a layout that doesn't draw it costs nothing. Three slots, the most the privacy policy
+// allows: the street map (up to 5 mi), the 10-mile map (the default radius gets its own) and
+// the most recent wider one (a wider size used before is built again). Storage full: the other
+// two slots make room first (the base maps stay), then they and the base maps are evicted and
+// it is tried once more.
+const detailKey=spec=>spec.key==='street'?DETAIL_KEY:spec.key==='r10'?`${DETAIL_KEY}.r10`:`${DETAIL_KEY}.wide`;
+export const hasDetail=spec=>{try{return localStorage.getItem(detailKey(spec))!==null;}catch{return false;}}; // saved for this spec (not read: a stale or damaged one counts)
+export function savedDetail(home,spec=detailSpec(10),{stale=false}={}){
   try{
     const m=JSON.parse(localStorage.getItem(detailKey(spec))||'null');
-    return m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(m.longitude-home.longitude)<.01&&
-      Date.now()-m.built<MAX_AGE?m:null;
+    const same=m&&m.v===DETAIL_VERSION&&detailFits(m,spec)&&Math.abs(m.latitude-home.latitude)<.01&&Math.abs(eastOf(m.longitude,home.longitude))<.01&&
+      (stale||freshMap(m));
+    // Every layer as buildDetail writes it (what decodeDetail reads), its lines whole-number pairs: a damaged one is dropped and built again.
+    if(same&&!(DETAIL_LAYERS.every(k=>Array.isArray(m[k])&&m[k].every(f=>typeof (f?.p||f?.r)==='string'&&DELTAS.test(f.p||f.r)))&&Array.isArray(m.places)&&m.places.every(label('name')))){
+      localStorage.removeItem(detailKey(spec));return null;
+    }
+    return same?m:null;
   }catch{return null;}
 }
 export function saveDetail(m){
-  const key=detailKey({key:m.key||'street'});
-  try{localStorage.setItem(key,JSON.stringify(m));return true;}
-  catch{try{localStorage.removeItem(key);}catch{/* no storage */}return false;}
+  if(store.sealed)return false;
+  const key=detailKey({key:m.key||'street'}),json=JSON.stringify(m),put=()=>{try{localStorage.setItem(key,json);return true;}catch{return false;}};
+  if(put())return true;
+  dropDetail(key);
+  if(put())return true;
+  evictMaps({keepDetail:key,keepBase:recentMaps()[0]??null});
+  if(put())return true;
+  console.error('street map not saved: storage full');try{localStorage.removeItem(key);}catch{/* none */}return false;
 }
