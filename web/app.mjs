@@ -911,7 +911,11 @@ function endAdjust(save=false){
 }
 
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+// The remote's media keys (Play/Pause, Fast Forward, Rewind, and track and stop keys) belong to the system,
+// which uses them for whatever plays in the background (Amazon's Fire TV test 4.6): never used here, nor prevented.
+const mediaKey=e=>/^Media/.test(e.key)||[176,177,178,179,227,228].includes(e.keyCode);
 document.addEventListener('keydown',e=>{
+  if(mediaKey(e))return;
   if(busyNow){
     e.preventDefault();
     if(e.key==='Enter'&&!e.repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
@@ -919,17 +923,10 @@ document.addEventListener('keydown',e=>{
     return;
   }
   const k=e.key,dir=DIRS[k];
-  // A held OK, Play/Pause or Menu (82, not the letter R) repeats: it would open and close the picker or
-  // Settings, or run through screens.
-  if(e.repeat&&(k==='Enter'||k===' '||k==='MediaPlayPause'||e.keyCode===179||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
+  // A held OK or Menu (82, not the letter R) repeats: it would open and close the picker or Settings, or
+  // run through screens.
+  if(e.repeat&&(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4){e.preventDefault();return back();}
-  // Play/Pause toggles Settings: Vega never passes the remote's Menu (≡) key to the page.
-  if(k==='MediaPlayPause'||e.keyCode===179){
-    e.preventDefault();
-    if(!layer&&!adj)openSettings();
-    else if(layer?.id==='settings'&&!editing)back();
-    return;
-  }
   if(adj){
     if(dir){e.preventDefault();return nudge(dir,e.repeat);}
     if(k==='Enter'||k===' '){e.preventDefault();return endAdjust(true);}

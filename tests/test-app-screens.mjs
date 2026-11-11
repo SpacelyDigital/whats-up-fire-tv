@@ -420,16 +420,19 @@ test('Settings: a Map radius step kept with OK, then another row\'s edit cancell
   assert.equal(done(),'apply,feed','(G) the cancelled step\'s apply, then the feed for the alert radius');assert.equal(settings.mapMiles,25);assert.equal(settings.radiusMiles,6);
 });
 
-test('a held Play/Pause or Menu key acts once, as a held OK does: its repeats are ignored, so Settings no longer opens and closes over and over; a held Back or letter still repeats',()=>{
+test('media keys are the system\'s (Fire TV test 4.6): Play/Pause, Fast Forward and Rewind do nothing and are never prevented, on the dashboard, in Settings, in the picker or behind the busy cog; a held Menu or OK acts once; a held Back or letter still repeats',()=>{
   const region=/^const DIRS=[\s\S]*?^\}\);$/m.exec(APP)?.[0];assert.ok(region,'the keydown handler in app.mjs');
-  let handler;const seen=[];
+  let handler,prevented=0;const seen=[];
   const p=page([region],{document:{addEventListener:(t,f)=>{if(t==='keydown')handler=f;}},busyNow:false,layer:null,adj:null,editing:null,heldOk:null,
     openSettings:()=>{seen.push('open');p.layer={id:'settings'};},back:()=>{seen.push('back');p.layer=null;},typeKey:k=>seen.push(k),
-    $:()=>({}),move(){},select(){},stepMap(){},stepPlanes(){}});
-  const hold=(key,keyCode,n=12)=>{seen.length=0;for(let i=0;i<=n;i++)handler({key,keyCode,repeat:i>0,preventDefault(){}});return seen.join();};
-  assert.equal(hold('MediaPlayPause',179),'open','held on the dashboard: Settings opens once');
-  assert.equal(hold('MediaPlayPause',179),'back','held in Settings: it closes once');
-  assert.equal(hold('Unidentified',179),'open','Play/Pause by its key code');
+    $:()=>({}),move(){},select(){},stepMap(){},stepPlanes(){},stepPick:()=>seen.push('pick'),endPick:()=>seen.push('endPick'),close:()=>seen.push('close')});
+  const hold=(key,keyCode,n=12)=>{seen.length=0;prevented=0;for(let i=0;i<=n;i++)handler({key,keyCode,repeat:i>0,preventDefault(){prevented++;}});return seen.join();};
+  const MEDIA=[['MediaPlayPause',179],['Unidentified',179],['MediaFastForward',228],['MediaRewind',227],['MediaTrackNext',176],['MediaStop',178]];
+  for(const where of [null,{id:'settings'},{id:'picker'}])for(const [key,code] of MEDIA){
+    p.layer=where;const label=`${key} (${code}) ${where?.id||'on the dashboard'}`;
+    assert.equal(hold(key,code,3),'',`${label}: does nothing`);assert.equal(prevented,0,`${label}: left to the system`);
+  }
+  p.layer=null;p.busyNow=true;assert.equal(hold('MediaPlayPause',179,3),'');assert.equal(prevented,0,'behind the busy cog too');p.busyNow=false;
   p.layer=null;
   for(const [key,code] of [['ContextMenu',93],['Menu',82],['Unidentified',82],['Enter',13]]){p.layer=null;assert.equal(hold(key,code),'open',`${key} (${code}) held`);}
   p.layer={id:'settings'};assert.equal(hold('Escape',27,3),'back,back,back,back','a held Back repeats as before');

@@ -28,7 +28,7 @@ await send('Page.addScriptToEvaluateOnNewDocument',{source:`localStorage.setItem
 await send('Page.navigate',{url:`${BASE}?demo=1`});await sleep(8000);
 await send('Fetch.enable',{patterns:[{urlPattern:'*layouts/cockpit.css*',requestStage:'Request'}]});
 // Settings > Layout, step to Cockpit, OK at once, then Change location at once.
-await key('MediaPlayPause',179);await sleep(600);
+await key('Enter',13);await sleep(600); // Select on the dashboard opens Settings
 await ev(`document.getElementById('set-layout').click()`);await sleep(600);
 for(let i=0;i<20;i++){if(await ev(`/Cockpit/.test(document.getElementById('pick-name').textContent)`))break;await key('ArrowRight',39);await sleep(150);}
 await key('Enter',13);

@@ -21,7 +21,7 @@ await send('Emulation.setDeviceMetricsOverride',{width:960,height:540,deviceScal
 await send('Page.addScriptToEvaluateOnNewDocument',{source:`if(!localStorage.getItem('whatsup.settings.v1')){localStorage.setItem('whatsup.consent',JSON.stringify({v:2,at:'2026-11-02'}));localStorage.setItem('whatsup.settings.v1',JSON.stringify({place:{name:'Chicago',admin:'Illinois',country:'United States',countryCode:'US',latitude:41.85,longitude:-87.65,timeZone:'America/Chicago'},confirmed:true,layout:'atlas-dark',mapMiles:15}));}`});
 await send('Page.navigate',{url:`${BASE}?demo=1`});await sleep(7000);
 const fails=[];
-await key('MediaPlayPause',179);await sleep(600);
+await key('Enter',13);await sleep(600); // Select on the dashboard opens Settings
 for(let i=0;i<20&&await ev(`document.querySelector('#settings .focus')?.id`)!=='set-adjust';i++){await key('ArrowDown',40);await sleep(200);}
 await key('Enter',13);await sleep(6000); // the street map loads
 if(!await ev(`document.getElementById('stage').classList.contains('adjusting')`))fails.push('Fine-tune did not open Adjust position');
