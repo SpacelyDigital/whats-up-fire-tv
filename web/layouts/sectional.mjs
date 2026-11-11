@@ -25,6 +25,8 @@ const MAP=[
   {layer:'runways',stroke:'#2a2622',width:2.6,cap:'butt'},
 ];
 const P=(x,y)=>({x:CX+x*PPM,y:CY-y*PPM});
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=P(a.x,a.y);return Math.abs(p.x-W/2)<W/2+10&&Math.abs(p.y-H/2)<H/2+10;};
 
 let root,ctx,demo=false,$={},maps={};
 
@@ -175,7 +177,7 @@ function render(m){
   setText($.status,statusText(m,demo).toUpperCase());$.status.classList.toggle('off',!demo&&!m.fresh&&!m.connecting);
   root.classList.toggle('emergency',!!hero?.emergency);
 
-  const visible=m.planes.filter(a=>Math.abs(P(a.x,a.y).x-W/2)<W/2+10&&Math.abs(P(a.x,a.y).y-H/2)<H/2+10);
+  const visible=m.planes.filter(shows);
   const tagged=byInterest({...m,planes:visible}).slice(0,7),tb=[...boxes],planes=[],tags=[],trails=[];
   for(const a of visible){
     const p=P(a.x,a.y),isHero=a===hero;
@@ -221,7 +223,7 @@ export default {
   name:'Sectional',map:'detail',
   mount(r,c){root=r;ctx=c;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){drawRose();},
   unmount(){root=null;$={};maps={};},
 };

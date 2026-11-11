@@ -5,6 +5,8 @@ import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,m
   compass,placeBox,alertRadius,ppmOf,range,zonePath,photoSlot,showPhotoIn,fit,fitLine,placeAlts,militaryAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,VIEW={cx:318,cy:284,ppm:25}; // the whole map radius fits below home (256 px)
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return !(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20);};
 const DETAIL=[
   {layer:'landuse',classes:['residential'],fill:'#090d13'},
   {layer:'landuse',not:['residential'],fill:'#0b1018'},
@@ -91,9 +93,8 @@ function render(m){
   const planes=[],tags=[],boxes=[{x:h.x-8,y:h.y-8,w:16,h:16}],bounds={x:8,y:118,w:610,h:392};
   if(!$.photo.hidden)boxes.push({x:$.photo.offsetLeft-6,y:$.photo.offsetTop-6,w:$.photo.offsetWidth+12,h:$.photo.offsetHeight+12});
   for(const a of byInterest(m)){
-    const p=toView(VIEW,a.x,a.y);
-    if(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)continue;
-    const isHero=a===hero;
+    if(!shows(a))continue;
+    const p=toView(VIEW,a.x,a.y),isHero=a===hero;
     planes.push(planeIcon(a,p,isHero?26:18,`gl-plane${isHero?' hero':''}${a.inside?'':' far'}${a.military?' mil':''}`));
     if(p.x>624||p.y<110)continue;
     const t=`${a.flight} · ${fmt.alt(a.altitude_ft)}`,w=t.length*6.9+18,hh=22;
@@ -150,7 +151,7 @@ export default {
   name:'Glass',map:'detail',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){}, // units: the map shows no distance; the card's and the list's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
   unmount(){root=null;$={};maps={};},

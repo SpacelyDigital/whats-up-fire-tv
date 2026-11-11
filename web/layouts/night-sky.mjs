@@ -6,6 +6,8 @@ import {el,svg,setText,fmt,metric,placeName,statusText,quietText,byInterest,make
 
 const W=960,H=540,TRAIL_AGE=8*60000;
 const VIEW={cx:480,cy:300,ppm:24};
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return !(p.x<-20||p.y<-20||p.x>W+20||p.y>H+20);};
 const MAP=[
   {layer:'water',fill:'rgba(120,150,205,.075)'},
   {layer:'rivers',stroke:'rgba(150,175,215,.14)',width:1},
@@ -112,8 +114,8 @@ function render(m){
   const stars=[],labels=[],boxes=[{x:0,y:0,w:W,h:96},{x:0,y:H-50,w:W,h:50},{x:VIEW.cx-8,y:VIEW.cy-8,w:16,h:16}];
   const order=byInterest(m);
   for(const a of order.slice().reverse()){
+    if(!shows(a))continue;
     const p=toView(VIEW,a.x,a.y);
-    if(p.x<-20||p.y<-20||p.x>W+20||p.y>H+20)continue;
     const low=number(a.altitude_ft)?Math.max(0,Math.min(1,1-a.altitude_ft/40000)):.5,isHero=a===hero;
     const halo=a.emergency?'ns-halo-red':a.military?'ns-halo-mil':a.cargo?'ns-halo-warm':'ns-halo';
     const g=svg('g',{class:`star${isHero?' hero':''}${a.emergency?' sos':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`});
@@ -156,7 +158,7 @@ export default {
   name:'Night Sky',map:'base',
   mount(r,c){root=r;ctx=c;demo=c.demo;$={};trails=new TrailBook(TRAIL_AGE,4000);drawn=new Map();radius=alertRadius();ui();paint();},
   setMap(m){maps=m;paint();},
-  render,
+  render,shows,
   refresh(){radius=alertRadius();drawHome();},
   unmount(){trails?.clear();trails=null;drawn=new Map();root=null;$={};maps={};ctx=null;},
 };

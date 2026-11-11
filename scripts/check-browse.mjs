@@ -7,11 +7,13 @@
 // credit is whole. Then Left steps back one, and Back returns to automatic without leaving the
 // app (the app is told to pass Back to the page only while browsing). Photo lookups are refused
 // here, so the bundled model photos show, and the demo planes hold still (&still=1) so the order
-// can't change under the presses. CHECK_SIZES=1080 or 720 runs one size.
+// can't change under the presses. CHECK_SIZES=1080 or 720 runs one size; CHECK_MAP sets the map radius (15).
 // Exit code 1 on any failure.
 import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
+// CHECK_MAP=5: a small map radius, so the wide maps also draw demo planes past it in their corners (each must be offered).
+const MAP=process.env.CHECK_MAP||15;
 const SIZES=[[1920,1080],[1280,720]].filter(([,h])=>!process.env.CHECK_SIZES||process.env.CHECK_SIZES.split(',').includes(String(h)));
 // Per layout: the card's flight, the card's heading, and the map's mark for the plane on the card.
 const AT={fl:'.at-fl',head:'.at-kicker',mark:'.at-plane.hero:not(.at-edge)',edge:'.at-edge'};
@@ -79,8 +81,8 @@ const fails=[],only=process.argv.slice(2);
 for(const [w,h] of SIZES)for(const [layout,sel] of Object.entries(LAYOUTS)){
   if(only.length&&!only.includes(layout))continue;
   const p=await page(w,h,layout),bad=[],read=()=>p.ev(READ(sel));
-  await p.go(`${BASE}?demo=1&still=1&layout=${layout}&map=15`);await sleep(9000); // builds and saves the maps; still: the demo planes hold their places
-  await p.go(`${BASE}?demo=1&still=1&layout=${layout}&map=15`);await sleep(4500);
+  await p.go(`${BASE}?demo=1&still=1&layout=${layout}&map=${MAP}`);await sleep(9000); // builds and saves the maps; still: the demo planes hold their places
+  await p.go(`${BASE}?demo=1&still=1&layout=${layout}&map=${MAP}`);await sleep(4500);
   const auto=await read();
   if(/^Plane \d/.test(auto.sr))bad.push(`browsing before any press: ${auto.sr}`);
   const seen=[],hexes=new Set();let count=0,first=0;

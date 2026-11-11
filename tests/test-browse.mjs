@@ -19,6 +19,35 @@ test('order: closest first, only the planes the map draws (within the map radius
   assert.deepEqual(browseOrder([],10),[]);
 });
 
+test('planes the layout draws past the map radius (a wide map\'s corners) can be chosen too, in distance order',()=>{
+  // ABX105 at 15.5 mi in the map's top-left corner, past a 10 mi radius: drawn, so it is in the list; 40 mi out is not.
+  const ps=[P('aa0001',1),P('ff0006',15.5),P('bb0002',8),P('ee0005',40)],shows=a=>a.hex==='ff0006';
+  assert.deepEqual(browseOrder(ps,10,shows).map(a=>a.hex),['aa0001','bb0002','ff0006']);
+  assert.deepEqual(browseOrder(ps,10).map(a=>a.hex),['aa0001','bb0002'],'no layout rule: the map radius alone');
+  const m=sky(ps,ps[2]);
+  assert.equal(step(null,m,10,1,0,shows).hex,'ff0006','Right from the hero (8 mi): the corner plane');
+  assert.equal(step(S('aa0001'),m,10,-1,0,shows).hex,'ff0006','Left from the closest wraps to it');
+  const r=apply(S('ff0006'),m,10,500,shows);
+  assert.equal(r.m.hero.hex,'ff0006');assert.deepEqual(r.m.hero.browse,{index:3,count:3});
+  assert.equal(apply(S('ff0006'),m,10,500,()=>false).state,null,'off the drawn map too: back to automatic');
+});
+
+test('the map layouts say which planes they draw: a plane in the corner of a 10 mi map, 15 mi out, is drawn; 40 mi out is not',async()=>{
+  class N{constructor(t){this.tag=t;this.attrs={};this.kids=[];this.style={};}setAttribute(k,v){this.attrs[k]=v;}append(){}}
+  Object.assign(globalThis,{innerWidth:960,innerHeight:540,devicePixelRatio:1,document:{createElement:t=>new N(t),createElementNS:(ns,t)=>new N(t)}});
+  const {useSettings}=await import('../web/kit.mjs');
+  useSettings({mapMiles:10,distance:'mi',altitude:'ft',radiusMiles:3});
+  const at=(x,y)=>({x,y,ground:Math.hypot(x,y)});
+  for(const id of ['atlas','blueprint','glass','night-sky','sectional']){
+    const {shows}=(await import(`../web/layouts/${id}.mjs`)).default;
+    assert.ok(shows(at(-12,9)),`${id}: 15 mi west-northwest, in the corner`);
+    assert.ok(shows(at(0,0)),`${id}: home`);
+    assert.ok(!shows(at(40,0)),`${id}: 40 mi east`);
+  }
+  const {shows}=(await import('../web/layouts/synthwave.mjs')).default;
+  assert.ok(shows(at(-9,7.5)),'synthwave: 11.7 mi, pinned to the floor edge');assert.ok(!shows(at(-12,9)),'synthwave: 15 mi');
+});
+
 test('the first press starts from the hero; Right goes out, Left comes in, both wrap round',()=>{
   const ps=[P('aa0001',1),P('bb0002',2),P('cc0003',3),P('dd0004',4)],m=sky(ps,ps[1]);
   assert.equal(step(null,m,10,1,5).hex,'cc0003','Right from the hero (2nd): the 3rd');

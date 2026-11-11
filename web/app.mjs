@@ -285,6 +285,8 @@ function render(m){
 // without Left or Right, or an emergency give the card back to the hero. Timed by performance.now(),
 // which a TV clock step doesn't move (browse.mjs's LookupGate too).
 let browse=null,browseTimer=0,browseFrame=0;
+// Planes the layout draws past the map radius (a wide map's corners) can be chosen too.
+const layoutDraws=a=>!!active?.mod.shows?.(a);
 const gate=new LookupGate(),redraw=()=>{if(lastModel)draw(lastModel);};
 // Its photo and route are looked up once it has stayed on the card about a second.
 setPhotoGate(hex=>gate.wait(hex));
@@ -293,7 +295,7 @@ setRouteFocus(()=>held(browse,performance.now())?browse.hex:'');
 // plane the card is about to show (a layout asks for its photo while drawing).
 function shown(m){
   if(browse){
-    const r=applyBrowse(browse,m,mapMiles(),performance.now());
+    const r=applyBrowse(browse,m,mapMiles(),performance.now(),layoutDraws);
     if(!r.state){browse=null;clearTimeout(browseTimer);queueMicrotask(syncApp);}
     m=r.m;
   }
@@ -301,7 +303,7 @@ function shown(m){
   return m;
 }
 function stepPlanes(dir){
-  const next=stepBrowse(browse,lastModel,mapMiles(),dir,performance.now());
+  const next=stepBrowse(browse,lastModel,mapMiles(),dir,performance.now(),layoutDraws);
   if(!next)return; // nothing on the map, or an emergency has the card
   const was=browse;browse=next;
   clearTimeout(browseTimer);browseTimer=setTimeout(redraw,IDLE_MS+50);

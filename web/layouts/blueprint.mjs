@@ -6,6 +6,8 @@ import {svg,el,setText,fmt,placeName,statusText,quietText,shapeFor,byInterest,ma
   compass,number,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,zoom,zonePath,niceStep,fitLine,photoSlot,showPhotoIn,fit,placeAlts,headingAlts} from '../kit.mjs';
 
 const W=960,H=540,LIMIT=10.4,VIEW={cx:372,cy:292,ppm:24.5}; // the whole map radius fits below home (248 px); the frame keeps its size
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return p.x>-10&&p.x<W+10&&p.y>-10&&p.y<H+10;};
 // The survey limit: linework stops at a drafted border where the detail map ends.
 const CLIPPED={...VIEW,clip:{x:VIEW.cx-LIMIT*VIEW.ppm,y:VIEW.cy-LIMIT*VIEW.ppm,w:2*LIMIT*VIEW.ppm,h:2*LIMIT*VIEW.ppm}};
 const PAPER='#0c2d5a';
@@ -125,7 +127,7 @@ function render(m){
   const home=toView(VIEW,0,0);boxes.push({x:home.x-60,y:home.y-14,w:120,h:40});
   showPhotoIn($.pic,hero,()=>{$.fig.hidden=$.pic.hidden;});
   if(!$.fig.hidden)boxes.push({x:$.side.offsetLeft-6,y:$.side.offsetTop-6,w:$.side.offsetWidth+12,h:$.side.offsetHeight+12});
-  const shown=byInterest(m).filter(a=>{const p=toView(VIEW,a.x,a.y);return p.x>-10&&p.x<W+10&&p.y>-10&&p.y<H+10;});
+  const shown=byInterest(m).filter(shows);
   for(const a of shown){
     const p=toView(VIEW,a.x,a.y),isHero=a===hero;
     const g=svg('g',{class:`bp-plane${isHero?' hero':''}${a.military?' mil':''}`,'data-hex':a.hex,transform:`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${a.heading||0}) scale(${(isHero?32:22)/64})`});
@@ -174,7 +176,7 @@ export default {
   name:'Blueprint',map:'detail',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){construction();}, // units and the alert zone: the rings, scale and wedge; the map itself shows no distance
   unmount(){root=null;$={};maps={};},
 };

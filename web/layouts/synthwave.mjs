@@ -8,6 +8,8 @@ import {svg,el,setText,overlap,fmt,placeName,alertRadius,statusText,quietText,by
 // Floor: a W x H canvas (1 px per CSS px: a soft neon floor needs no more), home at its
 // centre, rotated about its centre by TILT under a perspective of PERSP px seen from VP.
 const W=1400,H=640,PPM=30,TILT=60,PERSP=600,VP={x:480,y:232},HOME_Y=380;
+// The planes this floor draws, those past its edge pinned to it (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>!(a.ground>range()*1.2);
 const LEFT=480-W/2,TOP=HOME_Y-H/2;
 const MAP=[
   {layer:'water',fill:'rgba(0,229,255,.16)',stroke:'rgba(0,229,255,.75)',width:1.6,glow:8},
@@ -108,7 +110,7 @@ function render(m){
   const tagged=new Set(byInterest(m).slice(0,6));
   const order=[...m.planes].sort((a,b)=>(b===hero)-(a===hero)||b.y-a.y); // hero, then far (north) first
   for(const a of order){
-    if(a.ground>range()*1.2)continue;
+    if(!shows(a))continue;
     const g=project(a.x,a.y);
     let off=false,gx=g.x,gy=g.y;
     if(gy>522||gx<14||gx>946){off=true;gx=Math.max(24,Math.min(936,gx));gy=Math.min(gy,522);}
@@ -167,7 +169,7 @@ export default {
   name:'Synthwave',map:'base',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){drawMap();},
   unmount(){root=null;$={};maps={};},
 };

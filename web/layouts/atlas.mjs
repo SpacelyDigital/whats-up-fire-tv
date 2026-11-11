@@ -12,6 +12,8 @@ const DETAIL_MAX=15; // the street map is drawn up to this map radius (mapgen DE
 // ppm 25.5: the map radius fits between home and the bottom edge (264 px), so every plane
 // within the radius is on screen (at 54 it showed about half the radius north-south).
 const W=700,H=540,VIEW={cx:350,cy:276,ppm:25.5,clip:{x:0,y:0,w:W,h:H}};
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{const p=toView(VIEW,a.x,a.y);return !(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20);};
 const road=(classes,casing,fill,cw,fw)=>[{layer:'roads',from:'detail',classes,stroke:casing,width:cw},{layer:'roads',from:'detail',classes,stroke:fill,width:fw}];
 const DETAIL=[
   {layer:'landuse',classes:['residential'],fill:'#ece6da'},
@@ -289,9 +291,8 @@ function render(m){
   const bounds={x:4,y:4,w:W-8,h:H-34};
   const ranked=byInterest(m);
   for(const a of ranked){
-    const p=toView(VIEW,a.x,a.y);
-    if(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)continue;
-    const isHero=a===hero,t=trails.get(a.hex);
+    if(!shows(a))continue;
+    const p=toView(VIEW,a.x,a.y),isHero=a===hero,t=trails.get(a.hex);
     if(t.length>1)lines.push(svg('polyline',{class:`at-trail${isHero?' hero':''}`,points:[...t.map(s=>toView(VIEW,s.x,s.y)),p].map(q=>`${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')}));
     if(isHero)marks.push(svg('circle',{class:'at-target',cx:p.x,cy:p.y,r:19}));
     marks.push(planeIcon(a,p,isHero?28:21,`at-plane${isHero?' hero':''}${a.cargo?' cargo':''}${a.military?' mil':''}`));
@@ -391,7 +392,7 @@ export default {
   name:'Atlas Light',map:'detail',
   mount(r,c){root=r;ctx=c;demo=c.demo;sat=c.layout?.()==='atlas-satellite';dark=c.layout?.()==='atlas-dark'||sat;$={};trails.clear();ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){scaleBar();}, // units: the scale bar; the map itself shows no distance, and the card's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
   unmount(){root=null;satToken++;picHex='';photo=null;$={};maps={};trails.clear();},

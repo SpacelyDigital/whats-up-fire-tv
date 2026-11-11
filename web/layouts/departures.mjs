@@ -70,6 +70,8 @@ function ui(){
 }
 
 function drawMap(){paintMap($.canvas,maps,view,MAP);}
+// The planes the inset map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{if(!view)return false;const p=toView(view,a.x,a.y);return !(p.x<0||p.y<0||p.x>INSET.w||p.y>INSET.h);};
 
 // The squawk names the emergency only when it is 7500, 7600 or 7700 (a declared one may squawk 1200, or nothing).
 const sos=a=>/^7[567]00$/.test(a.squawk);
@@ -138,8 +140,8 @@ function render(m){
   // Inset: home and plane dots.
   const dots=[svg('circle',{class:'home',cx:view.cx,cy:view.cy,r:2.6}),svg('path',{class:'ring',d:zonePath((x,y)=>toView(view,x,y))})];
   for(const a of m.planes){
+    if(!shows(a))continue;
     const p=toView(view,a.x,a.y);
-    if(p.x<0||p.y<0||p.x>INSET.w||p.y>INSET.h)continue;
     dots.push(svg('circle',{class:`dot${a===hero?' hero':''}${a.military?' mil':''}`,'data-hex':a.hex,cx:p.x.toFixed(1),cy:p.y.toFixed(1),r:a===hero?3.4:2.2}));
   }
   $.dots.replaceChildren(...dots);
@@ -150,7 +152,7 @@ export default {
   name:'Departures',map:'base',
   mount(r,c){root=r;ctx=c;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){setText($['inset-label'],`${fmt.dist(range(),0)} radius`);for(const row of $.rows)for(const g of row._parts)setFlaps(g,'');},
   unmount(){root=null;$={};maps={};ctx=null;},
 };

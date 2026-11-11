@@ -29,6 +29,8 @@ function ui(){
   view={cx:MAPSIZE/2,cy:MAPSIZE/2,ppm:MAPSIZE/2/BASE_RANGE,clip:{x:0,y:0,w:MAPSIZE,h:MAPSIZE}};
 }
 const drawMap=()=>paintMap($.canvas,maps,view,MAP);
+// The planes this map draws (Left/Right browsing offers each of them: browse.mjs).
+const shows=a=>{if(!view)return false;const p=toView(view,a.x,a.y);return !(p.x<4||p.y<4||p.x>MAPSIZE-4||p.y>MAPSIZE-4);};
 
 // Size the number so it fills the left of the poster without running into the map.
 function giant(text){
@@ -66,8 +68,8 @@ function render(m){
 
   const marks=[svg('circle',{class:'home',cx:view.cx,cy:view.cy,r:5})];
   for(const a of m.planes){
+    if(!shows(a))continue;
     const p=toView(view,a.x,a.y);
-    if(p.x<4||p.y<4||p.x>MAPSIZE-4||p.y>MAPSIZE-4)continue;
     marks.push(planeIcon(a,p,a===hero?16:9,`plane${a===hero?' hero':''}${a.military?' mil':''}`));
   }
   $.marks.replaceChildren(...marks);
@@ -78,7 +80,7 @@ export default {
   name:'Swiss',map:'base',
   mount(r,c){root=r;demo=c.demo;$={};ui();drawMap();},
   setMap(m){maps=m;drawMap();},
-  render,
+  render,shows,
   refresh(){},
   unmount(){root=null;$={};maps={};},
 };
