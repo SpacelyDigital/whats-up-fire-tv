@@ -23,6 +23,15 @@ test('release guard: the store release package passes',()=>{
   assert.equal(r.code,0,r.out);
 });
 
+test('app icon (manifest @image/whatsup_icon.png): the store build ships the 512x512 square the Vega manifest asks for, the personal build the 320x180 home-row tile; both opaque RGB',()=>{
+  const ihdr=f=>{const b=readFileSync(f);return {w:b.readUInt32BE(16),h:b.readUInt32BE(20),colour:b[25]};}; // PNG IHDR; colour type 2 = RGB
+  for(const [profile,w,h] of [['store',512,512],['personal',320,180]]){
+    const f=pack(`icon-${profile}.vpkg`,{profile,release:profile==='store'}),d=join(tmp,`icon-${profile}`);
+    assert.deepEqual(ihdr(join(d,'assets/image/whatsup_icon.png')),{w,h,colour:2},`${profile}: ${w}x${h}`);
+    assert.match(execFileSync('tar',['tf',f],{encoding:'utf8'}),/^assets\/image\/whatsup_icon\.png$/m,`${profile}: packed`);
+  }
+});
+
 test('release guard: a store package without the release flag (URL hooks live) fails',()=>{
   const f=pack('dev-store.vpkg',{profile:'store'});
   for(const o of [{},{WHATSUP_PROFILE:'store'}]){const r=guard(f,o);assert.equal(r.code,1,r.out);assert.match(r.out,/not a release build/);}

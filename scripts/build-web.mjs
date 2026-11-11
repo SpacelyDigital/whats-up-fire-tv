@@ -87,7 +87,10 @@ writeFileSync(join(out,'index.html'),html);
 // media/keep-awake.mp4: the silent loop the app plays to hold off the screensaver (Settings > Keep screen awake).
 for(const item of ['whatsup.css','mvt.js','qr.js','fonts','media','models'])cpSync(join(web,item),join(out,item),{recursive:true});
 for(const [k,f] of Object.entries(DOCS))if(docs[k])writeFileSync(join(out,f),docs[k]);
-// App icon for manifest.toml (@image/whatsup_icon.png): the launcher tile at 320x180 (icon/src/tile-small.svg, no
-// tagline), near the size the launcher draws it, so the stick's own scaling stays under 2x and its edges stay clean.
-mkdirSync(join(out,'image'),{recursive:true});cpSync(join(root,'icon','whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
+// App icon for manifest.toml (@image/whatsup_icon.png). Store: the 512x512 square the Vega manifest asks for (the
+// Settings app list; the home row shows the 1280x720 tile uploaded with the listing). Personal, sideloaded, where the
+// home row shows this icon: a 320x180 tile (icon/src/tile-small.svg, no tagline), near the size the row draws it,
+// so the stick's own scaling stays under 2x and its edges stay clean.
+mkdirSync(join(out,'image'),{recursive:true});
+cpSync(join(root,'icon',profileId==='store'?'whatsup-icon-512.png':'whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
 console.log(`assets/ written, ${profileId} profile${release?' (release: no URL hooks)':''} (${MODULES.length} modules, ${layouts.length} layout scripts, ${Math.round(layoutBytes/1024)} KB layout code)`);
