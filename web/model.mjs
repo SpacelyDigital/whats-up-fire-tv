@@ -91,13 +91,16 @@ export const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
 // The logbook lives in memory and is saved every 5 min, at the local midnight change and
 // when the app leaves the screen (flushLog), not on every poll: it can be ~350 KB, and
 // writing it twice per poll wore the stick's flash and stalled the page.
+// The 5 min run on performance.now(): a TV clock put back must not hold the saves off for an hour.
+// A save that fails (storage full) keeps the log pending: a feed restart carries it on, not the older
+// copy in storage; the next try comes 5 min later, not on every poll.
 const LOG_FLUSH_MS=300000;
-let pendingLog=null,lastLogSave=0;
-export function flushLog(){if(pendingLog){store.set(LOG_KEY,pendingLog);pendingLog=null;lastLogSave=Date.now();}}
-function saveLogSoon(log,now){
+let pendingLog=null,lastLogSave=-Infinity;
+export function flushLog(){if(pendingLog){const ok=store.set(LOG_KEY,pendingLog);lastLogSave=performance.now();if(ok)pendingLog=null;}}
+function saveLogSoon(log){
   const newDay=pendingLog&&pendingLog.day!==log.day;
   pendingLog=log;
-  if(newDay||now-lastLogSave>=LOG_FLUSH_MS)flushLog();
+  if(newDay||performance.now()-lastLogSave>=LOG_FLUSH_MS)flushLog();
 }
 // A saved logbook as loaded from storage: repaired field by field (old shapes, or a value
 // damaged on the stick's flash), or dropped when it isn't a logbook at all, so a bad value
@@ -335,7 +338,7 @@ function liveSource(config,onModel,was){
     // (the original 15 NM feed), so zooming out doesn't inflate them.
     // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
     // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
-    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log,now);}
+    if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log);}
     // 'Recently above': the sightings are stamped by the feed's clock, as positions are, and judged by it;
     // the layouts age them against the TV's (m.now), so the stamps shown are moved onto it.
     const recent=recentSightings(states,planes.filter(a=>a.inside),feedNow).map(a=>({...a,type:typeName(a.aircraft_type),

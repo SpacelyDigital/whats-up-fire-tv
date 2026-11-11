@@ -73,6 +73,8 @@ async function get(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
+      // No cookies sent or kept: the services get only the request itself.
+      credentials: 'omit',
       headers: {
         'User-Agent': USER_AGENT,
         Accept: binary ? '*/*' : 'application/json',

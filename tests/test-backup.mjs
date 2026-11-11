@@ -376,7 +376,8 @@ test('backup: adsb.fi checks respect its back-off and Retry-After; 15 s of failu
 test('backup: no 250 NM coverage check on adsb.lol, and no "no coverage" claim from it',async()=>{
   const r=fresh();
   try{
-    r.feeds.fi={mode:'ok',body:{ac:[],now:T0,msg:'No error'}};r.feeds.lol={mode:'ok',body:{ac:[],now:T0,msg:'No error'}};
+    const empty=()=>({mode:'ok',get body(){return {ac:[],now:Date.now(),msg:'No error'};}}); // a working feed's clock moves
+    r.feeds.fi=empty();r.feeds.lol=empty();
     // adsb.fi up and empty: its usual widest check (and the area really has no receivers).
     let live=r.live();
     await r.advance(3000);
@@ -397,7 +398,7 @@ test('backup: no 250 NM coverage check on adsb.lol, and no "no coverage" claim f
 test('coverage: the 250 NM probe goes at most once every 2 h for a place, across feed restarts (map radius, alert radius or zone)',async()=>{
   const r=fresh(),probes=()=>r.calls.filter(c=>/\/dist\/250$/.test(c.url)).length;
   try{
-    r.feeds.fi={mode:'ok',body:{ac:[],now:T0,msg:'No error'}}; // quiet skies, and no receivers in the widest area either
+    r.feeds.fi={mode:'ok',get body(){return {ac:[],now:Date.now(),msg:'No error'};}}; // quiet skies, and no receivers in the widest area either
     let live=r.live();
     await r.advance(3000);
     assert.equal(probes(),1);
@@ -1470,4 +1471,71 @@ test('hero: the plane the card calls inside stays inside to 0.25 mi outside the 
   const behind=await cards([hover('a0d008','N1HV',180,t=>1+.05*sway(t))],{kind:'window',from:300,to:30,miles:25},60,undefined,m=>behindRows.push(`${m.hero.inside?'in':'out'} ${winBoard(m.hero)}`));
   assert.deepEqual(behind,['N1HV: Above you now'],`behind the viewer at a mile: ${behind.join(' > ')}`);
   assert.ok(behindRows.includes('out ABOVE')&&behindRows.every(r=>r.endsWith(' ABOVE')),`the board behind the viewer: ${behindRows.join(', ')}`);
+});
+
+// A feed stuck on one reply (a cache or proxy serving the same snapshot): its clock (`now`) stops. After a
+// minute its replies are failed polls, so the stale planes stop counting as live (Codex F1).
+test('frozen feed: adsb.fi repeating one reply for a minute counts as down; adsb.lol stands in; adsb.fi is back once its clock moves',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'ok',body:{ac:[FI_PLANE],msg:'No error',now:T0,total:1}};
+    r.live();
+    await r.advance(55000);
+    assert.equal(r.at('lol').length,0,'under a minute: adsb.fi still counts');
+    assert.ok(r.updates.filter(u=>u.ok).every(u=>u.source==='adsb.fi'));
+    await r.advance(55000);
+    assert.ok(r.at('lol').length>0,'adsb.lol asked once adsb.fi stood still for a minute');
+    assert.equal(lastData(r).source,'adsb.lol','its planes are the ones shown');
+    const fiOk=r.updates.filter(u=>u.ok&&u.source==='adsb.fi').map(u=>u.t-T0);
+    assert.ok(fiOk.at(-1)<60000,`no adsb.fi update taken after its clock stopped a minute (last at ${fiOk.at(-1)} ms)`);
+    r.feeds.fi={mode:'ok'}; // its clock moves again
+    await r.advance(130000);
+    assert.equal(lastData(r).source,'adsb.fi','adsb.fi takes over again with its first moving reply');
+  }finally{r.restore();}
+});
+test('frozen feed: adsb.lol repeating one reply while adsb.fi is down: the sky goes stale instead of staying live',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'ok',body:{ac:[LOL_PLANE],msg:'No error',now:T0,total:1}};
+    r.live();
+    await r.advance(240000);
+    const lolOk=r.updates.filter(u=>u.ok&&u.source==='adsb.lol').map(u=>u.t-T0);
+    assert.ok(lolOk.length>0,'adsb.lol answered at first');
+    const first=r.at('lol')[0];
+    assert.ok(lolOk.at(-1)<first+60000,`nothing from adsb.lol taken a minute after its clock stopped (first ask ${first} ms, last taken ${lolOk.at(-1)} ms)`);
+    assert.equal(r.updates.at(-1).ok,false,'the last word is a failed poll');
+  }finally{r.restore();}
+});
+test('frozen feed: a clock put right (a step back) counts as moving, so a wrong clock can never lock adsb.fi out',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.fi={mode:'ok',nowShiftMs:3*86400000}; // 3 days ahead, then right
+    r.live();
+    await r.advance(20000);
+    r.feeds.fi={mode:'ok'};
+    await r.advance(180000);
+    assert.equal(r.at('lol').length,0,'adsb.lol never needed');
+    assert.equal(lastData(r).source,'adsb.fi');
+    assert.ok(r.updates.filter(u=>u.ok).at(-1).t-T0>=195000,'adsb.fi replies still taken at the end');
+  }finally{r.restore();}
+});
+// A write that fails (storage full, even after the saved maps make room) leaves the newest value in
+// memory; reads must return it, not the older copy in storage, or a feed restart rolls today's log back (Codex F2).
+test('store: after a failed write, reads return the newer value from memory until a write works',()=>{
+  const real=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),saved=new Map();let full=false;
+  globalThis.localStorage={getItem:k=>saved.has(k)?saved.get(k):null,removeItem:k=>saved.delete(k),
+    setItem:(k,v)=>{if(full)throw new Error('QuotaExceededError');saved.set(k,String(v));}};
+  const onFull=store.onFull;store.onFull=()=>{};
+  try{
+    assert.equal(store.set('test:full',{seen:1}),true);
+    full=true;
+    assert.equal(store.set('test:full',{seen:2}),false,'not saved');
+    assert.deepEqual(store.get('test:full'),{seen:2},'the newer value, not the one in storage');
+    full=false;
+    assert.equal(store.set('test:full',{seen:3}),true);
+    saved.set('test:full',JSON.stringify({seen:4})); // storage is read again once a write worked
+    assert.deepEqual(store.get('test:full'),{seen:4});
+    full=true;store.set('test:full',{seen:5});store.remove('test:full');
+    assert.equal(store.get('test:full'),null,'removed means gone, from memory too');
+  }finally{store.onFull=onFull;store.remove('test:full');if(real)Object.defineProperty(globalThis,'localStorage',real);else delete globalThis.localStorage;}
 });

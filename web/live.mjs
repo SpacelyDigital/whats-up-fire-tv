@@ -120,20 +120,24 @@ export async function getBytes(url,timeoutMs=10000){
 const memory=new Map();
 // seal(): after Erase nothing may be written again (the reload's pagehide flush, a map
 // build finishing during unload).
-let sealed=false,freeing=false;
+// unsaved: keys whose newest value is only in memory (a write failed, storage full): get() returns that,
+// not the older copy still in storage, until a write of the key works (or it is removed).
+let sealed=false,freeing=false;const unsaved=new Set();
 export const store={
-  seal(){sealed=true;memory.clear();},
+  seal(){sealed=true;memory.clear();unsaved.clear();},
   get sealed(){return sealed;},
-  get(k){try{const v=localStorage.getItem(k);if(v!==null)return JSON.parse(v);}catch{/* memory */}return memory.get(k)??null;},
+  get(k){if(unsaved.has(k))return memory.get(k)??null;try{const v=localStorage.getItem(k);if(v!==null)return JSON.parse(v);}catch{/* memory */}return memory.get(k)??null;},
   // Full: the saved maps make room (mapgen sets onFull), then one more try.
   set(k,v){
     if(sealed)return false;memory.set(k,v);const json=JSON.stringify(v);
-    try{localStorage.setItem(k,json);return true;}catch{/* full */}
+    const ok=()=>{unsaved.delete(k);return true;};
+    try{localStorage.setItem(k,json);return ok();}catch{/* full */}
+    unsaved.add(k);
     if(!this.onFull||freeing)return false;
     freeing=true;try{this.onFull();}catch{/* nothing to free */}finally{freeing=false;}
-    try{localStorage.setItem(k,json);return true;}catch{console.error('not saved: storage full');return false;}
+    try{localStorage.setItem(k,json);return ok();}catch{console.error('not saved: storage full');return false;}
   },
-  remove(k){memory.delete(k);try{localStorage.removeItem(k);}catch{/* memory only */}},
+  remove(k){memory.delete(k);unsaved.delete(k);try{localStorage.removeItem(k);}catch{/* memory only */}},
 };
 
 // --- Selection (aircraft-package.yaml template sensors).
@@ -429,7 +433,14 @@ const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // own clock (s, either feed); no reply's clock may fall a day behind it unless it agrees with the TV's to
 // within a day (one wrong clock must not lock the session out), nor before OLDEST_STAMP (2024).
 const OLDEST_STAMP=1704067200;
-const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,lastStamp:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity};
+// A feed must keep its clock moving: one that sends the same reply (its `now`) for a minute is stuck (a
+// cache or proxy serving one snapshot), and its replies count as failed polls until the clock moves again,
+// so adsb.lol stands in (or the sky goes stale) instead of old planes staying "live". Each feed's clock is
+// judged on its own (the two differ by seconds); any change counts as moving, a step back too (a wrong
+// clock put right must not look stuck). fiStamp/lolStamp: the last clock seen; fiMoved/lolMoved: when
+// (performance.now() ms) it last changed.
+export const FROZEN_MS=60000;
+const CLEAR={down:false,fails:0,since:0,retryAt:0,lastAsked:-Infinity,okAt:-Infinity,lastStamp:0,backupFails:0,backupRetryAt:0,backupStep:0,lastBackupAt:-Infinity,fiStamp:0,fiMoved:-Infinity,lolStamp:0,lolMoved:-Infinity};
 export const outage={...CLEAR};
 // Receiver coverage (startLive) for the last place probed: kept across feed restarts too.
 const UNCHECKED={url:'',none:false,checked:-Infinity};
@@ -558,7 +569,8 @@ export function startLive(show,config){
     // day or more off the TV's too: a cached reply) is a failed poll, as a 5xx: none of its positions can
     // be judged (adsb.lol stands in). A clock that agrees with the TV's is used even after a plausible but
     // wrong one (300 days ahead) was the last good reply's, so one such reply can't lock the session out.
-    const body=typeof reply?.now==='number'&&stamp>=OLDEST_STAMP&&stamp<=now+365*DAY&&(stamp>=outage.lastStamp-DAY||Math.abs(stamp-now)<DAY)?reply:null;
+    let body=typeof reply?.now==='number'&&stamp>=OLDEST_STAMP&&stamp<=now+365*DAY&&(stamp>=outage.lastStamp-DAY||Math.abs(stamp-now)<DAY)?reply:null;
+    if(body){const k=backup?'lol':'fi';if(stamp!==outage[k+'Stamp']){outage[k+'Stamp']=stamp;outage[k+'Moved']=started;}else if(started-outage[k+'Moved']>=FROZEN_MS)body=null;}
     // A reply that lands while hidden or after a restart is dropped; adsb.fi's failure still counts, unless
     // a request made since has answered (a hung request timing out after the restarted feed's good reply).
     if(stopped||paused){if(!body&&!backup&&started>outage.okAt)fiFailed(status,retryAfter,started);return;}
