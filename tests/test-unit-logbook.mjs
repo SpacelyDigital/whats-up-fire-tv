@@ -1,4 +1,4 @@
-// node --test tests/  — the daily logbook: Seen, cargo tonight and military today counted once
+// node --test tests/  — the daily logbook: Seen, cargo and military today counted once
 // per aircraft, the caps, the ordering, "none yet", and the midnight reset in the home time
 // zone across daylight-saving changes (US clocks went back 1 Nov 2026 02:00 and forward
 // 8 Mar 2026 02:00; London, Sydney and Chatham too).
@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {updateLog,logSummary,militaryTypes,cargoBrand,cargoCounts,start,resetLog} from '../web/model.mjs';
 import {militaryAlts} from '../web/kit.mjs';
 
-// The logbook's day and "tonight" follow the home's time zone, set by start(): start a feed
+// The logbook's day (and with it cargo's) follows the home's time zone, set by start(): start a feed
 // for a public place (Hebron KY, by CVG) with the network down and stop it at once.
 const CFG={radiusMiles:3,pollSeconds:5,searchNm:15};
 function home(timeZone,latitude=39.05,longitude=-84.67){
@@ -63,26 +63,25 @@ test('Seen: a full log takes a reply of 300 newcomers in milliseconds, the oldes
   const full=costs.slice(-5).sort((a,b)=>a-b)[2];
   assert.ok(full<40,`a reply into a full log took ${full.toFixed(1)} ms`);
 });
-test('cargo tonight: 6 pm to 6 am local, once per aircraft, local area only, by brand most first',()=>{
+test('cargo today: local midnight to midnight, by day as well as by night, once per aircraft, local area only, by brand most first',()=>{
   home('America/New_York');
-  const eve=Date.UTC(2026,9,20,22,30); // 18:30 EDT
   const C=(hex,brand,o)=>P(hex,{cargo:brand,...o});
-  let log=updateLog(null,[C('c00001','UPS'),C('c00002','FedEx'),C('c00003','UPS'),C('c00004','DHL',{distance_mi:40})],eve-HOUR); // 17:30: not yet
-  assert.equal(logSummary(log).cargoTonight,0);assert.equal(logSummary(log).night,false);
-  log=updateLog(log,[C('c00001','UPS'),C('c00002','FedEx'),C('c00003','UPS'),C('c00004','DHL',{distance_mi:40})],eve);
-  log=updateLog(log,[C('c00001','UPS'),C('c00005','Amazon'),C('c00006','DHL'),C('c00007','ABX')],eve+2*HOUR);
+  let log=updateLog(null,[],Date.UTC(2026,9,20,4,30)); // 00:30 EDT: a new day, none yet
+  assert.equal(logSummary(log).cargoToday,0);assert.deepEqual(logSummary(log).cargoBy,[]);
+  log=updateLog(log,[C('c00001','UPS'),C('c00002','FedEx'),C('c00003','UPS'),C('c00004','DHL',{distance_mi:40})],Date.UTC(2026,9,20,14)); // 10:00 EDT
+  log=updateLog(log,[C('c00001','UPS'),C('c00005','Amazon'),C('c00006','DHL'),C('c00007','ABX')],Date.UTC(2026,9,20,22,30)); // 18:30 EDT
   let s=logSummary(log);
-  assert.equal(s.night,true);assert.equal(s.cargoTonight,6,'c00001 once, the far DHL not at all');
+  assert.equal(s.cargoToday,6,'the morning\'s and the evening\'s, c00001 once, the far DHL not at all');
   assert.deepEqual(s.cargoBy,[['UPS',2],['ABX',1],['Amazon',1],['DHL',1],['FedEx',1]],'count first, then A-Z');
-  // Past midnight the same night goes on (the day's other counts start again).
-  log=updateLog(log,[C('c00008','UPS')],Date.UTC(2026,9,21,7)); // 03:00 EDT
+  assert.ok(!('night' in s)&&!('cargoTonight' in s),'no 6 pm to 6 am window any more');
+  log=updateLog(log,[C('c00008','UPS')],Date.UTC(2026,9,21,3,59)); // 23:59 EDT: still today
+  assert.equal(logSummary(log).cargoToday,7);
+  // Midnight: cargo starts again with the day's other counts; a plane seen yesterday counts again today.
+  log=updateLog(log,[C('c00001','UPS')],Date.UTC(2026,9,21,4,1)); // 00:01 EDT
   s=logSummary(log);
-  assert.equal(s.today,1,'Seen started again at midnight');assert.equal(s.cargoTonight,7,'cargo kept through midnight');
-  // 6 am: over; the next evening starts from none.
-  log=updateLog(log,[C('c00009','UPS')],Date.UTC(2026,9,21,10,1)); // 06:01 EDT
-  s=logSummary(log);assert.equal(s.night,false);assert.equal(s.cargoTonight,0);assert.deepEqual(s.cargoBy,[]);
-  log=updateLog(log,[C('c00001','UPS')],Date.UTC(2026,9,21,22,5)); // 18:05 EDT next day
-  assert.equal(logSummary(log).cargoTonight,1,'a plane from last night counts again tonight');
+  assert.equal(s.today,1,'Seen started again at midnight');assert.equal(s.cargoToday,1,'cargo started again at midnight');
+  assert.deepEqual(s.cargoBy,[['UPS',1]]);
+  assert.deepEqual(log.cargo,{day:'2026-10-21',seen:{c00001:'UPS'}},'cargo belongs to the log\'s own day');
 });
 test('cargo brands: callsign prefix (case-insensitive), Amazon by owner first, feeders as their brand',()=>{
   assert.equal(cargoBrand('fdx12',''),'FedEx');assert.equal(cargoBrand('MTN8101',''),'FedEx','FedEx feeder');
@@ -115,7 +114,7 @@ test('military today: once per aircraft per day, local only, by short type, most
 });
 test('logbook: a missing log summarises as nothing yet (no NaN, no null counts)',()=>{
   const s=logSummary(null);
-  assert.deepEqual([s.today,s.cargoTonight,s.militaryToday,s.night,s.rarest,s.farthest],[0,0,0,false,null,null]);
+  assert.deepEqual([s.today,s.cargoToday,s.militaryToday,s.rarest,s.farthest],[0,0,0,null,null]);
   assert.deepEqual([s.cargoBy,s.militaryTypes],[[],[]]);
 });
 
@@ -187,52 +186,43 @@ test('midnight reset: a home moved to another time zone follows the new zone at 
   assert.equal(log.day,'2026-11-02');assert.equal(logSummary(log).today,1);
 });
 
-// Cargo "tonight" (18:00-06:00) over the daylight-saving nights: one plane seen at 18:05 must
-// stay counted until 06:00, whatever the clocks do in between.
-function cargoNight(tz,eveningUtc,morningUtc){
+// Cargo over the daylight-saving days (23 and 25 hours long): one plane seen at 00:05 stays counted
+// all day, whatever the clocks do, and the count starts again exactly at the next local midnight.
+function cargoDay(tz,fromUtc,toUtc){
   home(tz);
-  let log=updateLog(null,[P('c0aaaa',{cargo:'UPS'})],eveningUtc+5*MIN);
-  const lost=[];
-  for(let t=eveningUtc+10*MIN;t<morningUtc;t+=5*MIN){
-    log=updateLog(log,[],t);
-    if(logSummary(log).cargoTonight!==1)lost.push(local(t,tz));
+  let log=updateLog(null,[P('c0aaaa',{cargo:'UPS'})],fromUtc);
+  const lost=[];let reset=null,after=null;
+  for(let t=fromUtc+5*MIN;t<=toUtc&&!reset;t+=5*MIN){
+    const day=log.day;log=updateLog(log,[],t);
+    if(log.day!==day){reset=local(t,tz);after=logSummary(log).cargoToday;}
+    else if(logSummary(log).cargoToday!==1)lost.push(local(t,tz));
   }
-  log=updateLog(log,[],morningUtc+MIN);
-  return {lost,after:logSummary(log).cargoTonight};
+  return {lost,reset,after};
 }
 // adsb.lol (the backup feed) sends no owner, so an Amazon flight it reports is told by its
 // callsign's operator (ATN: ATI); once adsb.fi names the owner it must count as Amazon.
-test('cargo tonight: an Amazon flight first logged from adsb.lol (no owner) counts as Amazon once the owner is known',()=>{
+test('cargo today: an Amazon flight first logged from adsb.lol (no owner) counts as Amazon once the owner is known',()=>{
   home('America/New_York');
-  const t=H(2026,10,3,2); // 21:00 EST
+  const t=H(2026,10,3,17); // 12:00 EST
   let log=updateLog(null,[P('a8f0a3',{flight:'ATN3417',cargo:'ATI'})],t);
   log=updateLog(log,[P('a8f0a3',{flight:'ATN3417',cargo:'Amazon'})],t+MIN);
   assert.deepEqual(log.cargo.seen,{a8f0a3:'Amazon'});
   // adsb.lol standing in again doesn't turn it back, and it counts once.
   log=updateLog(log,[P('a8f0a3',{flight:'ATN3417',cargo:'ATI'})],t+2*MIN);
   assert.deepEqual(log.cargo.seen,{a8f0a3:'Amazon'});
-  assert.equal(logSummary(log).cargoTonight,1);
+  assert.equal(logSummary(log).cargoToday,1);
 });
-test('cargo tonight: kept all night over the fall-back night (31 Oct to 1 Nov 2026, New York)',()=>{
-  const r=cargoNight('America/New_York',H(2026,9,31,22),H(2026,10,1,11)); // 18:00 EDT .. 06:00 EST
-  assert.deepEqual(r.lost,[]);assert.equal(r.after,0,'over at 6 am');
-});
-test('cargo tonight: kept all night after the fall-back day (1 to 2 Nov 2026, New York)',()=>{
-  const r=cargoNight('America/New_York',H(2026,10,1,23),H(2026,10,2,11)); // 18:00 EST .. 06:00 EST
-  assert.deepEqual(r.lost,[]);assert.equal(r.after,0);
-});
-test('cargo tonight: kept all night over the spring-forward night (7 to 8 Mar 2026, New York)',()=>{
-  const r=cargoNight('America/New_York',H(2026,2,7,23),H(2026,2,8,10)); // 18:00 EST .. 06:00 EDT
-  assert.deepEqual(r.lost,[]);assert.equal(r.after,0);
-});
-test('cargo tonight: kept all night after the spring-forward day (8 to 9 Mar 2026, New York)',()=>{
-  const r=cargoNight('America/New_York',H(2026,2,8,22),H(2026,2,9,10)); // 18:00 EDT .. 06:00 EDT
-  assert.deepEqual(r.lost,[]);assert.equal(r.after,0);
-});
-test('cargo tonight: kept all night after the spring-forward day in London and Sydney too',()=>{
-  assert.deepEqual(cargoNight('Europe/London',H(2026,2,29,17),H(2026,2,30,5)).lost,[]);
-  assert.deepEqual(cargoNight('Australia/Sydney',H(2026,9,4,7),H(2026,9,4,19)).lost,[]);
-});
+for(const [name,tz,from,to,midnight] of [
+  ['the fall-back day (1 Nov 2026, New York, 25 hours)',      'America/New_York',H(2026,10,1,4,5),H(2026,10,2,5,10),'2026-11-02, 00:00:00'],
+  ['the spring-forward day (8 Mar 2026, New York, 23 hours)', 'America/New_York',H(2026,2,8,5,5),H(2026,2,9,4,10),'2026-03-09, 00:00:00'],
+  ['the spring-forward day in London (29 Mar 2026)',          'Europe/London',   H(2026,2,29,0,5),H(2026,2,29,23,10),'2026-03-30, 00:00:00'],
+  ['the spring-forward day in Sydney (4 Oct 2026)',           'Australia/Sydney',H(2026,9,3,14,5),H(2026,9,4,13,10),'2026-10-05, 00:00:00'],
+]){
+  test(`cargo today: kept all day over ${name}, then none from local midnight`,()=>{
+    const r=cargoDay(tz,from,to);
+    assert.deepEqual(r.lost,[]);assert.equal(r.reset,midnight);assert.equal(r.after,0);
+  });
+}
 
 // --- The live source: what the dashboard is shown around midnight ----------------------------
 // Runs the real live source once with a mocked feed and a mocked TV clock; resolves the models.
@@ -287,10 +277,10 @@ test('saneLog: a damaged saved logbook is repaired or dropped, never stops the d
     assert.ok(next&&Array.isArray(next.seen));
   }
   assert.equal(saneLog('x'),null);
-  const odd=saneLog({day,seen:[],planes:{xa:{t:'B738',d:'far'},xb:{t:'A320',d:2}},typesAll:{B738:'2',A320:3},cargo:{night:null,seen:{}},mil:{}});
+  const odd=saneLog({day,seen:[],planes:{xa:{t:'B738',d:'far'},xb:{t:'A320',d:2}},typesAll:{B738:'2',A320:3},cargo:{day,seen:{}},mil:{}});
   assert.deepEqual(Object.keys(odd.planes),['xb'],'a plane with a non-numeric distance is dropped');
   assert.deepEqual(odd.typesAll,{A320:3},'a non-numeric type count is dropped');
-  const ok={day,pk:1,seen:['a1'],planes:{xa1:{t:'B738',d:1}},highest:{name:'A',value:3},fastest:null,typesToday:['B738'],typesAll:{B738:2},cargo:{night:null,seen:{}},mil:{}};
+  const ok={day,pk:1,seen:['a1'],planes:{xa1:{t:'B738',d:1}},highest:{name:'A',value:3},fastest:null,typesToday:['B738'],typesAll:{B738:2},cargo:{day,seen:{a2:'UPS'}},mil:{}};
   assert.deepEqual(saneLog(ok),ok,'a good logbook is kept as is');
   resetLog();
 });
@@ -313,11 +303,11 @@ test('saneLog: a type in the military tally that isn\'t text (damaged storage) i
   const {store}=await import('../web/live.mjs');
   const eve=H(2026,10,3,4,50),day='2026-11-02'; // 23:50 EST 2 Nov
   for(const v of [5,{},[],null,true]){
-    const log=saneLog({day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{night:null,seen:{}},mil:{abc123:v,ae0001:'C17'}});
+    const log=saneLog({day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{day,seen:{}},mil:{abc123:v,ae0001:'C17'}});
     assert.deepEqual(log.mil,{ae0001:'C17'},JSON.stringify(v));
     assert.deepEqual(logSummary(log).militaryTypes,[['C-17',1]]);
   }
-  resetLog();store.set('whatsup.logbook.v1',{day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{night:null,seen:{}},mil:{abc123:5}});
+  resetLog();store.set('whatsup.logbook.v1',{day,pk:1,seen:[],planes:{},typesToday:[],typesAll:{},cargo:{day,seen:{}},mil:{abc123:5}});
   try{
     const m=await liveOnce({tvMs:eve,feedMs:eve,ac:[near('a0c001')]});
     assert.ok(m.at(-1).fresh&&m.at(-1).planes.length===1,'planes shown');
@@ -327,11 +317,11 @@ test('saneLog: a type in the military tally that isn\'t text (damaged storage) i
 test('saneLog: damaged values in a saved logbook are dropped, so its stats never read "Rare 7" or "[object Object]"',async()=>{
   const {saneLog}=await import('../web/model.mjs');
   home('America/New_York');
-  const night='2026-11-02',t=H(2026,10,3,2); // 21:00 EST 2 Nov
+  const t=H(2026,10,3,2); // 21:00 EST 2 Nov
   const log=saneLog({day:'2026-11-02',pk:1,seen:[],typesToday:[],highest:null,fastest:null,mil:{},
     planes:{xa10101:{d:1,t:7,f:'UAL202'},xa20202:{d:0.5,t:{},f:'DAL5'},xa30303:{d:2,t:'B738',f:{}},xa40404:{d:3,t:'A320',f:'DAL7',o:{code:'ATL',city:{},mi:606}},
       xa50505:{d:4,t:'A321',f:'AAL9',o:{code:'ORD',city:'Chicago',mi:'far'}},xa60606:{d:5,t:'B739',f:'UAL3',o:{code:'DEN',city:'Denver',mi:1000}},xa70707:{d:6,t:'E75L'}},
-    typesAll:{B739:2,E75L:1,A320:-1,A321:1.5,B738:Infinity},cargo:{night,seen:{abc123:{},def456:9,ghi789:'Amazon',jkl012:null}}});
+    typesAll:{B739:2,E75L:1,A320:-1,A321:1.5,B738:Infinity},cargo:{day:'2026-11-02',seen:{abc123:{},def456:9,ghi789:'Amazon',jkl012:null}}});
   assert.deepEqual(Object.keys(log.planes),['xa60606','xa70707']);
   assert.deepEqual(log.typesAll,{B739:2,E75L:1},'counts are whole numbers, none below 0');
   assert.deepEqual(log.cargo.seen,{ghi789:'Amazon'});
@@ -340,4 +330,22 @@ test('saneLog: damaged values in a saved logbook are dropped, so its stats never
   assert.equal(typeof s.rarest.name,'string');assert.equal(s.rarest.code,'E75L');
   assert.deepEqual(s.farthest,{name:'UAL3',value:1000,from:'Denver',code:'DEN'});
   assert.doesNotThrow(()=>updateLog(log,[P('a80808',{cargo:'UPS'})],t));
+});
+test('saneLog: cargo counted by an older build (6 pm to 6 am, {night,seen}) starts again from none on today\'s log, the rest kept',async()=>{
+  const {saneLog}=await import('../web/model.mjs');
+  home('America/New_York');
+  const t=H(2026,10,3,8); // 03:00 EST 3 Nov: last night's count, begun at 6 pm on the 2nd, was still open
+  const old={day:'2026-11-03',pk:1,seen:['c0aaaa'],planes:{xc0aaaa:{d:2,t:'B763',f:'UPS1'}},highest:null,fastest:null,typesToday:['B763'],typesAll:{B763:1},
+    cargo:{night:'2026-11-02',seen:{c0aaaa:'UPS',c0bbbb:'FedEx'}},mil:{ae0001:'C17'}};
+  const log=saneLog(old);
+  assert.deepEqual(log.cargo,{day:'2026-11-03',seen:{}},'which of those planes came before midnight is not known');
+  const s=logSummary(log);
+  assert.deepEqual([s.cargoToday,s.today,s.militaryToday],[0,1,1],'none yet for cargo; Seen and Military kept');
+  const next=updateLog(log,[P('c0cccc',{cargo:'DHL'})],t);
+  assert.deepEqual(logSummary(next).cargoBy,[['DHL',1]]);
+  assert.deepEqual(saneLog(next),next,'a log saved by this build loads as it was');
+  // A day's cargo saved under another day (a log copied by hand, a clock put back) is not carried either.
+  assert.deepEqual(saneLog({...next,day:'2026-11-04'}).cargo,{day:'2026-11-04',seen:{}});
+  // updateLog copes with the old shape too (a log kept in memory across the update is never one, but tests pass them).
+  assert.deepEqual(updateLog({...old},[],t).cargo,{day:'2026-11-03',seen:{}});
 });

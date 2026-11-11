@@ -88,6 +88,10 @@
 /* Cargo and Military: one number column, so the headings line up. */
 .L-atlas .at-counts{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:6px;align-items:center;margin-bottom:8px}
 .L-atlas .at-ct{min-width:0}
+/* "resets at midnight": the top right corner of the box, on the Cargo heading's line, quieter than the heading. */
+.L-atlas .at-cargo-h{display:flex;align-items:baseline;gap:8px}
+.L-atlas .at-cargo-h span:first-child{flex:none}
+.L-atlas .at-reset{flex:0 1 auto;margin-left:auto;min-width:0;white-space:nowrap;overflow:hidden;font:600 11px Inter;letter-spacing:0;text-transform:none;color:var(--at-dim)}
 .L-atlas .at-cargo-n,.L-atlas .at-mil-n{font:900 38px/1 Inter;color:var(--at-cargo);font-variant-numeric:tabular-nums}
 .L-atlas .at-mil-n{color:var(--at-mil)}
 .L-atlas .at-cargo-by,.L-atlas .at-mil-by{white-space:nowrap;overflow:hidden;min-width:0;font:600 13.5px/1.35 Inter;color:var(--at-dim)}

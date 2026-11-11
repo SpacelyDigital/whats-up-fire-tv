@@ -1,7 +1,7 @@
 // Layout 2, Atlas Light: a light, fully detailed printed city map (landuse, parks, water,
 // buildings, every road class with casings, rail, aeroways, place names) with planes
 // as bold markers and trails, and a slim side column carrying the most data of any
-// layout: hero flight, route and progress, six stats, cargo tonight, today, recent.
+// layout: hero flight, route and progress, six stats, cargo and military today, today, recent.
 // Layout 1, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 3,
 // Atlas Satellite, puts satellite imagery under a light road overlay (atlas-satellite.css).
 import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
@@ -135,13 +135,16 @@ function ui(){
     </section>
     <section class="at-quiet" hidden></section>
     <section class="at-books">
-      <div class="at-counts"><b class="at-cargo-n"></b><div class="at-ct"><h4>Cargo</h4><div class="at-cargo-by"></div></div>
+      <div class="at-counts"><b class="at-cargo-n"></b><div class="at-ct"><h4 class="at-cargo-h"><span>Cargo</span><span class="at-reset">resets at midnight</span></h4><div class="at-cargo-by"></div></div>
         <b class="at-mil-n"></b><div class="at-ct"><h4>Military</h4><div class="at-mil-by"></div></div></div>
       <dl class="at-log"></dl>
     </section>
     <section class="at-recent"><h4 class="at-rech">Recently above</h4><div class="at-rec"></div></section>`;
   for(const c of ['city','clock','status','date','hero','alert','kicker','fl','op','route','prog','bar','progt','alt','spd','vs','hdg','look','cpa',
-    'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','mil-n','mil-by','log','rec'])$[c]=side.querySelector('.at-'+c);
+    'type','typet','reg','pic','img','qr','credit','quiet','cargo-n','cargo-by','mil-n','mil-by','reset','log','rec'])$[c]=side.querySelector('.at-'+c);
+  // Cargo, Military and the day's log below start again at local midnight: the note says so in the box's
+  // top right corner, and shortens (then shrinks) before it would crowd the Cargo heading.
+  $.reset._alts=['resets at midnight','resets 12 am'];
   $.credit._whole=true; // attribution: wraps rather than losing words
   $.alert._firm=true; // the emergency notice: "7600 · RADIO FAILURE" rather than smaller type
   $.barFill=$.bar.firstChild;fit($.city,$.kicker,$.alert);
@@ -347,9 +350,9 @@ function render(m){
     $.reg._alts=[regLine.join(' · '),regLine[0]||''];setText($.reg,regLine.join(' · '));
   }
   const L=m.log;
-  setText($['cargo-n'],L.cargoTonight);
+  setText($['cargo-n'],L.cargoToday);
   const brands=n=>L.cargoBy.slice(0,n).map(([b,c])=>`${c} ${b}`).join(' · '); // count first, like Military
-  $['cargo-by']._alts=L.cargoBy.length?[brands(4),brands(3),brands(2)]:[L.night?'none yet':'counted 6 pm – 6 am'];
+  $['cargo-by']._alts=L.cargoBy.length?[brands(4),brands(3),brands(2)]:['none yet'];
   setText($['mil-n'],L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
   const cell=(k,v,cls='',alts)=>{const d=el('div',cls),dd=el('dd','',v);dd._alts=alts;d.append(el('dt','',k),dd);return d;};
   const far=L.farthest,farMi=far&&fmt.far(far.value);
@@ -382,7 +385,7 @@ function render(m){
 // the photo credit): each shrinks, then shortens, until it fits. Rarest and Farthest then
 // share the smaller of their two sizes, so they read as a pair.
 function fitAll(){
-  for(const e of [$['cargo-by'],$['mil-by'],$.typet,$.reg,...$.log.querySelectorAll('dd'),...root.querySelectorAll('.at-stats dd')])fitLine(e);
+  for(const e of [$.reset,$['cargo-by'],$['mil-by'],$.typet,$.reg,...$.log.querySelectorAll('dd'),...root.querySelectorAll('.at-stats dd')])fitLine(e);
   if(!$.pic.hidden)fitLine($.credit);
   for(const pair of [[...$.log.querySelectorAll('.wide dd')],[$['cargo-by'],$['mil-by']]])
     if(pair.length===2){const size=Math.min(...pair.map(e=>parseFloat(getComputedStyle(e).fontSize)));for(const e of pair)e.style.fontSize=`${size}px`;}

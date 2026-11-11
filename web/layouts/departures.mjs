@@ -129,12 +129,12 @@ function render(m){
     ticker($['hero-line'],hero.browse?[...head.map(h=>`${h}: ${hero.flight}${op}${rt}`),`${last}: ${hero.flight}${rt}`,`${last}: ${hero.flight}`]:
       [`${hero.status}: ${hero.flight}${op}${rt}`,`${hero.flight}${op}${rt}`,`${hero.flight}${rt}`]);
     const c=hero.cpa,parts=[hero.type||hero.aircraft_type,fmt.alt(hero.altitude_ft),fmt.speed(hero.speed_kt),
-      c&&!c.receding?`closest in ${fmt.mmss(c.seconds)} at ${fmt.dist(c.miles)}`:'',`cargo ${m.log.cargoTonight}`,`military ${m.log.militaryToday||0}`].filter(Boolean);
+      c&&!c.receding?`closest in ${fmt.mmss(c.seconds)} at ${fmt.dist(c.miles)}`:'',`cargo ${m.log.cargoToday}`,`military ${m.log.militaryToday||0}`].filter(Boolean);
     ticker($['sub-line'],parts.map((_,i)=>parts.slice(0,parts.length-i).join(' · ')));
   }else{
     const q=quietText(m,demo);
     ticker($['hero-line'],[q,q.split('. ')[0]]);
-    ticker($['sub-line'],[`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoTonight} · military ${m.log.militaryToday||0}`,`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoTonight}`]);
+    ticker($['sub-line'],[`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoToday} · military ${m.log.militaryToday||0}`,`Seen today ${fmt.int(m.log.today)} · cargo ${m.log.cargoToday}`]);
   }
   showPhotoIn($.pic,hero,()=>{fitLine($['hero-line']);fitLine($['sub-line']);});
   // Inset: home and plane dots.

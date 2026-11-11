@@ -37,8 +37,9 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   saved in localStorage, decoded to Int16Arrays). Both are reused for 30 days. Maps are
   painted once onto a canvas; aircraft are an SVG/DOM layer on top.
 * **Display.** Hero target (route, progress, altitude/vertical speed, speed, look-up
-  direction and elevation, closest approach, type, registration), cargo tonight by operator
-  (callsign prefixes worldwide; Amazon Air by owner), today's logbook, recently above,
+  direction and elevation, closest approach, type, registration), today's cargo by operator
+  (callsign prefixes worldwide; Amazon Air by owner) and military, today's logbook (all
+  reset at local midnight), recently above,
   and a red takeover on squawk 7500/7600/7700. Airports come from the map data.
 * **Plane browsing.** Left/Right on the dashboard step through the planes on the map, closest
   first (Right from the hero outward, wrapping round); the chosen plane takes the main card

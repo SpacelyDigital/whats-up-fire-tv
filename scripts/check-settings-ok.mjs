@@ -19,7 +19,7 @@ await new Promise(r=>ws.onopen=r);
 const send=(method,params={})=>new Promise(r=>{waiting.set(++id,r);ws.send(JSON.stringify({id,method,params}));});
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,returnByValue:true})).result?.value;
 const until=async(x,ms)=>{for(let t=0;t<ms;t+=20){if(await ev(x))return true;await sleep(20);}return false;};
-const CODE={ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39,Enter:13,Escape:27,MediaPlayPause:179};
+const CODE={ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39,Enter:13,Escape:27};
 const key=async k=>{for(const type of ['keyDown','keyUp'])await send('Input.dispatchKeyEvent',{type,key:k,code:k,windowsVirtualKeyCode:CODE[k]});};
 const cogOn=`document.getElementById('busy').classList.contains('on')`;
 await send('Page.enable');await send('Runtime.enable');
@@ -30,7 +30,7 @@ await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__slowFrames=
   window.requestAnimationFrame=cb=>window.__slowFrames?raf(()=>setTimeout(()=>raf(cb),400)):raf(cb);}`});
 await send('Page.navigate',{url:`${BASE}?q=Chicago&layout=atlas&map=10&window=90-180-25`});await sleep(6000);
 await until(`document.getElementById('stage')?.dataset.layout==='atlas'`,15000);
-await until(`!(${cogOn})`,5000);await key('MediaPlayPause');await sleep(600);
+await until(`!(${cogOn})`,5000);await key('Enter');await sleep(600); // Select on the dashboard opens Settings
 const fails=[];
 if(!await ev(`!document.getElementById('settings').hidden`))fails.push('Settings did not open');
 async function walkTo(target){

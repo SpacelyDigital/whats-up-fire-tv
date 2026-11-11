@@ -1,6 +1,6 @@
 // node scripts/check-settings-edit.mjs [layout ...]  (needs the dev server: node scripts/dev-server.mjs assets 8767)
 // Regression check for "the value disappears while it is being edited": in every layout,
-// opens Settings with Play/Pause, walks to each editable row with the arrow keys, presses OK,
+// opens Settings with Select, walks to each editable row with the arrow keys, presses OK,
 // changes the value once, and checks that the value is shown whole (never cut, never zero
 // width), the keys hint is shown in full on the title line inside the card, and Back undoes
 // the edit and leaves edit mode; then OK, Right, OK keeps a change and the kept value is whole.
@@ -48,11 +48,11 @@ for(const layout of LAYOUTS){
   // out, and press again if the press was dropped.
   let open=false;
   for(let i=0;i<3&&!open;i++){await p.until(`!document.getElementById('busy')?.classList.contains('on')`,15000);
-    await p.key('MediaPlayPause',179);await sleep(800);open=await p.until(`!document.getElementById('settings').hidden`,3000);}
+    await p.key('Enter',13);await sleep(800);open=await p.until(`!document.getElementById('settings').hidden`,3000);}
   const rows=await p.ev(`[...document.querySelectorAll('#settings .row[data-edit]')].filter(r=>r.offsetParent).map(r=>r.id)`)||[];
   const bad=[];
   // Nothing to walk is a failure, not a pass: Settings didn't open, or lost its rows.
-  if(!open)bad.push('Play/Pause did not open Settings');else if(!rows.length)bad.push('no editable rows in Settings');
+  if(!open)bad.push('Select did not open Settings');else if(!rows.length)bad.push('no editable rows in Settings');
   for(const row of rows){
     if(!await walkTo(p,row)){bad.push(`${row}: could not reach it with the arrow keys`);continue;}
     await p.key('Enter',13);await p.key('ArrowRight',39);await sleep(300);
@@ -64,7 +64,7 @@ for(const layout of LAYOUTS){
     if(!/OK keep/.test(r.hint||'')||!r.hintInside)bad.push(`${row}: keys hint missing or cut on the title line`);
     await p.key('Escape',27);
     if(await p.ev(`document.getElementById('${row}').classList.contains('editing')||document.querySelector('#settings .card').classList.contains('editing')`))bad.push(`${row}: Back did not leave edit mode`);
-    if(await p.ev(`document.getElementById('settings').hidden`)){bad.push(`${row}: Back closed Settings instead of undoing`);await p.key('MediaPlayPause',179);}
+    if(await p.ev(`document.getElementById('settings').hidden`)){bad.push(`${row}: Back closed Settings instead of undoing`);await p.key('Enter',13);}
     // OK, Right, OK keeps the change: the kept value is shown whole, with no edit hint left.
     // (Not on Alert zone: keeping a change there hides the window rows checked after it.)
     if(row!=='set-zone'){await p.key('Enter',13);await p.key('ArrowRight',39);await p.key('Enter',13);await sleep(300);

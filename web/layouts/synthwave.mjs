@@ -160,7 +160,7 @@ function render(m){
     if(hero.emergency){setText($.m1,hero.squawk==='7700'?'MAYDAY':hero.emergency);setText($.m2,`${hero.flight} · ${hero.squawk?`SQUAWK ${hero.squawk} · `:''}${hero.emergency}`);}
   }
   const L=m.log;
-  setText($['s-cargo'],String(L.cargoTonight));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));
+  setText($['s-cargo'],String(L.cargoToday));setText($['s-mil'],String(L.militaryToday||0));setText($['s-seen'],fmt.int(L.today));
   setText($['s-high'],L.highest?fmt.alt(L.highest.value):'—');
   const r=m.recent[0];setText($['s-last'],r?`${r.flight} ${fmt.ago(r.last_seen,now)}`:'—');
 }

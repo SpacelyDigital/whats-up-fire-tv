@@ -25,7 +25,7 @@ await send('Page.navigate',{url:`${BASE}?demo=1`});await sleep(7000);
 await send('Fetch.enable',{patterns:[{urlPattern:'*/layouts/*'}]});
 const state=()=>ev(`({shown:document.getElementById('stage').dataset.layout,saved:JSON.parse(localStorage.getItem('whatsup.settings.v1')).layout,row:document.getElementById('set-layout-v')?.textContent,busy:document.getElementById('busy').classList.contains('on')})`);
 const fails=[];
-await key('MediaPlayPause',179);await sleep(600);
+await key('Enter',13);await sleep(600); // Select on the dashboard opens Settings
 for(let i=0;i<20&&await ev(`document.querySelector('#settings .focus')?.id`)!=='set-layout';i++){await key(await ev(`document.querySelector('#settings .focus')?.closest('.col')===document.getElementById('set-layout').closest('.col')`)?'ArrowUp':'ArrowRight',39);await sleep(200);}
 await key('Enter',13);await sleep(400);await key('ArrowRight',39);await sleep(200);await key('Escape',27);await sleep(3000);
 let s=await state();

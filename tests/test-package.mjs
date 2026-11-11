@@ -48,7 +48,7 @@ test('release guard: a store release whose policy is not the final text fails',(
   const placeholder=readFileSync(join(repo,'web/privacy.txt'),'utf8');
   const f=pack('txt-store.vpkg',{profile:'store',release:true,edit:d=>writeFileSync(join(d,'assets/privacy.txt'),placeholder)});
   const r=guard(f,{WHATSUP_PROFILE:'store'});assert.equal(r.code,1,r.out);assert.match(r.out,/privacy\.txt is not web\/privacy-store\.txt/);
-  const g=pack('js-store.vpkg',{profile:'store',release:true,edit:d=>{const p=join(d,'assets/whatsup.js');writeFileSync(p,readFileSync(p,'utf8').replace('Version 3','Version 0'));}});
+  const g=pack('js-store.vpkg',{profile:'store',release:true,edit:d=>{const p=join(d,'assets/whatsup.js');writeFileSync(p,readFileSync(p,'utf8').replace(/Version \d+/,'Version 0'));}});
   const s=guard(g,{WHATSUP_PROFILE:'store'});assert.equal(s.code,1,s.out);assert.match(s.out,/policy the page shows/);
 });
 

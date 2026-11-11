@@ -911,7 +911,11 @@ function endAdjust(save=false){
 }
 
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+// The remote's media keys (Play/Pause, Fast Forward, Rewind, and track and stop keys) belong to the system,
+// which uses them for whatever plays in the background (Amazon's Fire TV test 4.6): never used here, nor prevented.
+const mediaKey=e=>/^Media/.test(e.key)||[176,177,178,179,227,228].includes(e.keyCode);
 document.addEventListener('keydown',e=>{
+  if(mediaKey(e))return;
   if(busyNow){
     e.preventDefault();
     if(e.key==='Enter'&&!e.repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
@@ -919,17 +923,10 @@ document.addEventListener('keydown',e=>{
     return;
   }
   const k=e.key,dir=DIRS[k];
-  // A held OK, Play/Pause or Menu (82, not the letter R) repeats: it would open and close the picker or
-  // Settings, or run through screens.
-  if(e.repeat&&(k==='Enter'||k===' '||k==='MediaPlayPause'||e.keyCode===179||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
+  // A held OK or Menu (82, not the letter R) repeats: it would open and close the picker or Settings, or
+  // run through screens.
+  if(e.repeat&&(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4){e.preventDefault();return back();}
-  // Play/Pause toggles Settings: Vega never passes the remote's Menu (≡) key to the page.
-  if(k==='MediaPlayPause'||e.keyCode===179){
-    e.preventDefault();
-    if(!layer&&!adj)openSettings();
-    else if(layer?.id==='settings'&&!editing)back();
-    return;
-  }
   if(adj){
     if(dir){e.preventDefault();return nudge(dir,e.repeat);}
     if(k==='Enter'||k===' '){e.preventDefault();return endAdjust(true);}
@@ -985,7 +982,8 @@ function showWelcome(place){
 // privacy-store.txt). A record from before the current consent text (CONSENT_SINCE) asks
 // again (once), and everything else the user set is kept.
 // Since Version 2 the text names every service by profile and says where searches go (asked again once).
-const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=3,CONSENT_SINCE=2;
+// Versions 3 and 4 add no new kind of data or service (4: cargo is counted all day, not 6 pm to 6 am): nobody is asked again.
+const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=4,CONSENT_SINCE=2;
 // The hosted policy (shown as a QR on the privacy page when set): the store build's only.
 const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}

@@ -1,5 +1,5 @@
 // Layout 4, Radar: the green phosphor scope (10-mile range, sweep, data blocks) and
-// a panel with the hero flight, cargo tonight, today's logbook and recent sightings.
+// a panel with the hero flight, cargo and military today, today's logbook and recent sightings.
 import {svg,el,setText,overlap,fmt,metric,KM,placeName,alertRadius,statusText,quietText,planeIcon,byInterest,
   makeCanvas,paintMap,airportsNear,mapShift,offset,compass,number,BASE_RANGE,range,zoom,niceStep,zonePath,windowView,alertZone,fitLine,photoSlot,showPhotoIn,fit,placeAlts,airlineAlts,headingAlts} from '../kit.mjs';
 
@@ -47,7 +47,7 @@ function ui(){
     <div class="lower">
       <div class="cargo"><div class="label">Cargo</div><div class="cargo-row"><b class="cargo-n"></b><div class="cargo-by"></div></div>
         <div class="label mil-label">Military</div><div class="cargo-row mil-row"><b class="mil-n"></b><div class="mil-by"></div></div></div>
-      <div class="today-log"><div class="log"></div></div>
+      <div class="today-log"><div class="label reset">resets at midnight</div><div class="log"></div></div>
     </div>
     <div class="recent-wrap"><div class="label">Recently above</div><div class="recent"></div></div>`;
   for(const c of ['city','clock','today','status','hero','hero-label','alert','fl','op','route','progress','bar','prog','alt','spd','look','cpa',
@@ -178,10 +178,10 @@ function render(m){
   }
 
   const L=m.log;
-  setText($['cargo-n'],String(L.cargoTonight).padStart(2,'0'));
+  setText($['cargo-n'],String(L.cargoToday).padStart(2,'0'));
   $['cargo-by'].replaceChildren(...(L.cargoBy.length?L.cargoBy.slice(0,4).map(([brand,n])=>{
     const d=el('div');d.append(el('em','',n),` ${brand}`);return d; // count first, like Military
-  }):[el('div','',L.night?'none yet':'counts 6 pm to 6 am')]));
+  }):[el('div','','none yet')]));
   setText($['mil-n'],String(L.militaryToday||0).padStart(2,'0'));
   // Count first ("2 C-17"), most seen first, one type a row like the cargo brands.
   $['mil-by'].replaceChildren(...((L.militaryTypes||[]).length?L.militaryTypes.slice(0,3).map(([t,n])=>{
