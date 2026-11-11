@@ -75,18 +75,16 @@ function derive(a){
 // Logbook: per local day, saved. Seen/Highest/Fastest/Cargo count the local area (15 NM).
 // Rarest and Farthest count today's aircraft that came within the current map radius:
 // Rarest = the type among them seen on the fewest days-aircraft overall (all-time tally).
-// Cargo "tonight" runs 18:00-06:00 local, counted per brand.
+// Cargo counts today, like Seen and Military: local midnight to midnight, per brand.
 const LOG_KEY='whatsup.logbook.v1';
 const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
-const localHour=t=>Number(new Date(t).toLocaleString('en-US',{hour:'numeric',hourCycle:'h23',timeZone:TZ}));
-// Before 06:00 the night belongs to the previous calendar date (counted on the date itself,
-// not 24 h back: after a 23-hour spring-forward day that would land two dates back).
-const shiftDay=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10);},prevDay=d=>shiftDay(d,-1);
+// A date n days on, counted on the calendar date itself (not 24 h steps: a 23- or 25-hour
+// daylight-saving day would land on the wrong date).
+const shiftDay=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10);};
 // The log that counts for `day` (a reply's local day): that day's, or the next day's, which the other
 // feed's clock (seconds ahead) may have begun already. The day never rolls back; a log dated further
 // ahead is damage (a TV clock that was wrong) and does not count.
 const logOf=(log,day)=>log&&(log.day===day||log.day===shiftDay(day,1))?log:null;
-const tonightKey=t=>{const h=localHour(t);return h>=18?localDay(t):h<6?prevDay(localDay(t)):null;};
 export const resetLog=()=>{pendingLog=null;store.remove(LOG_KEY);};
 // The logbook lives in memory and is saved every 5 min, at the local midnight change and
 // when the app leaves the screen (flushLog), not on every poll: it can be ~350 KB, and
@@ -106,6 +104,10 @@ function saveLogSoon(log){
 // damaged on the stick's flash), or dropped when it isn't a logbook at all, so a bad value
 // can never stop the dashboard.
 const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
+// Cargo belongs to the log's own day ({day,seen}), so it starts again with the log at midnight. A cargo
+// count kept by an older build (6 pm to 6 am, {night,seen}) starts again from none, as it can't tell
+// which of its planes came before midnight.
+const cargoOf=log=>plain(log.cargo)&&log.cargo.day===log.day&&plain(log.cargo.seen)?log.cargo:null;
 export function saneLog(log){
   if(!plain(log)||typeof log.day!=='string')return null;
   if(!plain(log.planes))log={...log,planes:Object.fromEntries((Array.isArray(log.typesToday)?log.typesToday:[]).filter(t=>typeof t==='string').map(t=>[`old-${t}`,{t,d:0}]))};
@@ -116,13 +118,12 @@ export function saneLog(log){
   return {...log,seen:Array.isArray(log.seen)?log.seen.filter(h=>typeof h==='string'):[],
     planes:Object.fromEntries(Object.entries(log.planes).filter(([,v])=>plane(v))),typesToday:Array.isArray(log.typesToday)?log.typesToday.filter(t=>typeof t==='string'):[],
     typesAll:plain(log.typesAll)?Object.fromEntries(Object.entries(log.typesAll).filter(([,n])=>Number.isInteger(n)&&n>=0)):{},highest:rec(log.highest),fastest:rec(log.fastest),
-    cargo:plain(log.cargo)&&(typeof log.cargo.night==='string'||log.cargo.night===null)&&plain(log.cargo.seen)?
-      {...log.cargo,seen:Object.fromEntries(Object.entries(log.cargo.seen).filter(([,b])=>typeof b==='string'))}:{night:null,seen:{}},
+    cargo:{day:log.day,seen:Object.fromEntries(Object.entries(cargoOf(log)?.seen||{}).filter(([,b])=>typeof b==='string'))},
     mil:plain(log.mil)?Object.fromEntries(Object.entries(log.mil).filter(([,t])=>typeof t==='string')):{}};
 }
 export function updateLog(log,planes,now){
   const day=localDay(now);
-  if(!logOf(log,day))log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:log?.cargo||{night:null,seen:{}},mil:{}};
+  if(!logOf(log,day))log={day,pk:1,seen:[],planes:{},highest:null,fastest:null,typesToday:[],typesAll:log?.typesAll||{},cargo:{day,seen:{}},mil:{}};
   // Today's aircraft (any distance the feed covers): closest approach, type, callsign and
   // origin. Rarest and Farthest pick from those that came within the map radius, so they
   // follow zooming. Older logs (no planes yet): today's local types count as close (0 mi).
@@ -131,8 +132,7 @@ export function updateLog(log,planes,now){
   // first, so the 4000 cap evicted those planes first and they were counted again.
   if(!log.pk){const old=log.planes;log.planes={};for(const [k,v] of Object.entries(old))log.planes[/^[0-9a-f]{6}$/.test(k)?'x'+k:k]=v;log.pk=1;}
   delete log.typesZone;delete log.zoneSeen;
-  const night=tonightKey(now);
-  if(log.cargo.night!==night||Array.isArray(log.cargo.seen))log.cargo={night,seen:{}};
+  if(!cargoOf(log))log.cargo={day:log.day,seen:{}};
   // Counted once per update, not per new plane: a reply of 300 newcomers into a full log read the 4,000
   // keys and searched the 3,000 seen once for each (over 100 ms per poll at full speed on a full log).
   let types=Object.keys(log.typesAll).length;const seen=new Set(log.seen);
@@ -154,7 +154,7 @@ export function updateLog(log,planes,now){
     if(a.flight)rec.f=a.flight;
     if(from&&number(from.lat)&&number(from.lon)&&!rec.o)
       rec.o={code:a.route.origin,city:from.city||a.route.origin,mi:Math.round(haversine(from.lat,from.lon,HOME.latitude,HOME.longitude))};
-    if(a.distance_mi>LOG_MILES)continue; // Seen/Highest/Fastest/Cargo: the local area only
+    if(a.distance_mi>LOG_MILES)continue; // Seen/Highest/Fastest/Cargo/Military: the local area only
     if(!seen.has(a.hex)){
       seen.add(a.hex);log.seen.push(a.hex);
       if(a.aircraft_type&&!log.typesToday.includes(a.aircraft_type))log.typesToday.push(a.aircraft_type);
@@ -164,7 +164,7 @@ export function updateLog(log,planes,now){
     if(number(a.speed_kt)&&(!log.fastest||a.speed_kt>log.fastest.value))log.fastest={name,value:a.speed_kt};
     // Amazon is told by the owner, which the backup feed (adsb.lol) doesn't send: a plane first
     // logged under its callsign's operator (ATN: ATI) becomes Amazon once the owner is known.
-    if(night&&a.cargo&&(!log.cargo.seen[a.hex]||a.cargo==='Amazon'))log.cargo.seen[a.hex]=a.cargo;
+    if(a.cargo&&(!log.cargo.seen[a.hex]||a.cargo==='Amazon'))log.cargo.seen[a.hex]=a.cargo;
     // Military today: once per aircraft per day, same local area as Seen; kept with its type.
     if(a.military){log.mil=log.mil||{};if(!(a.hex in log.mil)){log.mil[a.hex]=String(a.aircraft_type||'').slice(0,4);const k=Object.keys(log.mil);if(k.length>500)delete log.mil[k[0]];}}
   }
@@ -202,12 +202,12 @@ export function militaryTypes(mil){
   return Object.entries(n).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
 }
 export function logSummary(log){
-  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoTonight:0,cargoBy:[],night:false,militaryToday:0,militaryTypes:[]};
+  if(!log)return {today:0,highest:null,fastest:null,farthest:null,rarest:null,cargoToday:0,cargoBy:[],militaryToday:0,militaryTypes:[]};
   const cargoBy=cargoCounts(log.cargo.seen);
   // Rarest/Farthest are read when drawn, so zooming the map changes them at once.
-  return {today:log.seen.length,highest:log.highest,fastest:log.fastest,night:!!log.cargo.night,
+  return {today:log.seen.length,highest:log.highest,fastest:log.fastest,
     get rarest(){return pickRarest(log,logRadius());},get farthest(){return pickFarthest(log,logRadius());},
-    cargoTonight:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy,militaryToday:Object.keys(log.mil||{}).length,militaryTypes:militaryTypes(log.mil)};
+    cargoToday:cargoBy.reduce((s,[,n])=>s+n,0),cargoBy,militaryToday:Object.keys(log.mil||{}).length,militaryTypes:militaryTypes(log.mil)};
 }
 
 // Trend: compare with the newest reading at least 20 s old (not the oldest kept, up to 90 s old: a plane
@@ -334,7 +334,7 @@ function liveSource(config,onModel,was){
     const planes=all.filter(a=>keep.has(a)).map(a=>enrich(a,raw.get(a.hex),routes.get(a),now));
     for(const a of planes){a.inside=inAlert(a,config);a.approaching=approaching(a,config);}
     pruneSamples(now);
-    // Today's logbook and cargo tonight count the same local area at every map radius
+    // Today's logbook, cargo and military count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
     // The day follows the feed's clock; the 5-minute save timer runs on performance.now() (flushLog
     // stamps it so): mixing it with a wall clock wrote the log every poll, or never.
@@ -393,7 +393,7 @@ function demoSource(config,onModel,airports){
   ];
   const MILITARY=new Set(['ae1471','ae04c2']);
   const started=Date.now(),log={today:184,highest:{name:'UAE2VL',value:41000},fastest:{name:'SWA1987',value:512},
-    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},night:true,cargoTonight:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]],militaryToday:3,militaryTypes:[['C-17',2],['KC-135',1]]};
+    rarest:{code:'C130',name:typeName('C130'),count:1},farthest:{name:'DHK283',value:4207,from:'Leipzig',code:'LEJ'},cargoToday:23,cargoBy:[['UPS',8],['FedEx',6],['DHL',5],['Amazon',4]],militaryToday:3,militaryTypes:[['C-17',2],['KC-135',1]]};
   if(scene==='long')Object.assign(log,{rarest:{code:'A124',name:typeName('A124'),count:1},
     farthest:{name:'GEC8401',value:4310,from:'Frankfurt am Main',code:'FRA'},cargoBy:[['UPS',9],['FedEx',5],['Amazon',3],['ABX',2],['DHL',2]]});
   const recentRows=[['a6d1e2','UAL1840','B739',leg('DEN','BOS'),3],['a3c4d5','ATN3121','B763',leg('LAX','HOME'),12],

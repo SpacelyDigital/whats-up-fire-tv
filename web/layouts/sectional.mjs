@@ -49,8 +49,8 @@ function ui(){
         </div>
         <div class="none" hidden><b>NO TRAFFIC</b><span class="quiet"></span></div>
       </section>
-      <section class="box tonight">
-        <header><span class="tl">Tonight &amp; today</span></header>
+      <section class="box daily">
+        <header><span class="tl">Today</span><span class="tr reset">resets at midnight</span></header>
         <div class="tn"><div><b class="cargo"></b><span>cargo</span></div><div><b class="mil"></b><span>military</span></div><div><b class="seen"></b><span>aircraft today</span></div></div>
         <div class="cargo-by"></div><div class="mil-by"></div>
       </section>
@@ -214,9 +214,9 @@ function render(m){
   }
   showPhotoIn($.pic,hero,()=>{$.photo.hidden=$.pic.hidden;$.key.hidden=!$.pic.hidden;});
   const L=m.log;
-  setText($.cargo,String(L.cargoTonight));setText($.seen,fmt.int(L.today));setText($.mil,String(L.militaryToday||0));
-  $['mil-by']._alts=(L.militaryTypes||[]).length?militaryAlts(L).map(t=>`Military: ${t}`):['No military today'];$['mil-by'].textContent=$['mil-by']._alts[0];fitLine($['mil-by']);
-  setText($['cargo-by'],L.cargoBy.length?L.cargoBy.slice(0,4).map(([b,n])=>`${n} ${b}`).join(' · '):L.night?'No cargo yet tonight':'Cargo counts 6 pm – 6 am');
+  setText($.cargo,String(L.cargoToday));setText($.seen,fmt.int(L.today));setText($.mil,String(L.militaryToday||0));
+  $['mil-by']._alts=(L.militaryTypes||[]).length?militaryAlts(L).map(t=>`Military: ${t}`):['Military: none yet'];$['mil-by'].textContent=$['mil-by']._alts[0];fitLine($['mil-by']);
+  setText($['cargo-by'],L.cargoBy.length?L.cargoBy.slice(0,4).map(([b,n])=>`${n} ${b}`).join(' · '):'Cargo: none yet');
 }
 
 export default {

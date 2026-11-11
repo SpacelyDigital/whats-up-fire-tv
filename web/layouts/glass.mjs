@@ -54,7 +54,8 @@ function ui(){
   const quiet=card('gl-quiet','<div class="gl-kicker">Sky</div><div class="gl-quiet-t"></div>');quiet.hidden=true;
   const near=card('gl-near','<div class="gl-kicker">In range</div><div class="gl-list"></div>');
   const tally=el('div','gl-tally');
-  tally.append(card('gl-mini','<span>Today</span><b class="gl-seen"></b><i class="gl-seen-by">aircraft</i>'),card('gl-mini cargo','<span>Cargo</span><b class="gl-cargo"></b><i class="gl-cargo-by"></i>'),
+  // Today, Cargo and Military start again at local midnight: the note sits at the top right of the three cards.
+  tally.append(el('div','gl-reset','resets at midnight'),card('gl-mini','<span>Today</span><b class="gl-seen"></b><i class="gl-seen-by">aircraft</i>'),card('gl-mini cargo','<span>Cargo</span><b class="gl-cargo"></b><i class="gl-cargo-by"></i>'),
     card('gl-mini mil','<span>Military</span><b class="gl-mil"></b><i class="gl-mil-by"></i>'));
   col.append($.alert,hero,quiet,near,tally);
   // Aircraft photo: its own glass card, bottom left, only while there is a picture.
@@ -131,11 +132,11 @@ function render(m){
   const col=$.list.closest('.gl-col');
   while(col.scrollHeight>col.clientHeight+1&&$.list.children.length>1)$.list.lastElementChild.remove();
   const L=m.log;
-  setText($.seen,fmt.int(L.today));setText($.cargo,L.cargoTonight);
+  setText($.seen,fmt.int(L.today));setText($.cargo,L.cargoToday);
   // The cards' numbers and bottom lines fit their card (1,000 seen shrinks; cargo drops brands,
   // military drops types), then each row takes its smallest size so no card is bigger than its neighbours.
   const brands=n=>L.cargoBy.slice(0,n).map(([b,n])=>`${n} ${b}`).join(' · '); // count first, like Military
-  $['cargo-by']._alts=L.cargoBy.length?[...new Set([brands(2),brands(1)])]:[L.night?'none yet':'from 6 pm'];
+  $['cargo-by']._alts=L.cargoBy.length?[...new Set([brands(2),brands(1)])]:['none yet'];
   setText($.mil,L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
   // The numbers are fitted again only when one changes, their font arrives or the tally comes back (an emergency
   // hides it): every half-pixel step of the fit forces a layout, 21 of them for 3,000, on every draw of a browse.

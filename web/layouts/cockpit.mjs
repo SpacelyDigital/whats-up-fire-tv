@@ -211,7 +211,7 @@ function render(m){
   $.recent._all=[...$.recent.children];
   const L=m.log;
   setText($['l-seen'],fmt.int(L.today));
-  setText($['l-cargo'],String(L.cargoTonight));setText($['l-mil'],String(L.militaryToday||0));
+  setText($['l-cargo'],String(L.cargoToday));setText($['l-mil'],String(L.militaryToday||0));
   setText($['l-high'],L.highest?fmt.alt(L.highest.value).toUpperCase():'---');
   fitSide();
 }
