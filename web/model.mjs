@@ -336,8 +336,8 @@ function liveSource(config,onModel,was){
     pruneSamples(now);
     // Today's logbook and cargo tonight count the same local area at every map radius
     // (the original 15 NM feed), so zooming out doesn't inflate them.
-    // The day follows the feed's clock; the 5-minute save timer stays on the TV's own clock
-    // (flushLog stamps it with Date.now(): mixing the two wrote the log every poll, or never).
+    // The day follows the feed's clock; the 5-minute save timer runs on performance.now() (flushLog
+    // stamps it so): mixing it with a wall clock wrote the log every poll, or never.
     if(fresh){log=updateLog(log,planes,feedNow);saveLogSoon(log);}
     // 'Recently above': the sightings are stamped by the feed's clock, as positions are, and judged by it;
     // the layouts age them against the TV's (m.now), so the stamps shown are moved onto it.
