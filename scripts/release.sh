@@ -26,9 +26,10 @@ mkdir -p "$OUT/vendor" && ln -sfn "$(readlink -f "$DEPS/vendor/node_modules")" "
 NATIVE=$(readlink -f "$DEPS/node_modules/@whatsup/keep-awake")
 rm -rf "$NATIVE/build" "$NATIVE/dist" && cp -R "$OUT/native/keep-awake/build" "$OUT/native/keep-awake/dist" "$NATIVE/"
 
-# The store build is the public release: version 1.0.0, build 1 (higher than any build
+# The store build is the public release: version 1.0.0, build 2 (build 1 was uploaded to the Appstore
+# before review, and a file that replaces it needs a new build number; both are higher than any build
 # installed during development, which were all 0.1.0 build 0). The personal build keeps 0.1.0.
-STORE_VERSION=1.0.0 STORE_BUILD=1
+STORE_VERSION=1.0.0 STORE_BUILD=2
 if [ "${WHATSUP_PROFILE:-personal}" = store ]; then
   sed -i '' "s/^version = \".*\"/version = \"$STORE_VERSION\"/" "$OUT/manifest.toml"
   # The User-Agent names the app and its version (the privacy policy says so): 1.0 here.
