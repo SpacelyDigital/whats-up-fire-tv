@@ -471,6 +471,6 @@ test('consent: a new record holds the policy version agreed to (the "Version N" 
   const src=/^const CONSENT_KEY=.*$/m.exec(app)[0]+/^function hasConsent\(\).*$/m.exec(app)[0];
   assert.equal(vm.runInNewContext(src+'CONSENT_VERSION'),Number(/^Version (\d+)/m.exec(policy)?.[1]));
   const valid=raw=>vm.runInNewContext(src+'hasConsent()',{localStorage:{getItem:()=>raw}});
-  for(const v of [2,3])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
+  for(const v of [2,3,4])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
   for(const raw of ['{"v":1}','{"v":"3"}','{"v":',null,'[]'])assert.equal(valid(raw),false,raw);
 });

@@ -982,7 +982,8 @@ function showWelcome(place){
 // privacy-store.txt). A record from before the current consent text (CONSENT_SINCE) asks
 // again (once), and everything else the user set is kept.
 // Since Version 2 the text names every service by profile and says where searches go (asked again once).
-const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=3,CONSENT_SINCE=2;
+// Versions 3 and 4 add no new kind of data or service (4: cargo is counted all day, not 6 pm to 6 am): nobody is asked again.
+const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=4,CONSENT_SINCE=2;
 // The hosted policy (shown as a QR on the privacy page when set): the store build's only.
 const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}

@@ -1,6 +1,6 @@
 ## Privacy Policy
 
-Version 3 · Effective November 4, 2026 · Last updated November 4, 2026
+Version 4 · Effective November 11, 2026 · Last updated November 11, 2026
 
 This is a free Fire TV app that shows the aircraft over your home. This policy explains what the app does with information about you. It is the whole policy; there are no hidden parts.
 
@@ -48,7 +48,7 @@ All of this is kept in the app's private storage on your Fire TV. None of it is 
 
 • Your agreement: that you pressed Agree and continue, with the date and the policy version. Kept until you erase it.
 
-• Today's log: aircraft seen today, up to 4,000 (how close each came, its type, flight number and origin), a list of up to 3,000 aircraft codes seen today, tonight's cargo flights, today's military aircraft (aircraft code and type, up to 500), today's records, and an all-time count of aircraft types. Today's part resets at midnight, and moving your location more than about 2 miles (3 km) clears the log.
+• Today's log: aircraft seen today, up to 4,000 (how close each came, its type, flight number and origin), a list of up to 3,000 aircraft codes seen today, today's cargo flights, today's military aircraft (aircraft code and type, up to 500), today's records, and an all-time count of aircraft types. Today's part resets at midnight, and moving your location more than about 2 miles (3 km) clears the log.
 
 • Recent sightings: up to the last 20 aircraft in your alert zone (aircraft code, flight number, registration, type and time), of which the newest 5 are shown. Newer sightings replace older ones. Cleared when you move your location more than about 2 miles (3 km), or switch the alert zone between All around and Window view.
 
