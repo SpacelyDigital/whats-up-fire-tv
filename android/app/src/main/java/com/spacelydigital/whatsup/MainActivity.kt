@@ -210,6 +210,8 @@ class MainActivity : Activity(), Bridge.Host {
         resumed = true
         if (showsPage && web == null) makeWeb()
         web?.onResume()
+        // Undoes onStop's pauseTimers (process-wide), also for a web view made again just above.
+        web?.resumeTimers()
         js(Js.active(true))
         applyAwake()
     }
@@ -225,6 +227,9 @@ class MainActivity : Activity(), Bridge.Host {
 
     override fun onStop() {
         started = false
+        // Off screen nothing on the page runs: onPause told it to stop polling, and this also
+        // holds its timers (a map retry, the clock), so a hidden app sends no requests at all.
+        web?.pauseTimers()
         super.onStop()
     }
 
