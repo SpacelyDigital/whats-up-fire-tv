@@ -4,8 +4,8 @@
 //   node scripts/build-privacy-googletv.mjs          writes the file
 //   node scripts/build-privacy-googletv.mjs --check  fails if the file is out of date
 // Each change below must match exactly once, so an edit to the Fire TV text that touches one of
-// them stops this script instead of slipping through. The dates stay "[date]" until the page is
-// published; the store package check refuses a policy that still has them.
+// them stops this script instead of slipping through. The dates stay "[date]" until PUBLISHED below
+// is set on the day the page goes live; the store package check refuses a policy that still has them.
 import {readFileSync,writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
@@ -13,9 +13,16 @@ export const SOURCE=new URL('../web/privacy-store.txt',import.meta.url);
 export const TARGET=new URL('../web/privacy-store-googletv.txt',import.meta.url);
 export const VERSION=5;
 export const POLICY_URL='https://spacelydigital.github.io/Whats-Up/privacy/google-tv/';
+// The day the Google TV page goes live, written as 'November 16, 2026'. Until it is set the dates
+// read "[date]": fine for testing, and the store package check refuses it.
+export const PUBLISHED=null;
+if(PUBLISHED!==null&&!/^(January|February|March|April|May|June|July|August|September|October|November|December) [1-9]\d?, 20\d\d$/.test(PUBLISHED))
+  throw new Error(`PUBLISHED: write the date as "November 16, 2026", not ${PUBLISHED}`);
 
+// The policy's top line: undated ("[date]") until PUBLISHED is set.
+export const versionLine=(published=PUBLISHED)=>`Version ${VERSION} · Effective ${published??'[date]'} · Last updated ${published??'[date]'}`;
 export const CHANGES=[
-  [/^Version \d+ · Effective [^·\n]+ · Last updated [^\n]+$/m,`Version ${VERSION} · Effective [date] · Last updated [date]`],
+  [/^Version \d+ · Effective [^·\n]+ · Last updated [^\n]+$/m,versionLine()],
   ['This is a free Fire TV app that shows the aircraft over your home.',
    'This is a free app for Google TV and other Android TV devices that shows the aircraft over your home.'],
   ['The app never asks Fire TV for your location, and never uses a microphone, camera or contacts.',

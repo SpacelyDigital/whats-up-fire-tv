@@ -8,7 +8,7 @@ import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync} from 'node:fs'
 import {execFileSync,spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {googleTvPolicy,LEFTOVERS,POLICY_URL,VERSION} from '../scripts/build-privacy-googletv.mjs';
+import {googleTvPolicy,LEFTOVERS,POLICY_URL,PUBLISHED,VERSION,versionLine} from '../scripts/build-privacy-googletv.mjs';
 import {PRIVACY_URLS,profileFor} from '../web/profile.mjs';
 
 const repo=new URL('..',import.meta.url).pathname;
@@ -101,6 +101,12 @@ test(`Google TV policy: made from the Fire TV policy by scripts/build-privacy-go
   assert.deepEqual(a.map((l,i)=>l===b[i]?null:i+1).filter(Boolean),[3,5,29,45,171,173,199,269,297]);
   // A change to the Fire TV text where an edition change applies stops the script instead of slipping through.
   assert.throws(()=>googleTvPolicy(fire.replace('On Fire TV: Settings','On a Fire TV: Settings')),/expected 1 match, found 0/);
+  // Its only placeholders are the two dates of its top line, which PUBLISHED fills on the day the page goes live.
+  assert.equal(google.split('\n')[2],versionLine());
+  assert.equal(PUBLISHED===null,google.includes('[date]'));
+  const dated=google.replace(versionLine(),versionLine('November 16, 2026'));
+  assert.equal(dated.split('\n')[2],`Version ${VERSION} · Effective November 16, 2026 · Last updated November 16, 2026`);
+  assert.equal(dated.indexOf('['),-1,'nothing else waits to be filled in');
 });
 
 test('About & credits for Google TV: its Android libraries under the Apache license, not the Fire TV app\'s packages',()=>{
