@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- The Google Play feature graphic, 1024x500. Render it at that size and save a 24-bit PNG (no alpha):
+     icon/whatsup-play-feature-1024x500.png. Uses background.svg beside it and the app's Barlow Condensed (OFL). -->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:'BC';src:url(../../web/fonts/BarlowCondensed-SemiBold.woff2) format('woff2');font-weight:600}
+@font-face{font-family:'BC';src:url(../../web/fonts/BarlowCondensed-Medium.woff2) format('woff2');font-weight:500}
+html,body{margin:0;width:1024px;height:500px;overflow:hidden;background:#111214}
+.bg{position:absolute;left:60px;top:-97px;width:1190px;height:670px}
+.fade{position:absolute;inset:0;background:linear-gradient(90deg,#111214 0,#111214 30%,rgba(17,18,20,.6) 52%,rgba(17,18,20,0) 70%)}
+.lock{position:absolute;left:64px;top:132px;display:flex;align-items:center;gap:30px}
+.name{font:600 128px/1 'BC';color:#fff;letter-spacing:1px;white-space:nowrap}
+.name b{color:#f5c518;font-weight:600}
+.tag{position:absolute;left:66px;top:330px;font:500 40px/1.15 'BC';color:#e9e6da;letter-spacing:.5px;opacity:.85}
+</style></head><body>
+<img class="bg" src="background.svg"><div class="fade"></div>
+<div class="lock">
+<svg width="176" height="176" viewBox="0 0 512 512"><circle cx="256" cy="256" r="256" fill="#f5c518"/><path fill="#111214" transform="translate(256 256) rotate(45) scale(2.9) translate(-50 -50)" d="M50 4 C53 4 55 8 55 14 L55 38 L94 58 L94 65 L55 54 L55 78 L66 87 L66 93 L50 89 L34 93 L34 87 L45 78 L45 54 L6 65 L6 58 L45 38 L45 14 C45 8 47 4 50 4 Z"/></svg>
+<div class="name">What’s <b>Up</b></div></div>
+<div class="tag">Planes over your home, live on your TV</div>
+</body></html>
