@@ -13,6 +13,13 @@
 // would allow 0.911 (scripts/check-safe-area.mjs measures it), but plane tags in Sectional and
 // Synthwave and Radar's data blocks may sit 2-4 px from the stage edge.
 export const STORE_STAGE_SCALE=0.9;
+// Platform (scripts/build-web.mjs, WHATSUP_PLATFORM): the TV app this page is built into, Fire TV
+// (vega, the default) or Google TV (android). The page is the same on both; the store build's
+// privacy policy is each store's own edition (web/privacy-store.txt, web/privacy-store-googletv.txt),
+// published at its own address and shown as a QR on the Privacy page.
+export const PLATFORM=globalThis.__whatsupPlatform==='android'?'android':'vega';
+export const PRIVACY_URLS={vega:'https://spacelydigital.github.io/Whats-Up/privacy/',android:'https://spacelydigital.github.io/Whats-Up/privacy/google-tv/'};
+export const STORE_POLICY={vega:'privacy-store.txt',android:'privacy-store-googletv.txt'};
 const PROFILES={
   personal:{
     id:'personal',
@@ -31,7 +38,7 @@ const PROFILES={
   // The public app: the same services as the personal build (adsb.fi agreed to this app;
   // photos credited as Planespotters asks). It differs only in its final privacy policy
   // (web/privacy-store.txt), also published at privacyUrl and shown as a QR on the Privacy page.
-  store:{id:'store',privacyUrl:'https://spacelydigital.github.io/Whats-Up/privacy/',stageScale:STORE_STAGE_SCALE},
+  store:{id:'store',privacyUrl:PRIVACY_URLS.vega,stageScale:STORE_STAGE_SCALE},
 };
-export const profileFor=id=>({...PROFILES.personal,...PROFILES[id]});
+export const profileFor=(id,platform=PLATFORM)=>({...PROFILES.personal,...PROFILES[id],...id==='store'?{privacyUrl:PRIVACY_URLS[platform]}:{}});
 export const PROFILE=profileFor(globalThis.__whatsupProfile);

@@ -467,10 +467,12 @@ test('type codes: a designator is read in capitals; ZZZZ ("none assigned") or an
 });
 test('consent: a new record holds the policy version agreed to (the "Version N" on top of the store policy); a record from Version 2 on is still valid',async()=>{
   const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
-  const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8'),policy=readFileSync(new URL('../web/privacy-store.txt',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8'),policy=f=>readFileSync(new URL(`../web/${f}`,import.meta.url),'utf8');
   const src=/^const CONSENT_KEY=.*$/m.exec(app)[0]+/^function hasConsent\(\).*$/m.exec(app)[0];
-  assert.equal(vm.runInNewContext(src+'CONSENT_VERSION'),Number(/^Version (\d+)/m.exec(policy)?.[1]));
-  const valid=raw=>vm.runInNewContext(src+'hasConsent()',{localStorage:{getItem:()=>raw}});
+  // Each store's edition: Fire TV (vega) and Google TV (android).
+  for(const [PLATFORM,f] of [['vega','privacy-store.txt'],['android','privacy-store-googletv.txt']])
+    assert.equal(vm.runInNewContext(src+'CONSENT_VERSION',{PLATFORM}),Number(/^Version (\d+)/m.exec(policy(f))?.[1]),PLATFORM);
+  const valid=raw=>vm.runInNewContext(src+'hasConsent()',{PLATFORM:'vega',localStorage:{getItem:()=>raw}});
   for(const v of [2,3,4])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
   for(const raw of ['{"v":1}','{"v":"3"}','{"v":',null,'[]'])assert.equal(valid(raw),false,raw);
 });

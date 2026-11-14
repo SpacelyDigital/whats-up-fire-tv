@@ -216,7 +216,7 @@ test('a map that can\'t be built for want of the network (no TileJSON, a portal,
 const shelf=(items={})=>Object.assign(Object.create({getItem(k){return Object.hasOwn(this,k)?this[k]:null;},removeItem(k){delete this[k];}}),items);
 test('Privacy offers Erase all data whenever anything of the app\'s is stored, also when the saved consent is of an older version, damaged or missing; a fresh TV hides it',()=>{
   const els={};const $=id=>els[id]??={hidden:null};
-  const p=page([line('const CONSENT_KEY='),line('function hasConsent\\('),line('const anyStored='),fn('openPrivacy')],{$,renderDoc(){},scrollDoc(){},window:{},PRIVACY_URL:'',themedQr(){},open(){},localStorage:null});
+  const p=page([line('const CONSENT_KEY='),line('function hasConsent\\('),line('const anyStored='),fn('openPrivacy')],{$,renderDoc(){},scrollDoc(){},window:{},PRIVACY_URL:'',themedQr(){},open(){},localStorage:null,PLATFORM:'vega'});
   const offered=items=>{if(items)p.localStorage=shelf(items);else Object.defineProperty(p,'localStorage',{get(){throw new Error('SecurityError');}});
     p.openPrivacy();return !els['privacy-erase'].hidden;};
   const SET=JSON.stringify({mapMiles:25});

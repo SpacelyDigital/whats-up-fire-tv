@@ -37,7 +37,13 @@ export function fromBackup(payload){
 export const ROUTE_URL=call=>`https://vrs-standing-data.adsb.lol/routes/${call.slice(0,2)}/${call}.json`;
 const HEX=/^[0-9a-f]{6}$/;
 
-// --- Network: through the Vega app when present (adsb.fi sends no CORS header),
+// The native app around the page, when there is one: Fire TV's (React Native's web view,
+// window.ReactNativeWebView) or Google TV's (Android's web view, window.WhatsUpHost: a channel
+// only the app's own page can use). Both take one JSON string per message and answer the same
+// messages (get, chime, awake, ui). None in a desktop browser: the page then fetches itself.
+export const nativeHost=()=>(typeof window!=='undefined'&&(window.ReactNativeWebView||window.WhatsUpHost))||null;
+
+// --- Network: through the native app when present (adsb.fi sends no CORS header),
 // otherwise the browser's own fetch. Resolves {status, payload}; never throws.
 // Ids start at a random point: a late reply meant for the page before a reload (Erase) must
 // not answer this page's requests.
@@ -57,7 +63,7 @@ export function getJson(url,timeoutMs=8000){
 // Retry-After as seconds: a number, or an HTTP date (the seconds until it); anything else 0.
 const retrySeconds=t=>{const s=String(t??'').trim(),n=Number(s);if(Number.isFinite(n))return n;const d=Date.parse(s);return Number.isFinite(d)?Math.max(0,Math.ceil((d-Date.now())/1000)):0;};
 function rawGetJson(url,timeoutMs){
-  const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
+  const bridge=nativeHost();
   // Non-200: `retryAfter` is the service's Retry-After in seconds, when it sent one.
   const parse=(status,text)=>{
     if(status!==200)return {status,payload:null,retryAfter:retrySeconds(text)};
@@ -98,7 +104,7 @@ export async function getBytes(url,timeoutMs=10000){
   tileStats.inFlight++;tileStats.peak=Math.max(tileStats.peak,tileStats.inFlight);tileStats.requests++;
   try{
     if(performance.now()<tileCooldown)return null;
-    const bridge=typeof window!=='undefined'&&window.ReactNativeWebView;
+    const bridge=nativeHost();
     if(bridge)return await new Promise(resolve=>{
       const id=++nextRequest,timer=setTimeout(()=>{pending.delete(id);resolve(null);},timeoutMs+2000);
       pending.set(id,(status,text)=>{

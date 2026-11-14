@@ -1,5 +1,6 @@
 // Bundles web/ into assets/ for the Vega WebView, which loads the page from
-// file:///pkg/assets/. ES modules do not load from file:// URLs, so the modules
+// file:///pkg/assets/ (and, WHATSUP_PLATFORM=android, for the Google TV app in android/,
+// which serves the same files from inside the app). ES modules do not load from file:// URLs, so the modules
 // are joined into one classic script. No dependencies: each module becomes a
 // function scope, and imports resolve to the exports of earlier modules.
 // Layouts (web/layouts/<id>.mjs + .css) become separate scripts the page loads
@@ -50,13 +51,23 @@ const release=process.env.WHATSUP_RELEASE==='1';
 // WHATSUP_PROFILE: personal (default) or store (web/profile.mjs).
 const profileId=process.env.WHATSUP_PROFILE||'personal';
 if(!['personal','store'].includes(profileId))throw new Error(`unknown WHATSUP_PROFILE ${profileId}`);
-const {profileFor}=await import('../web/profile.mjs');
-// Privacy: the store build shows the final policy (web/privacy-store.txt, kept byte for byte);
-// the personal build its short text with this profile's services.
-if(profileId==='store')docs.privacy=readFileSync(join(web,'privacy-store.txt'),'utf8');
+// WHATSUP_PLATFORM: vega (Fire TV, the default) or android (Google TV, android/). The page is the same;
+// the Google TV build carries its store's policy edition and leaves out what only the Fire TV app
+// uses (the silent video that holds off Vega's screensaver, the Vega manifest's icon).
+const platform=process.env.WHATSUP_PLATFORM||'vega';
+if(!['vega','android'].includes(platform))throw new Error(`unknown WHATSUP_PLATFORM ${platform}`);
+// WHATSUP_HIDE (comma list): Settings items one store's build leaves out, hidden in the page's HTML so
+// the page code is unchanged: tips (the Ko-fi QR), awake (Keep screen awake). None by default.
+const hide=new Set((process.env.WHATSUP_HIDE||'').split(',').map(h=>h.trim()).filter(Boolean));
+for(const h of hide)if(!['tips','awake'].includes(h))throw new Error(`unknown WHATSUP_HIDE ${h}`);
+const {profileFor,STORE_POLICY}=await import('../web/profile.mjs');
+// Privacy: the store build shows its store's final policy (web/privacy-store.txt for Fire TV,
+// web/privacy-store-googletv.txt for Google TV, each kept byte for byte); the personal build its
+// short text with this profile's services.
+if(profileId==='store')docs.privacy=readFileSync(join(web,STORE_POLICY[platform]),'utf8');
 else docs.privacy=docs.privacy.replace('{{SERVICES}}',profileFor(profileId).consent);
 
-writeFileSync(join(out,'whatsup.js'),`'use strict';\nwindow.__whatsupProfile=${JSON.stringify(profileId)};\n${release?'window.__whatsupRelease=true;\n':''}window.__whatsupDocs=${JSON.stringify(docs)};\n(()=>{\nconst __modules={};\nwindow.__whatsupModules=__modules;\n${parts.join('\n')}\n})();\n`);
+writeFileSync(join(out,'whatsup.js'),`'use strict';\nwindow.__whatsupProfile=${JSON.stringify(profileId)};\n${platform==='vega'?'':`window.__whatsupPlatform=${JSON.stringify(platform)};\n`}${release?'window.__whatsupRelease=true;\n':''}window.__whatsupDocs=${JSON.stringify(docs)};\n(()=>{\nconst __modules={};\nwindow.__whatsupModules=__modules;\n${parts.join('\n')}\n})();\n`);
 
 // Layouts: `export default {...}` must be the module's last statement.
 const layouts=readdirSync(join(web,'layouts')).filter(f=>f.endsWith('.mjs'));
@@ -83,14 +94,22 @@ let html=readFileSync(join(web,'index.html'),'utf8')
   if(!P.photos)html=html.replace(' https://cdn.planespotters.net https://*.plnspttrs.net','');
 }
 if(!html.includes('whatsup.js'))throw new Error('index.html: script tag not found');
+const HIDDEN={tips:['<div class="tip-jar" aria-hidden="true">','<div class="tip-jar" aria-hidden="true" hidden>'],
+  awake:['<button class="row" id="set-awake" ','<button class="row" id="set-awake" hidden ']};
+for(const h of hide){const [from,to]=HIDDEN[h];if(!html.includes(from))throw new Error(`index.html: ${h} not found`);html=html.replace(from,to);}
 writeFileSync(join(out,'index.html'),html);
 // media/keep-awake.mp4: the silent loop the app plays to hold off the screensaver (Settings > Keep screen awake).
-for(const item of ['whatsup.css','mvt.js','qr.js','fonts','media','models'])cpSync(join(web,item),join(out,item),{recursive:true});
+// Google TV keeps the screen on with a window flag (android/), so the silent loop stays out of its build.
+const skip=f=>platform==='android'&&/keep-awake\.mp4$/.test(f);
+for(const item of ['whatsup.css','mvt.js','qr.js','fonts','media','models'])cpSync(join(web,item),join(out,item),{recursive:true,filter:f=>!skip(f)});
 for(const [k,f] of Object.entries(DOCS))if(docs[k])writeFileSync(join(out,f),docs[k]);
 // App icon for manifest.toml (@image/whatsup_icon.png). Store: the 512x512 square the Vega manifest asks for (the
 // Settings app list; the home row shows the 1280x720 tile uploaded with the listing). Personal, sideloaded, where the
 // home row shows this icon: a 320x180 tile (icon/src/tile-small.svg, no tagline), near the size the row draws it,
 // so the stick's own scaling stays under 2x and its edges stay clean.
-mkdirSync(join(out,'image'),{recursive:true});
-cpSync(join(root,'icon',profileId==='store'?'whatsup-icon-512.png':'whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
-console.log(`assets/ written, ${profileId} profile${release?' (release: no URL hooks)':''} (${MODULES.length} modules, ${layouts.length} layout scripts, ${Math.round(layoutBytes/1024)} KB layout code)`);
+// Google TV: the app's icon and banner are Android resources (android/app/src/main/res/).
+if(platform==='vega'){
+  mkdirSync(join(out,'image'),{recursive:true});
+  cpSync(join(root,'icon',profileId==='store'?'whatsup-icon-512.png':'whatsup_icon.png'),join(out,'image','whatsup_icon.png'));
+}
+console.log(`${platform==='vega'?'assets/':out} written, ${profileId} profile${platform==='vega'?'':`, ${platform}`}${release?' (release: no URL hooks)':''}${hide.size?` (hidden: ${[...hide].join(', ')})`:''} (${MODULES.length} modules, ${layouts.length} layout scripts, ${Math.round(layoutBytes/1024)} KB layout code)`);

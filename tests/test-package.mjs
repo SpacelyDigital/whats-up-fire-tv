@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 
 const repo=new URL('..',import.meta.url).pathname,tmp=mkdtempSync(join(tmpdir(),'guard-test-')),forbid=join(tmp,'forbid.txt');
 writeFileSync(forbid,'# stand-in list\nzz-not-present-zz\n');
-const env=(o={})=>{const e={...process.env,WHATSUP_FORBID:forbid,...o};for(const k of ['WHATSUP_PROFILE','WHATSUP_RELEASE','WHATSUP_OUT','WHATSUP_LICENSES'])if(!(k in o))delete e[k];return e;};
+const env=(o={})=>{const e={...process.env,WHATSUP_FORBID:forbid,...o};for(const k of ['WHATSUP_PROFILE','WHATSUP_RELEASE','WHATSUP_OUT','WHATSUP_LICENSES','WHATSUP_PLATFORM','WHATSUP_HIDE'])if(!(k in o))delete e[k];return e;};
 // Built as build-web.mjs builds assets/, packed as a .vpkg holds them (manifest.toml + assets/); edit(dir) changes files first.
 function pack(name,{profile='personal',release=false,edit}={}){
   const d=join(tmp,name.replace(/\.vpkg$/,''));

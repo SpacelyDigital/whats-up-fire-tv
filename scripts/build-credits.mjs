@@ -1,7 +1,8 @@
 // Writes web/licenses.txt, the text of About & credits (also assets/licenses.txt), from one
 // manifest: the data sources, every bundled model photo (web/models.mjs plus its Commons
 // source in THIRD_PARTY_NOTICES.md), the vendored page libraries, every production package
-// of the native shell (package-lock.json, transitive), and the fonts. Plain text: a blank
+// of the native shell (package-lock.json, transitive; for the Google TV app, WHATSUP_PLATFORM=android,
+// the Android libraries in android/app/libraries.txt instead), and the fonts. Plain text: a blank
 // line starts a paragraph, "## " a heading (rendered with textContent only).
 // Fails on a production license it can't classify, or on GPL/LGPL/AGPL/MPL.
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
@@ -82,6 +83,23 @@ p(MIT('2009 Kazuhiko Arase'));
 p('Parts of this app (the feed selection and route matching, aircraft types and silhouettes) are adapted from an open-source aircraft display by Alex Miller (MIT):');
 p(MIT('2026 Alex Miller'));
 
+// --- The Google TV app: Android's own web view and these AndroidX and Kotlin libraries
+// (android/app/libraries.txt, which the Gradle build checks against the app), all Apache-2.0.
+const PLATFORM=process.env.WHATSUP_PLATFORM||'vega';
+if(!['vega','android'].includes(PLATFORM))throw new Error(`unknown WHATSUP_PLATFORM ${PLATFORM}`);
+let frameworkCount=0;
+if(PLATFORM==='android'){
+  const rows=read('android','app','libraries.txt').split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#')).map(l=>{
+    const m=/^([\w.-]+):([\w.-]+):([\w.-]+) (Apache-2\.0)$/.exec(l);
+    if(!m)throw new Error(`android/app/libraries.txt: unreadable, or not Apache-2.0: ${l}`);
+    return `${m[1]}:${m[2]} ${m[3]}: ${m[4]}`;
+  });
+  h('App framework');
+  p(`The app shell is built on Android's own web view, with these AndroidX and Kotlin libraries (${rows.length}), each under the license named; the license text follows.`);
+  for(const r of rows.sort())p(r);
+  frameworkCount=rows.length;
+  h('Apache-2.0 license text');p(read('android','licenses','Apache-2.0.txt').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim());
+}else{
 // --- Native shell packages (production, transitive), one line each; texts once per license.
 // Only what the app's dependencies reach without going through a build or test tool (Babel, the
 // Metro bundler, Jest, TypeScript, type definitions, the CLI, dev server and debugger), each
@@ -121,6 +139,8 @@ h('ISC License');p('Permission to use, copy, modify, and/or distribute this soft
 h('BSD-2-Clause and BSD-3-Clause');p(vendorLicense('@mapbox/vector-tile','LICENSE.txt').replace(/^Copyright[^\n]*\n+(All rights reserved\.\n+)?/,''));
 for(const [lic,t] of Object.entries(fullText).sort()){h(`${lic} license text`);p(t.replace(/\r/g,'').replace(/\n{3,}/g,'\n\n'));}
 for(const lic of ['Apache-2.0','CC-BY-4.0'])if(rows.some(r=>r.includes(`: ${lic}`))&&!fullText[lic])throw new Error(`no ${lic} text found`);
+frameworkCount=rows.length;
+}
 
 // --- Fonts.
 h('Fonts');
@@ -141,4 +161,4 @@ const text=out.join('\n').replace(/\n{3,}/g,'\n\n').trim()+'\n';
 if(/…/.test(text))throw new Error('licenses.txt: no "…" in UI text');
 // WHATSUP_LICENSES: write elsewhere (a store-profile build next to the personal one).
 writeFileSync(process.env.WHATSUP_LICENSES||join(root,'web','licenses.txt'),text);
-console.log(`${process.env.WHATSUP_LICENSES||"web/licenses.txt"} written, ${P.id} profile (${rows.length} framework packages, ${seen.size} photos, ${Math.round(text.length/1024)} KB)`);
+console.log(`${process.env.WHATSUP_LICENSES||"web/licenses.txt"} written, ${P.id} profile${PLATFORM==='vega'?'':`, ${PLATFORM}`} (${frameworkCount} framework packages, ${seen.size} photos, ${Math.round(text.length/1024)} KB)`);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">What\'s Up</string>
+    <string name="webview_missing">This TV\'s Android System WebView, which the app draws its screen with, is missing or turned off. Turn it on in Settings › Apps › See all apps › Show system apps, or update it in Google Play, then open the app again.</string>
+    <string name="webview_old">This TV\'s Android System WebView (version %1$s) is too old for the app, which needs version 93 or newer. Update it in Google Play, then open the app again.</string>
+</resources>

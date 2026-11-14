@@ -4,9 +4,9 @@
 // Remote: arrows move, Select chooses, Back closes, Select on the dashboard opens Settings;
 // on the dashboard Up/Down change the map radius and Left/Right step through the planes.
 import {CONFIG} from './config.js';
-import {PROFILE} from './profile.mjs';
+import {PROFILE,PLATFORM} from './profile.mjs';
 import {chimeGate,dLon} from './core.mjs';
-import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
+import {HISTORY_KEY,MAX_NM,store,setRouteFocus,nativeHost} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,touchMap,buildDetail,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
@@ -36,10 +36,12 @@ function paintEdge(){
   if(v!==edgePainted)document.body.style.background=edgePainted=v;
 }
 
-// --- Bridge to the Vega app: it handles the remote's Back button and asks us first.
-const native=window.ReactNativeWebView;
+// --- Bridge to the native app (Fire TV or Google TV, live.mjs nativeHost): it handles the
+// remote's Back button and asks us first.
+const native=nativeHost();
 const tellApp=msg=>{try{native?.postMessage(JSON.stringify(msg));}catch{/* desktop */}};
-// Keep screen awake: the app plays a silent, invisible loop so the screensaver stays away.
+// Keep screen awake: the app keeps the screensaver away (Fire TV with a silent, invisible loop, Google TV with
+// its window's keep-screen-on flag).
 const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true});
 
 // Rarest/Farthest follow the map radius (Settings > Map radius, Up/Down).
@@ -983,7 +985,8 @@ function showWelcome(place){
 // again (once), and everything else the user set is kept.
 // Since Version 2 the text names every service by profile and says where searches go (asked again once).
 // Versions 3 and 4 add no new kind of data or service (4: cargo is counted all day, not 6 pm to 6 am): nobody is asked again.
-const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=4,CONSENT_SINCE=2;
+// Version 5 is the Google TV edition (web/privacy-store-googletv.txt): the same data and services, Google in Amazon's place.
+const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=PLATFORM==='android'?5:4,CONSENT_SINCE=2;
 // The hosted policy (shown as a QR on the privacy page when set): the store build's only.
 const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}
