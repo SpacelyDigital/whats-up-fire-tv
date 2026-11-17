@@ -71,6 +71,9 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
 * `src/App.tsx` the Vega app: a full-screen WebView plus a fetch bridge (adsb.fi sends no CORS
   header) limited to the allow-listed GET URLs, and the remote's Back button (closes a screen,
   else leaves the app).
+* `android/` the Google TV and Android TV app: the same page in Android's own web view, with a
+  small Kotlin bridge in place of `src/App.tsx`. Build, tests and Google Play notes are in
+  `android/README.md`.
 
 ```sh
 npm install

@@ -23,8 +23,9 @@ Needs JDK 17 or later, the Android SDK (`ANDROID_HOME`), and Node 20 or later (t
 node ../scripts/check-package.mjs app/build/outputs/apk/personal/release/app-personal-release.apk
 ```
 
-`node --test ../tests/` checks this app against the Fire TV app and the page (allow-list, messages,
-picture hosts, the Google TV page build, policy edition, credits).
+`npm run test:web` (from the repository root) includes `../tests/test-android.mjs`, which checks this
+app against the Fire TV app and the page (allow-list, messages, picture hosts, the Google TV page
+build, policy edition, credits).
 
 - Signing keys live outside the repository: `WHATSUP_SIGNING` names a properties file (see
   `app/build.gradle.kts`). Without one, the personal build uses the debug key and the store build is
@@ -37,3 +38,28 @@ picture hosts, the Google TV page build, policy edition, credits).
 - The store build shows `../web/privacy-store-googletv.txt`, made from the Fire TV policy by
   `node ../scripts/build-privacy-googletv.mjs`. Its dates stay `[date]` until it is published, and the
   package check refuses a store package until then.
+
+## Google Play
+
+Decided on 2026-11-16 for the first release:
+
+- Store listing name "What's Up: Planes Over My Home" (Play allows 30 characters); the app's label on
+  the TV stays "What's Up". Category Travel & Local, free, offered in the United States only.
+- The store build keeps the Ko-fi tip and Keep screen awake, so it is built without `-Pwhatsup.hide`.
+- It is built with `WHATSUP_CONTACT` set, so its requests carry the contact address the policy
+  describes.
+- Privacy policy: the Google TV edition, https://spacelydigital.github.io/Whats-Up/privacy/google-tv/
+- Graphics: `../icon/whatsup-play-icon-512.png` (icon), `../icon/whatsup-play-feature-1024x500.png`
+  (feature graphic) and `../icon/whatsup-tile-1280x720.png` (TV banner).
+
+Publishing goes in this order, because the store bundle only passes its check once the policy is dated:
+
+1. Set `PUBLISHED` in `../scripts/build-privacy-googletv.mjs` to the day the policy page goes live,
+   run the script, and run the tests.
+2. Publish the Google TV policy page on the policy site.
+3. Build the store bundle with `WHATSUP_CONTACT` set, and run the package check on
+   `app/build/outputs/bundle/storeRelease/app-store-release.aab`.
+4. Sign it with the upload key, which stays outside the repository. Google Play keeps the app signing
+   key (Play App Signing).
+5. Upload it to internal testing, opt in to Android TV (Advanced settings › Form factors), then
+   promote it to production.
