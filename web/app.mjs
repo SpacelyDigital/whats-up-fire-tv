@@ -10,7 +10,7 @@ import {HISTORY_KEY,MAX_NM,store,setRouteFocus,nativeHost} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
 import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,touchMap,buildDetail,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
-import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
+import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows,screenSize} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
@@ -18,8 +18,9 @@ const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
 const stage=$('stage');
 // The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
-// reaches the outer 5% of any edge (overscan); the personal build fills the screen.
-const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+// reaches the outer 5% of any edge (overscan); the personal build fills the screen. The screen's size
+// comes from screenSize (kit.mjs), never the window's inner size: see there.
+const fit=()=>{const [w,h]=screenSize(),s=Math.min(w/960,h/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
 // The margin around an inset stage shows the layout's own background (its --edge colour where
 // that background is a gradient; Adjust position's own background while it is open), shaded

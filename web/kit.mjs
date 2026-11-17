@@ -279,7 +279,12 @@ export class TrailBook{
 
 // --- Map painting on a canvas. The canvas is sized for the screen (the stage is
 // scaled), painted once per map/layout, and shared paths keep it fast on the stick.
-export const pixelRatio=()=>Math.min(2,Math.max(1,Math.min(innerWidth/960,innerHeight/540)*(devicePixelRatio||1)));
+// The screen in CSS pixels, from the root element rather than innerWidth/innerHeight: Android's web
+// view (like Chrome on phones) widens the layout viewport, and innerWidth/innerHeight with it, to
+// whatever sticks out of the page, so a stage once drawn too big went on measuring the screen as big as
+// itself (Google TV, 960x540: every screen 1.5-2x too big and cut off).
+export const screenSize=()=>{const d=globalThis.document?.documentElement;return [d?.clientWidth||innerWidth,d?.clientHeight||innerHeight];};
+export const pixelRatio=()=>{const [w,h]=screenSize();return Math.min(2,Math.max(1,Math.min(w/960,h/540)*(devicePixelRatio||1)));};
 export function makeCanvas(w,h,cls){
   const c=el('canvas',cls),k=pixelRatio();
   c.width=Math.round(w*k);c.height=Math.round(h*k);c.style.width=`${w}px`;c.style.height=`${h}px`;

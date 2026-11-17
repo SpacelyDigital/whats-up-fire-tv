@@ -11,7 +11,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000}
 /* The store build's inset margin: app.mjs (paintEdge) paints body in the layout's background (a layout
    with a gradient background names its outer colour as --edge). */
 [hidden]{display:none!important}
-.stage{position:absolute;left:50%;top:50%;width:960px;height:540px;transform-origin:center;overflow:hidden;
+/* Centred even before app.mjs scales it, so the stage never sticks out of a 960x540 screen (see screenSize in kit.mjs). */
+.stage{position:absolute;left:50%;top:50%;width:960px;height:540px;transform:translate(-50%,-50%);transform-origin:center;overflow:hidden;
   background:#000;color:var(--ui-ink);font-family:var(--mono);font-size:14px;line-height:1.45}
 .layout{position:absolute;inset:0;overflow:hidden;isolation:isolate} /* nothing a layout draws can rise over the credit line */
 .layout-note{position:absolute;left:0;right:0;bottom:44%;text-align:center;font:600 16px var(--ui-font);color:var(--ui-dim);pointer-events:none;z-index:4}
@@ -136,8 +137,10 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 
 /* Busy cog (theme accent): fades in only if the work lasts more than ~250 ms. */
 #busy{position:absolute;right:18px;bottom:16px;z-index:30;width:30px;height:30px;opacity:0;pointer-events:none}
-#busy svg{width:100%;height:100%;fill:var(--ui-ink);filter:drop-shadow(0 0 4px var(--ui-glow));animation:busy-spin 1.1s linear infinite}
+#busy svg{width:100%;height:100%;fill:var(--ui-ink);filter:drop-shadow(0 0 4px var(--ui-glow))}
 #busy.on{opacity:1;transition:opacity .15s ease .25s}
+/* Turns only while shown: an endless animation, even an invisible one, keeps the TV drawing every frame. */
+#busy.on svg{animation:busy-spin 1.1s linear infinite}
 @keyframes busy-spin{to{transform:rotate(360deg)}}
 #settings .hint{margin:3px 12px 0;font-size:11.5px;color:var(--ui-dim);white-space:nowrap}
 

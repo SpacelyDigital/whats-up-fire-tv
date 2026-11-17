@@ -476,3 +476,30 @@ test('consent: a new record holds the policy version agreed to (the "Version N" 
   for(const v of [2,3,4])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
   for(const raw of ['{"v":1}','{"v":"3"}','{"v":',null,'[]'])assert.equal(valid(raw),false,raw);
 });
+
+// Google TV, 2026-11-17: Android's web view widens innerWidth/innerHeight to whatever sticks out of the page,
+// so a stage sized from them and drawn too big once went on measuring the screen as big as itself.
+test('the stage is sized from the root element, never innerWidth/innerHeight',async()=>{
+  const {screenSize,pixelRatio}=await import('../web/kit.mjs');
+  const saved={document:globalThis.document,innerWidth:globalThis.innerWidth,innerHeight:globalThis.innerHeight,devicePixelRatio:globalThis.devicePixelRatio};
+  try{
+    Object.assign(globalThis,{innerWidth:1440,innerHeight:810,devicePixelRatio:2,document:{documentElement:{clientWidth:960,clientHeight:540}}});
+    assert.deepEqual(screenSize(),[960,540]);
+    assert.equal(pixelRatio(),2);
+    Object.assign(globalThis,{document:undefined}); // no page (tests): innerWidth/innerHeight
+    assert.deepEqual(screenSize(),[1440,810]);
+  }finally{Object.assign(globalThis,saved);}
+  const code=f=>readFileSync(new URL(`../web/${f}`,import.meta.url),'utf8').replace(/^\s*\/\/.*$/gm,''); // without comment lines
+  const app=code('app.mjs'),kit=code('kit.mjs');
+  assert.ok(!/\binner(Width|Height)\b/.test(app),'app.mjs sizes from screenSize()');
+  assert.equal(kit.match(/\binner(Width|Height)\b/g).length,2,'kit.mjs reads innerWidth/innerHeight only as screenSize\'s fallback');
+  // Centred before the first fit(), so it never sticks out of a 960x540 screen.
+  assert.match(readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8'),/\.stage\{[^}]*transform:translate\(-50%,-50%\)/);
+});
+
+test('the busy cog turns only while it is shown (an endless invisible animation keeps the TV drawing)',()=>{
+  const css=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
+  const rule=sel=>css.match(new RegExp(sel.replace(/[.#]/g,m=>'\\'+m)+'\\{([^}]*)\\}'))?.[1]||'';
+  assert.ok(!/animation/.test(rule('#busy svg')),'#busy svg has no animation of its own');
+  assert.match(rule('#busy.on svg'),/animation:busy-spin/);
+});
