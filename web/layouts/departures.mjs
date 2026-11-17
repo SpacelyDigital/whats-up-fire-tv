@@ -1,7 +1,7 @@
 // Layout 6, Departures: an amber split-flap board. Rows are the aircraft in range
 // now (hero first) and then those recently above; only the characters that change
 // flip. A small dark map inset shows where they are.
-import {el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,windowView,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
+import {glyphs,el,svg,setText,fmt,metric,KM,placeName,statusText,quietText,byInterest,makeCanvas,paintMap,toView,number,BASE_RANGE,range,ppmOf,windowView,zonePath,fitLine,photoSlot,showPhotoIn,fit as fitText,placeAlts,headingAlts,boardCity,boardOperator} from '../kit.mjs';
 import {ABOVE_MI} from '../core.mjs';
 
 // Columns: [key, label, width in characters, align]
@@ -23,11 +23,12 @@ function flapRow(n,cls){
   for(let i=0;i<n;i++){const c=el('span','c');c.textContent=' ';row.append(c);cells.push(c);}
   row._cells=cells;return row;
 }
+// One flap per character as read (kit.mjs glyphs: a letter with its marks, an emoji), never half of one.
 function setFlaps(row,text){
-  const cells=row._cells;text=text.toUpperCase().padEnd(cells.length).slice(0,cells.length);
+  const cells=row._cells,chars=glyphs(String(text).toUpperCase()).slice(0,cells.length);
   flip^=1;
   for(let i=0;i<cells.length;i++){
-    const c=cells[i],ch=text[i];
+    const c=cells[i],ch=chars[i]??' ';
     if(c.textContent===ch)continue;
     c.textContent=ch;
     c.style.animationDelay=`${i*18}ms`;

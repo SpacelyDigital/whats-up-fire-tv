@@ -10,7 +10,7 @@
 
 .L-night-sky .top{position:absolute;left:40px;right:40px;top:24px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
 .L-night-sky .pre{font:italic 400 15px 'EB Garamond';color:var(--dim);letter-spacing:.04em}
-.L-night-sky .city{font:500 30px/1.05 'EB Garamond';letter-spacing:.02em;white-space:nowrap;overflow:hidden;max-width:560px}
+.L-night-sky .city{font:500 30px/1.05 'EB Garamond';letter-spacing:.02em;white-space:nowrap;overflow:hidden;max-width:560px;padding-bottom:.25em;margin-bottom:-.25em} /* room for g, y and the comma under the clip */
 .L-night-sky .time{text-align:right}
 .L-night-sky .clock{font:400 30px/1.05 'EB Garamond';letter-spacing:.06em;font-variant-numeric:lining-nums}
 .L-night-sky .date{font:italic 400 15px 'EB Garamond';color:var(--dim)}

@@ -57,7 +57,7 @@
 .L-glass .gl-tally{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .L-glass .gl-reset{grid-column:1/-1;margin:0 4px -6px;text-align:right;font:500 11px Inter;color:var(--gl-dim);white-space:nowrap;overflow:hidden}
 .L-glass .gl-mini{padding:9px 14px}
-.L-glass .gl-mini span{display:block;font:400 8.5px Michroma;letter-spacing:.14em;text-transform:uppercase;color:var(--gl-dim)}
+.L-glass .gl-mini span{display:block;font:400 9.5px Michroma;letter-spacing:.14em;text-transform:uppercase;color:var(--gl-dim)}
 .L-glass .gl-mini b{display:block;font:400 26px/1.3 Michroma}
 .L-glass .gl-mini i{display:block;font:500 12px Inter;font-style:normal;color:var(--gl-dim);white-space:nowrap;overflow:hidden}
 .L-glass .gl-mini.cargo b{color:var(--gl-cargo)}
@@ -66,9 +66,13 @@
 
 /* Emergency: a red glass banner, the hero card glows red */
 .L-glass .gl-alert{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px;
-  background:linear-gradient(155deg,rgba(255,77,94,.42),rgba(255,77,94,.16));border-color:rgba(255,120,130,.7);animation:gl-alarm 1.4s ease-in-out infinite}
+  background:linear-gradient(155deg,rgba(255,77,94,.42),rgba(255,77,94,.16));border-color:rgba(255,120,130,.7)}
 .L-glass .gl-alert b{font:400 17px Michroma;color:#fff}.L-glass .gl-alert span{font:800 13px Inter;letter-spacing:.14em;color:#ffd6da}
-@keyframes gl-alarm{50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 28px rgba(255,77,94,.6)}}
+/* The banner's glow breathes through the opacity of a fixed shadow layer: animating box-shadow itself restyled, laid out
+   and repainted the card every frame, 60-70% of a TV-speed core for as long as an emergency showed. */
+.L-glass .gl-alert::after{content:'';position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 28px rgba(255,77,94,.6);opacity:0;animation:gl-alarm 1.4s ease-in-out infinite}
+@keyframes gl-alarm{50%{opacity:1}}
 .L-glass .emergency .gl-hero{border-color:rgba(255,100,115,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 26px rgba(255,77,94,.35)}
 .L-glass .emergency .gl-flight{color:#ff8a96}
 .L-glass .emergency .gl-kicker{color:var(--gl-red)}

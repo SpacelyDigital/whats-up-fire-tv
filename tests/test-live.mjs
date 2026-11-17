@@ -2,7 +2,8 @@
 // tests/test_office_aircraft_routes.py (route selection) plus the standalone parts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher,resetOutage} from '../web/live.mjs';
+import {commercialRoute,observations,selection,mergeHistory,provider,Ledger,Enricher,resetOutage,fromBase64,setOnScreen,getBytes,getJson,text} from '../web/live.mjs';
+import {readFileSync} from 'node:fs';
 
 const NOW=Date.parse('2026-09-24T20:00:00Z')/1000;
 const AIRLINE={hex:'112233',callsign:'UAL2202',registration:'N123UA',latitude:45.78,longitude:-111.15,observed:NOW,inside:true,live:true};
@@ -77,6 +78,17 @@ test('observations: vertical rate, freshness boundary and recent history',()=>{
   assert.equal(observations([{...raw[0],alt_baro:'ground'}],NOW,home,5,[],NOW).length,0);
   assert.equal(provider({callsign:'UAL2202'}),'adsblol');
   assert.equal(provider({callsign:'N207BC',registration:'N207BC'}),'flightaware');
+});
+
+test('selection (what \'Recently above\' keeps) drops the readings the map drops: above 60,000 ft or below -1,500 ft',async()=>{
+  const {airspace,IDS}=await import('../web/core.mjs');
+  const home={latitude:39.05,longitude:-84.66},now=1800000000;
+  const ac=[{hex:'abc201',flight:'HIBALL1',lat:39.051,lon:-84.66,alt_baro:65000,seen_pos:1},{hex:'abc202',flight:'TOOLOW',lat:39.052,lon:-84.66,alt_baro:-2000,seen_pos:1},
+    {hex:'abc203',flight:'EDGEHI',lat:39.053,lon:-84.66,alt_baro:60000,seen_pos:1},{hex:'abc204',flight:'EDGELO',lat:39.054,lon:-84.66,alt_baro:-1500,seen_pos:1}];
+  assert.deepEqual(selection(ac,now-1,home,3,now).inside.map(a=>a.hex),['abc203','abc204']);
+  // The same aircraft the map and card show (core.mjs airspace).
+  const states={[IDS.feed]:{state:String(now-1),attributes:{ac}},[IDS.home]:{attributes:home},[IDS.radius]:{state:'3'}};
+  assert.deepEqual(airspace(states,now*1000,true).all.map(a=>a.hex).sort(),['abc203','abc204']);
 });
 
 test('selection keeps fresh in-boundary aircraft; history keeps the last 20 distinct',()=>{
@@ -223,4 +235,47 @@ test('ledger: a row put again with the same value only moves its expiry (nothing
   // The minute's prune of expired rows is a change too, also under a put that changed nothing itself.
   L.urgent=false;L.put('sighting:a1:FIX1',{latitude:39.06,observed:6},400,200);
   assert.ok(L.dirty&&!L.urgent,'the pause expired and pruned: dirty');assert.equal(L.rows.has('cooldown:adsblol'),false);
+});
+
+test('map tiles from the Google TV app (base64) decode to the same bytes, quickly: no per-byte callback (Uint8Array.from with a map function cost 50-75 ms a tile on a TV-speed core)',()=>{
+  for(const n of [0,1,2,3,255,256,4096,131072]){
+    const bytes=Buffer.alloc(n);for(let i=0;i<n;i++)bytes[i]=(i*7919+n)&255;
+    assert.deepEqual(Buffer.from(fromBase64(bytes.toString('base64'))),bytes,`${n} bytes`);
+  }
+  assert.ok(fromBase64('')instanceof Uint8Array);
+  const big=Buffer.alloc(131072,7).toString('base64'),t0=performance.now();
+  for(let i=0;i<20;i++)fromBase64(big);
+  const each=(performance.now()-t0)/20;
+  assert.ok(each<15,`${each.toFixed(1)} ms a 128 KB tile here`);
+  const src=readFileSync(new URL('../web/live.mjs',import.meta.url),'utf8');
+  assert.doesNotMatch(src,/Uint8Array\.from\(atob/,'getBytes decodes with fromBase64');
+});
+
+test('off screen nothing is asked for: a request made while the app is away (a map build\'s next tile, a lookup) waits for the return, then goes; on screen at once',async()=>{
+  const asked=[],real=globalThis.fetch;
+  globalThis.fetch=async url=>{asked.push(url);return {status:200,arrayBuffer:async()=>new ArrayBuffer(3),text:async()=>'{"ok":1}',headers:{get:()=>null}};};
+  try{
+    setOnScreen(false);
+    const tile=getBytes('https://tiles.openfreemap.org/planet/20251203_001001_pt/9/131/190.pbf'),json=getJson('https://api.open-meteo.com/v1/forecast?latitude=1&longitude=2');
+    await new Promise(r=>setTimeout(r,50));
+    assert.deepEqual(asked,[],'nothing while away');
+    setOnScreen(false); // told twice: still one return
+    setOnScreen(true);
+    assert.equal((await tile)?.length,3);assert.deepEqual((await json).payload,{ok:1});
+    assert.equal(asked.length,2,'both go on return');
+    asked.length=0;assert.equal((await getJson('https://api.open-meteo.com/v1/forecast?latitude=3&longitude=4')).status,200);
+    assert.equal(asked.length,1,'on screen: at once');
+    setOnScreen(true); // a return with no leave before it
+    asked.length=0;await getBytes('https://tiles.openfreemap.org/planet/20251203_001001_pt/9/131/191.pbf');assert.equal(asked.length,1);
+  }finally{globalThis.fetch=real;setOnScreen(true);}
+});
+
+
+test('remote text: bidi overrides, zero-width spaces and marks go; the zero-width joiner and non-joiner stay (Sinhala, Persian, emoji sequences); a cap never leaves half an emoji',()=>{
+  assert.equal(text('\u0DC1\u0DCA\u200D\u0DBB\u0DD3 Kotte',40),'\u0DC1\u0DCA\u200D\u0DBB\u0DD3 Kotte','Sinhala: Sri keeps its joiner');
+  assert.equal(text('\u0648\u0644\u06CC\u200C\u0639\u0635\u0631',40),'\u0648\u0644\u06CC\u200C\u0639\u0635\u0631','Persian: Vali-asr keeps its non-joiner');
+  assert.equal(text('\u{1F468}\u200D\u{1F469}\u200D\u{1F467}',40),'\u{1F468}\u200D\u{1F469}\u200D\u{1F467}','a family emoji stays one');
+  assert.equal(text('Lon\u200Bdon\u202E\u2066 \u200Ex\u200F',40),'London x','zero-width space, bidi overrides and isolates, LRM and RLM go');
+  assert.equal(text('ab\u{1F600}',3),'ab','capped through an emoji: its half goes');
+  assert.equal(text('ab\u{1F600}',4),'ab\u{1F600}');
 });

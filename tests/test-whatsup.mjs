@@ -105,6 +105,40 @@ test('photos: Planespotters reply parsed, URLs kept unchanged, anything off-host
   assert.equal(parsePhoto({photos:[{...ok.photos[0],link:'javascript:alert(1)'}]}),null);
   assert.equal(PHOTO_URL('hex','a2b150'),'https://api.planespotters.net/pub/photos/hex/a2b150');
 });
+test('photos: a photo link that isn\'t printable ASCII is refused (the QR code carries one byte a character: it would open another page)',async()=>{
+  const {parsePhoto}=await import('../web/photos.mjs');
+  const photo=link=>parsePhoto({photos:[{thumbnail:{src:'https://t.plnspttrs.net/06912/1987982_fe0fcc4132_t.jpg'},link,photographer:'A B'}]});
+  assert.ok(photo('https://www.planespotters.net/photo/1234567/n123ab-delta-air-lines?utm_source=api'));
+  assert.ok(photo('https://www.planespotters.net/photo/1234567/%E6%9D%B1'),'percent-encoded is fine');
+  for(const link of ['https://www.planespotters.net/photo/1234567/\u6771\u4eac','https://www.planespotters.net/photo/1234567/caf\u00e9','https://www.planespotters.net/photo/1 2'])
+    assert.equal(photo(link),null,link);
+});
+test('Departures: a flap per character as read, never half an emoji or a mark on its own; a city in another script gives its airport code',async()=>{
+  const {glyphs,boardCity}=await import('../web/kit.mjs');
+  const delhi=glyphs('\u0926\u093f\u0932\u094d\u0932\u0940'); // Delhi in Devanagari
+  assert.equal(delhi.join(''),'\u0926\u093f\u0932\u094d\u0932\u0940');
+  assert.ok(delhi.length<=3&&delhi.every(g=>!/^[\u093e-\u094d]/.test(g)),`no vowel sign or virama on a flap of its own: ${delhi.join('|')}`);
+  assert.deepEqual(glyphs('AB\u{1F600}CD'),['A','B','\u{1F600}','C','D']);
+  assert.deepEqual(glyphs('\u{1F468}\u200D\u{1F469}\u200D\u{1F467}!'),['\u{1F468}\u200D\u{1F469}\u200D\u{1F467}','!']);
+  const dep=readFileSync(new URL('../web/layouts/departures.mjs',import.meta.url),'utf8');
+  assert.match(dep,/chars=glyphs\(String\(text\)\.toUpperCase\(\)\)/,'setFlaps splits with glyphs');
+  assert.equal(boardCity('Z\u00fcrich','ZRH',11),'Z\u00dcRICH');assert.equal(boardCity('S\u00e3o Paulo','GRU',11),'S\u00c3O PAULO');
+  assert.equal(boardCity('\u0627\u0644\u0642\u0627\u0647\u0631\u0629','CAI',11),'CAI');assert.equal(boardCity('\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1','TLV',11),'TLV');
+  assert.equal(boardCity('\u6771\u4eac','HND',11),'HND');assert.equal(boardCity('Indianapolis','IND',11),'IND');
+});
+test('Atlas photo: the picture block, its credit and QR stay invisible until the picture has loaded (a picture that never comes leaves no credit beside an empty frame)',()=>{
+  const src=readFileSync(new URL('../web/layouts/atlas.mjs',import.meta.url),'utf8'),css=readFileSync(new URL('../web/layouts/atlas.css',import.meta.url),'utf8');
+  assert.match(src,/\$\.pic\.classList\.add\('loading'\)/,'a new hero\'s block starts invisible');
+  assert.match(src,/\$\.img\.onload=\(\)=>\{if\(picHex===hex\)\$\.pic\.classList\.remove\('loading'\);\};/,'and shows once its picture loads');
+  assert.ok(src.indexOf("$.img.onload=")<src.indexOf("photo=p;$.img.src=p.src"),'the handler is set before the picture is asked for');
+  assert.match(css,/\.L-atlas \.at-pic\.loading,\.L-atlas \.at-pic\.loading~\.at-credit\{visibility:hidden\}/);
+});
+test('Atlas Farthest: the route\'s place name is bidi-isolated, so a right-to-left name can\'t pull the distance into its run',()=>{
+  const src=readFileSync(new URL('../web/layouts/atlas.mjs',import.meta.url),'utf8');
+  const line=src.split('\n').find(l=>l.includes("cell('Farthest'"));
+  assert.ok(line&&!line.includes('${far.from}')&&!line.includes('${far.code||far.from}'),'no bare route name in the Farthest line');
+  assert.ok(src.includes('iso=t=>`\\u2068${t}\\u2069`'),'isolated with FSI...PDI');
+});
 test('photos: every lookup passes the app bridge\'s allow-list; a registration it refuses (over 10 characters) is not asked for',async()=>{
   const {photoFor,setPhotoGate}=await import('../web/photos.mjs');
   const rule=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8').split('\n').find(l=>l.includes('api\\.planespotters')).trim().replace(/,$/,'');
@@ -186,6 +220,13 @@ test('every built layout script and module parses (a syntax error silently keeps
   for(const f of readdirSync('/tmp/whatsup-check/layouts').filter(f=>f.endsWith('.js')))
     assert.doesNotThrow(()=>new vm.Script(readFileSync(`/tmp/whatsup-check/layouts/${f}`,'utf8'),{filename:f}),f);
   assert.doesNotThrow(()=>new vm.Script(readFileSync('/tmp/whatsup-check/whatsup.js','utf8')));
+});
+test('the page names an empty icon, so no web view asks for /favicon.ico (a 404 in the TV\'s log at every launch)',()=>{
+  const s=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+  const head=s.slice(0,s.indexOf('</head>'));
+  assert.match(head,/<link rel="icon" href="data:,">/);
+  // The policy has to let it load: an icon is an image.
+  assert.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(head)[1],/img-src [^;]*\bdata:/);
 });
 test('every screen sits inside the themed stage (so layouts can style it)',()=>{
   const s=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
@@ -403,7 +444,7 @@ test('styles: the Atlas emergency banner keeps its white text at 4.5:1 or better
   for(const id of ['atlas','atlas-dark','atlas-satellite']){
     const sheets=(SHEETS[id]||[id]).map(s=>[s,layoutCss(s)]),map=Object.assign({},...sheets.map(([s,css])=>vars(block(css,`.L-${s}`))));
     const fill=resolve(sheets.map(([s,css])=>prop(block(css,`.L-${s} .at-alert`),'background')).filter(Boolean).pop(),map);
-    const flash=/@keyframes at-flash\{50%\{background:([^}]+)\}/.exec(sheets[0][1])[1];
+    const flash=prop(block(sheets[0][1],'.L-atlas .at-alert::before'),'background');assert.ok(flash,'the flash layer\'s colour');
     for(const [phase,c] of [['base',fill],['flash',flash]])assert.ok(contrast('#fff',c)>=4.5,`${id} ${phase}: #fff on ${c} is ${contrast('#fff',c).toFixed(2)}:1`);
   }
 });
@@ -423,6 +464,69 @@ test('styles: no @keyframes block of the Synthwave sheet animates box-shadow or 
   assert.ok(blocks.some(b=>b[1]==='sw-pulse'),'@keyframes sw-pulse');assert.match(css,/\.pulse\{[^}]*animation:sw-pulse\b/,'the pulse layer breathes');
   assert.doesNotMatch(css,/\.sun\{[^}]*animation:/,'the sun does not animate');
   for(const [,name,body] of blocks)assert.ok(!/(?:^|[;{\s])(?:box-shadow|filter)\s*:/.test(body),`@keyframes ${name} animates ${body.trim()}`);
+});
+test('styles: every endless animation, in every layout sheet and the app\'s own, animates only opacity or transform: anything else (a box-shadow glow, a flashing background or border colour, even in steps) restyles, lays out or repaints on the main thread every frame, 60-70% of a TV-speed core for the Glass emergency banner',async()=>{
+  const {readdirSync}=await import('node:fs');
+  const sheets=[['whatsup',readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8')],
+    ...readdirSync(new URL('../web/layouts/',import.meta.url)).filter(f=>f.endsWith('.css')).map(f=>[f.slice(0,-4),layoutCss(f.slice(0,-4))])];
+  const frames={};
+  for(const [,css] of sheets)for(const [,name,body] of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g))frames[name]=body;
+  let endless=0;
+  for(const [id,css] of sheets)for(const [,decl] of css.matchAll(/animation:([^;}]*\binfinite\b[^;}]*)/g)){
+    const name=decl.trim().split(/\s+/)[0];endless++;
+    assert.ok(frames[name]!==undefined,`${id}: @keyframes ${name}`);
+    for(const [,props] of frames[name].matchAll(/\{([^{}]*)\}/g))for(const [,p] of props.matchAll(/(?:^|;)\s*([\w-]+)\s*:/g))
+      assert.ok(p==='opacity'||p==='transform',`${id}: @keyframes ${name} animates ${p}`);
+  }
+  assert.ok(endless>=20,`${endless} endless animations found`);
+});
+test('styles: Cockpit\'s master warning keeps its WARNING word readable in both states of a true two-state blink (red on red hid it a quarter of each cycle); the dark word is the template\'s',async()=>{
+  const css=layoutCss('cockpit'),map=vars(block(css,'.L-cockpit')),get=(sel,p)=>resolve(prop(block(css,sel),p),map);
+  for(const [state,fg,bg] of [['dark',get('.L-cockpit .warn-a','color'),get('.L-cockpit .warn','background')],['lit',get('.L-cockpit .warn-a::after','color'),get('.L-cockpit .warn::before','background')]])
+    assert.ok(contrast(fg,bg)>=4.5,`${state}: ${fg} on ${bg} is ${contrast(fg,bg).toFixed(2)}:1`);
+  for(const sel of ['.L-cockpit .warn::before','.L-cockpit .warn-a::after'])assert.match(get(sel,'animation'),/^ck-warn 1\.2s steps\(1,\s*end\) infinite$/,sel);
+  const word=/content:'([^']+)'/.exec(block(css,'.L-cockpit .warn-a::after'))?.[1];
+  const tpl=readFileSync(new URL('../web/layouts/cockpit.mjs',import.meta.url),'utf8');
+  assert.match(tpl,new RegExp(`<div class="warn-a">${word}</div>`),`the template's word is ${word}`);
+});
+test('speed: a draw reads the logbook\'s Rarest and Farthest once each (getters that go through the whole day\'s log: at a hub the top cost of a draw)',async()=>{
+  const {readdirSync}=await import('node:fs');
+  for(const f of readdirSync(new URL('../web/layouts/',import.meta.url)).filter(f=>f.endsWith('.mjs'))){
+    const src=readFileSync(new URL(`../web/layouts/${f}`,import.meta.url),'utf8');
+    for(const g of ['rarest','farthest']){const n=(src.match(new RegExp(`\\bL\\.${g}\\b`,'g'))||[]).length;assert.ok(n<=1,`${f}: L.${g} read ${n} times`);}
+  }
+});
+test('speed: the logbook\'s day and the counts format as before through kept formatters (one per time zone; a new one each call cost 56-92 µs on the TV)',async()=>{
+  const vm=await import('node:vm'),{fmt}=await import('../web/kit.mjs'),{number}=await import('../web/core.mjs');
+  const src=readFileSync(new URL('../web/model.mjs',import.meta.url),'utf8');
+  const code=/^const dayFormats=.*\n^const localDay=.*$/m.exec(src)?.[0];assert.ok(code,'localDay in model.mjs');
+  const ctx=vm.createContext({TZ:'UTC'});vm.runInContext(code,ctx);
+  const times=[Date.UTC(2026,10,17,4,59,59),Date.UTC(2026,10,17,5,0,0),Date.UTC(2026,2,8,7,59),Date.UTC(2026,2,8,8,1),Date.UTC(2026,11,31,23,59,59),Date.UTC(2027,0,1,0,0),0,-1,1.5e12+0.7];
+  for(const tz of ['UTC','America/Chicago','America/New_York','Asia/Kolkata','Pacific/Chatham','Australia/Lord_Howe','America/St_Johns','Pacific/Kiritimati','Etc/GMT+12','Asia/Kathmandu'])
+    for(const t of times){ctx.TZ=tz;assert.equal(vm.runInContext(`localDay(${t})`,ctx),new Date(t).toLocaleDateString('en-CA',{timeZone:tz}),`${tz} ${new Date(t).toISOString()}`);}
+  ctx.TZ='America/Chicago';assert.equal(vm.runInContext('localDay(new Date(Date.UTC(2026,10,17,5)))',ctx),'2026-11-16','a Date too');
+  assert.equal(vm.runInContext('localDay(NaN)',ctx),'Invalid Date');
+  for(const v of [0,-0,.4,-.4,.5,-.5,1,999,1000,-1000,1234567.5,-2500.4,1e21,2**53,NaN,Infinity,-Infinity,null,undefined,'12',{}])
+    assert.equal(fmt.int(v),number(v)?(Math.round(v)||0).toLocaleString('en-US'):'—',String(v));
+});
+test('styles: no text under the app\'s 9 px floor in any stylesheet (Glass\'s Today, Cargo and Military labels were 8.5 px)',async()=>{
+  const {readdirSync}=await import('node:fs');
+  const sheets=[['whatsup',readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8')],...readdirSync(new URL('../web/layouts/',import.meta.url)).filter(f=>f.endsWith('.css')).map(f=>[f,layoutCss(f.slice(0,-4))])];
+  for(const [id,css] of sheets)for(const m of [...css.matchAll(/font-size:\s*([\d.]+)px/g),...css.matchAll(/font:[^;}]*?(?<![\w.-])([\d.]+)px/g)])
+    assert.ok(+m[1]>=9,`${id}: ${m[0]}`);
+});
+test('styles: long unbroken words wrap instead of running off the screen (the typed entry, "No places match …", the Adjust position place name), and the shared map note sits on the layout\'s own background instead of printing over its text',()=>{
+  const ui=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
+  for(const sel of ['.entry','.results .msg,#locate .card>.msg','.adjust-where'])assert.equal(prop(block(ui,sel),'overflow-wrap'),'anywhere',sel);
+  const note=block(ui,'.layout-note');
+  assert.equal(prop(note,'background'),'var(--ui-bg)');assert.equal(prop(note,'width'),'fit-content');
+});
+test('styles: Swiss and Night Sky keep the place name\'s descenders (g, y, the comma) inside the box that clips a long name',()=>{
+  for(const id of ['swiss','night-sky']){
+    const blk=block(layoutCss(id),`.L-${id} .city`);
+    assert.equal(prop(blk,'overflow'),'hidden',id);
+    const pad=prop(blk,'padding-bottom');assert.match(pad,/^\.2\d?em$/,`${id}: room below`);assert.equal(prop(blk,'margin-bottom'),'-'+pad,`${id}: taken back, the layout doesn't move`);
+  }
 });
 test('place time zone refresh: both paths (pick and launch) go through one helper that restarts a street map in progress',async()=>{
   const {readFileSync}=await import('node:fs');

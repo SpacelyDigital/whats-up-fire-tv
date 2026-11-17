@@ -7,6 +7,8 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://basemap.nationalmap.gov https://tiles.maps.eox.at https://cdn.planespotters.net https://*.plnspttrs.net; connect-src 'self' https://opendata.adsb.fi https://vrs-standing-data.adsb.lol https://tiles.openfreemap.org https://geocoding-api.open-meteo.com https://get.geojs.io; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>What's Up</title>
+<!-- No icon: without this line a web view asks for /favicon.ico on every launch and logs a 404. -->
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="whatsup.css">
 <script src="mvt.js"></script>
 <script src="qr.js"></script>

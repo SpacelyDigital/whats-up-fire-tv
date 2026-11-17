@@ -77,7 +77,10 @@ function derive(a){
 // Rarest = the type among them seen on the fewest days-aircraft overall (all-time tally).
 // Cargo counts today, like Seen and Military: local midnight to midnight, per brand.
 const LOG_KEY='whatsup.logbook.v1';
-const localDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:TZ});
+// One date formatter per time zone, kept: toLocaleDateString with options makes a new one each call (56-92 µs in the
+// TV's web view, against about 1 µs reused), and the logbook asks at every draw.
+const dayFormats=new Map();
+const localDay=t=>{const d=new Date(t);if(isNaN(d))return 'Invalid Date';let f=dayFormats.get(TZ);if(!f)dayFormats.set(TZ,f=new Intl.DateTimeFormat('en-CA',{timeZone:TZ}));return f.format(d);};
 // A date n days on, counted on the calendar date itself (not 24 h steps: a 23- or 25-hour
 // daylight-saving day would land on the wrong date).
 const shiftDay=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10);};
@@ -311,6 +314,9 @@ function liveSource(config,onModel,was){
   // The planes carry over; 'Recently above' and the logbook only as they stand now: a fresh start (Confirm on a
   // guess that replaced a damaged place, a new Alert zone) cleared them, and the old picture must not bring them back.
   if(lastGood)lastGood={...lastGood,recent:store.get(HISTORY_KEY)?.length?lastGood.recent:[],log:log?lastGood.log:logSummary(null)};
+  // Today's logbook as the feed's clock has it: the last good picture, drawn again in an outage, must not carry
+  // yesterday's tallies past midnight.
+  const today=(now,states)=>logSummary(logOf(log,localDay(now+(states.skew||0)*1000)));
   const update=(states,ok)=>{
     last={states,ok};clearTimeout(stale);judge=null;
     if(ok){lastOk=performance.now();okAt=Date.now();}
@@ -321,7 +327,7 @@ function liveSource(config,onModel,was){
     // even when the next poll is minutes away (a 4xx or a long Retry-After from both feeds). It is old
     // when either clock says so: a TV clock stepped back can't make it young again, nor can a standby
     // that performance.now() doesn't count.
-    if(!ok&&lastGood&&age<60000){judge=()=>update(states,false);if(!hidden)stale=setTimeout(judge,60000-age);return onModel({...lastGood,now,retryIn:wait});}
+    if(!ok&&lastGood&&age<60000){judge=()=>update(states,false);if(!hidden)stale=setTimeout(judge,60000-age);return onModel({...lastGood,now,retryIn:wait,log:today(now,states)});}
     const feedNow=now+(states.skew||0)*1000; // the feed's clock: right even when the TV's clock is off
     const {fresh,all}=airspace(states,feedNow,age<15000);
     routes.update(states[IDS.routes]?.attributes?.routes);
@@ -354,7 +360,13 @@ function liveSource(config,onModel,was){
   const live=startLive(update,config);
   // Hidden, the last picture is not re-judged; back on screen it is, at once (its 60 s re-armed).
   return {...live,stop(){clearTimeout(stale);live.stop();},pause(){hidden=true;clearTimeout(stale);live.pause();},
-    resume(){if(!hidden)return;hidden=false;live.resume();judge?.();},
+    resume(){if(!hidden)return;hidden=false;live.resume();if(judge)return judge();
+      // After a good picture, still on screen as it was: judged as it ages from here while the first poll is out, a
+      // picture a minute old or more (a standby) 2 s on (the Wi-Fi may still be reconnecting). It showed as live, with
+      // the clock from before, until that poll was answered or failed: up to 12 s.
+      if(!last?.ok||!lastGood)return;
+      const age=Math.max(performance.now()-lastOk,Date.now()-okAt);
+      clearTimeout(stale);stale=setTimeout(()=>update(last.states,false),Math.max(2000,60000-age));},
     // Once a minute during an outage (app.mjs keepTime): the last failed update again, so the time, the
     // logbook day, the recent sightings and the countdown move on together.
     tick(){if(last&&!last.ok)update(last.states,false);},get carry(){return {where,lastOk,okAt,lastGood,retryAt:due};}};

@@ -6,16 +6,20 @@
 import {CONFIG} from './config.js';
 import {PROFILE,PLATFORM} from './profile.mjs';
 import {chimeGate,dLon} from './core.mjs';
-import {HISTORY_KEY,MAX_NM,store,setRouteFocus,nativeHost} from './live.mjs';
+import {HISTORY_KEY,MAX_NM,store,setRouteFocus,nativeHost,setOnScreen} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
-import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
+import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone,searchBusy} from './place.mjs';
 import {buildMap,savedMap,saveMap,touchMap,buildDetail,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows,screenSize} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
 import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from './browse.mjs';
 
 const $=id=>document.getElementById(id);
-const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
+const setText=(id,v)=>{
+  const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;
+  // The shared map note saying the map is unavailable: the layouts' own 'Drawing the map' notes give way to it.
+  if(id==='layout-note')document.documentElement.classList.toggle('map-down',/unavailable/i.test(v));
+};
 const stage=$('stage');
 // The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
 // reaches the outer 5% of any edge (overscan); the personal build fills the screen. The screen's size
@@ -42,8 +46,9 @@ function paintEdge(){
 const native=nativeHost();
 const tellApp=msg=>{try{native?.postMessage(JSON.stringify(msg));}catch{/* desktop */}};
 // Keep screen awake: the app keeps the screensaver away (Fire TV with a silent, invisible loop, Google TV with
-// its window's keep-screen-on flag).
-const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true});
+// its window's keep-screen-on flag). Off in a build without the setting (WHATSUP_HIDE=awake), whatever was saved:
+// there is no row to turn it off.
+const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true&&!$('set-awake')?.hidden});
 
 // Rarest/Farthest follow the map radius (Settings > Map radius, Up/Down).
 setLogRadius(()=>settings.mapMiles||CONFIG.rangeMiles);
@@ -450,7 +455,8 @@ function close(){
   if(layer){
     if(layer.id==='settings'){showSettings();refitSettings();} // the layout (and its font) may have changed
     {const last=layer._last;setFocus(last&&layer.contains(last)&&last.offsetParent?last:focusables()[0]);}
-  }else{setFocus(null);if(lastModel)draw(lastModel);} // back on the dashboard: the card's plane is read now, not at the next poll
+  }else{setFocus(null);spoken=null;if(lastModel)draw(lastModel);} // back on the dashboard: the card's plane is read now, not at the next
+  // poll, even the one read before the screen opened (the screens write #sr-live themselves)
   syncApp();
 }
 // Settings values and the tip lines fit their rows in the active layout's font; again when
@@ -690,9 +696,9 @@ function endPick(keep){
 
 // Location entry: an on-screen keyboard for the remote, plus results to pick.
 const KEYS=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ,-1234567890'.split(''),['Space','space w2'],['Delete','del w2'],['Clear','clear w3'],['Search','search w4']];
-let entry='',searchTimer=null,searchSeq=0;
+let entry='',searchTimer=null,searchSeq=0,searchHeld=false; // searchTimer: a search waiting for the typing to pause
 // Closed, the search screen sends nothing more: not the typing it was waiting on, nor the answer to one out.
-const stopSearch=()=>{clearTimeout(searchTimer);searchSeq++;};
+const stopSearch=()=>{clearTimeout(searchTimer);searchTimer=null;searchHeld=false;searchSeq++;};
 function buildKeys(){
   $('keys').replaceChildren(...KEYS.map(k=>{
     const [label,cls]=Array.isArray(k)?k:[k,''];
@@ -700,15 +706,30 @@ function buildKeys(){
     if(cls)b.className=cls.split(' ').slice(1).join(' ');return b;
   }));
 }
+// At most 80 characters: a full U.S. address with its state and ZIP (the Census geocoder needs one of them).
 function typeKey(key){
-  if(key==='space')entry+=entry&&!entry.endsWith(' ')&&entry.length<40?' ':'';
+  const before=entry.trim();
+  if(key==='space')entry+=entry&&!entry.endsWith(' ')&&entry.length<80?' ':'';
   else if(key==='del')entry=entry.slice(0,-1);
   else if(key==='clear')entry='';
   else if(key==='search')return runSearch(true);
-  else if(entry.length<40)entry+=key;
-  setText('entry-text',entry);
-  // Search as you type: after 800 ms of no typing, and only from 3 characters (P3-7).
-  clearTimeout(searchTimer);if(entry.trim().length>=3)searchTimer=setTimeout(runSearch,800);
+  else if(entry.length<80)entry+=key;
+  setText('entry-text',entry);fitEntry();
+  // Search as you type: after 800 ms of no typing, and only from 3 characters (P3-7). A key that doesn't change what
+  // would be looked up (a Space after a word, or deleting one) leaves the search waiting or done as it is: it sent
+  // the same text again.
+  if(entry.trim()===before)return;
+  clearTimeout(searchTimer);searchTimer=entry.trim().length>=3?setTimeout(runSearch,800):null;
+}
+// The entry keeps to one line: longer text shrinks, 28 px down to 18 px, then wraps onto a second line.
+function fitEntry(){
+  const e=$('entry-text')?.parentNode;if(!e)return;
+  e.style.fontSize='';if(!e.getClientRects().length)return; // not shown: the full size, fitted when typed in
+  e.style.whiteSpace='nowrap';
+  const full=parseFloat(getComputedStyle(e).fontSize);let size=full;
+  if(e.scrollWidth>e.clientWidth+1)size=Math.max(18,Math.floor(full*e.clientWidth/e.scrollWidth));
+  for(;;){e.style.fontSize=size<full?`${size}px`:'';if(size<=18||e.scrollWidth<=e.clientWidth+1)break;size--;}
+  e.style.whiteSpace='';
 }
 // ZIP/city searches run as you type; street addresses only on Search (one geocoder
 // request per search, as Nominatim's usage policy asks). Every search ends in results,
@@ -716,7 +737,7 @@ function typeKey(key){
 const SEARCH_LIMIT_MS=25000;
 async function runSearch(explicit=false){
   if(!explicit&&layer?.id!=='locate')return; // typed, then another screen came over it
-  clearTimeout(searchTimer);
+  clearTimeout(searchTimer);searchTimer=null;
   const q=entry.trim(),seq=++searchSeq,box=$('results'),searchKey=$('keys').querySelector('[data-key="search"]');
   // Read out once as it changes (VoiceView): the status line, or how many places are listed; nothing while another screen is
   // on top. 'Searching for…' only on Search: as you type, the count, no-match and error lines alone (one line per pause).
@@ -745,7 +766,10 @@ async function runSearch(explicit=false){
   // offline, under the help line) goes, with the no-network help line that named it.
   const ip=$('ip-retry');if(ip){ip.remove();setText('entry-help',NO_PLACE);}
   if(found==='timeout'||!found){
-    show(msg(found?'The search is taking too long.':'Search is unavailable. Check the connection.'),retry());
+    // A geocoder that asked for a pause (a 429, a Retry-After) is left alone meanwhile: Try again says so.
+    const wait=found?0:searchBusy();
+    show(msg(found?'The search is taking too long.':wait?`Search is busy right now. Try again in ${wait<=60?'a minute':`${Math.ceil(wait/60)} minutes`}.`:
+      'Search is unavailable. Check the connection.'),retry());
     if(explicit&&layer?.id==='locate')setFocus($('search-retry'));
     return;
   }
@@ -763,9 +787,9 @@ async function runSearch(explicit=false){
 }
 let lastQuery='';
 function openLocate(help){
-  searchSeq++;clearTimeout(searchTimer); // a search from an earlier visit must not fill this one
+  searchSeq++;clearTimeout(searchTimer);searchTimer=null;searchHeld=false; // a search from an earlier visit must not fill this one
   $('results-src').textContent='';
-  entry='';setText('entry-text','');$('results').replaceChildren();$('ip-retry')?.remove(); // a first run's Try again, left when its lookup found the place
+  entry='';setText('entry-text','');fitEntry();$('results').replaceChildren();$('ip-retry')?.remove(); // a first run's Try again, left when its lookup found the place
   setText('entry-help',help||'Type a ZIP or postal code, a city, or your street address, then Search.');
   open('locate');
   {const src=$('search-src');src._alts=PROFILE.searchAlts;src.textContent=src._alts[0];fitLine(src);}
@@ -800,23 +824,27 @@ function select(el){
     case 'pick-prev':return stepPick(-1);
     case 'pick-next':return stepPick(1);
     case 'ip-retry':return findHome();
-    case 'search-retry':entry=lastQuery||entry;setText('entry-text',entry);setFocus($('keys').querySelector('[data-key="search"]'));return runSearch(true);
+    case 'search-retry':entry=lastQuery||entry;setText('entry-text',entry);fitEntry();setFocus($('keys').querySelector('[data-key="search"]'));return runSearch(true);
     default:if(el.dataset.adjust!==undefined)adjustSetting(el,1);
   }
 }
 
-let lastBack=-Infinity;
-function back(){
-  // The app and the page may both report one press: de-duplicate first, so one Back while
+let lastBack=-Infinity,lastBackFrom='';
+function back(from='key'){
+  // On Fire TV the app and the page may both report one press: de-duplicate first, so one Back while
   // editing only cancels the edit (it also closed Settings). On the monotonic clock: a TV clock
-  // set back must not swallow every Back until it catches up.
-  const now=performance.now();if(now-lastBack<350)return;lastBack=now;
+  // set back must not swallow every Back until it catches up. Google TV's app reports each press once
+  // (Android's web view never gives the page Back), so there only a report from the other side within
+  // 350 ms is the same press: two of the app's own are two presses (a quick double Back closed one
+  // screen only and left the search keyboard taking OK presses as letters).
+  const now=performance.now();if(now-lastBack<350&&(PLATFORM!=='android'||from!==lastBackFrom))return;lastBack=now;lastBackFrom=from;
+  heldOk=null; // an OK kept under the busy cog: Back forgets it (on Google TV, Back comes only this way)
   if(editing)return cancelEdit();
   if(adj)return endAdjust();
   if(!layer&&browse)return endBrowse();
   close();
 }
-window.__whatsupBack=back;
+window.__whatsupBack=()=>back('app');
 
 // --- Adjust position: a close-up street map (OpenFreeMap z13, about 1 mi around) and
 // a fixed centre dot; the remote's arrows move the map under it, ~50 m a press,
@@ -917,21 +945,33 @@ const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
 // The remote's media keys (Play/Pause, Fast Forward, Rewind, and track and stop keys) belong to the system,
 // which uses them for whatever plays in the background (Amazon's Fire TV test 4.6): never used here, nor prevented.
 const mediaKey=e=>/^Media/.test(e.key)||[176,177,178,179,227,228].includes(e.keyCode);
+// A held key repeats. Android's web view on Google TV passes the repeats with repeat false (a held OK opened
+// Settings, then the search keyboard), so a key pressed again with no keyup since counts as held too, within
+// 0.7 s of its last press (a keyup that went missing can't hold the key down for good). Only the remote's own
+// key events: the app's Menu says repeat itself, and an OK the page replays after the busy cog is one press.
+const keysDown=new Map();
+function heldDown(e){
+  if(!e.isTrusted)return false;
+  const now=performance.now(),last=keysDown.get(e.key);keysDown.set(e.key,now);
+  return last!==undefined&&now-last<700;
+}
+document.addEventListener('keyup',e=>{keysDown.delete(e.key);});
 document.addEventListener('keydown',e=>{
   if(mediaKey(e))return;
+  const repeat=heldDown(e)||e.repeat;
   if(busyNow){
     e.preventDefault();
-    if(e.key==='Enter'&&!e.repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
+    if(e.key==='Enter'&&!repeat){if(!heldOk)heldOk={layer,focused,editing,adj};}
     else if(['Escape','GoBack','BrowserBack','Back'].includes(e.key)||e.keyCode===4)heldOk=null;
     return;
   }
   const k=e.key,dir=DIRS[k];
   // A held OK or Menu (82, not the letter R) repeats: it would open and close the picker or Settings, or
   // run through screens.
-  if(e.repeat&&(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
+  if(repeat&&(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1)){e.preventDefault();return;}
   if(['Escape','GoBack','BrowserBack','Back'].includes(k)||e.keyCode===4){e.preventDefault();return back();}
   if(adj){
-    if(dir){e.preventDefault();return nudge(dir,e.repeat);}
+    if(dir){e.preventDefault();return nudge(dir,repeat);}
     if(k==='Enter'||k===' '){e.preventDefault();return endAdjust(true);}
     return;
   }
@@ -940,7 +980,7 @@ document.addEventListener('keydown',e=>{
     if(dir==='up'||dir==='down'){e.preventDefault();return stepMap(dir==='up'?-1:1);}
     // Left/Right: the next or previous plane on the card (a held key repeats).
     if(dir==='left'||dir==='right'){e.preventDefault();return stepPlanes(dir==='right'?1:-1);}
-    if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82){e.preventDefault();openSettings();}
+    if(k==='Enter'||k===' '||k==='ContextMenu'||k==='Menu'||e.keyCode===82&&k.length>1){e.preventDefault();openSettings();}
     return;
   }
   if(editing)return editKey(e);
@@ -992,13 +1032,17 @@ const CONSENT_KEY='whatsup.consent',CONSENT_VERSION=PLATFORM==='android'?5:4,CON
 const PRIVACY_URL=PROFILE.privacyUrl||'';
 function hasConsent(){try{const v=JSON.parse(localStorage.getItem(CONSENT_KEY))?.v;return Number.isInteger(v)&&v>=CONSENT_SINCE&&v<=CONSENT_VERSION;}catch{return false;}}
 function giveConsent(){store.set(CONSENT_KEY,{v:CONSENT_VERSION,at:new Date().toISOString().slice(0,10)});} // full storage: maps make room
-let consentDone=null,consentArm=0;
+let consentDone=null,consentArm=0,consentShown=0;
 // Erase reloads onto this screen with focus on Agree: an OK pressed twice in a hurry must not agree
-// unread. After Erase, OK is taken once a key is released here, or after 0.8 s.
+// unread. After Erase, OK is taken once a key pressed here is released, or after 0.8 s. Not the release
+// of the Erase press itself, which lands on this page, nor of a key held since then: its repeats reach this
+// page within moments of the screen showing (on Google TV with repeat false), and later ones are repeats.
 const ERASED_KEY='whatsup.erased',erased=(()=>{try{const v=sessionStorage.getItem(ERASED_KEY);sessionStorage.removeItem(ERASED_KEY);return v==='1';}catch{return false;}})();
-addEventListener('keyup',()=>{consentArm=0;});
+const pressedHere=new Set();
+addEventListener('keydown',e=>{if(consentArm&&!e.repeat&&!keysDown.has(e.key)&&e.timeStamp-consentShown>=150)pressedHere.add(e.key);},true);
+addEventListener('keyup',e=>{if(pressedHere.delete(e.key))consentArm=0;});
 function askConsent(){
-  consentArm=erased?performance.now()+800:0;
+  consentShown=performance.now();consentArm=erased?consentShown+800:0;
   $('consent-body').textContent=PROFILE.consent;return new Promise(r=>{consentDone=r;open('consent','consent-ok');});
 }
 function agree(){giveConsent();closeAll();const r=consentDone;consentDone=null;r?.();}
@@ -1034,7 +1078,7 @@ function openPrivacy(){
 // About & credits (assets/licenses.txt), with the QR adsb.fi's terms ask for (a cite and a link).
 function openAbout(){
   const doc=$('about-doc');renderDoc(doc,window.__whatsupDocs?.licenses||'');doc.scrollTop=0;
-  // adsb.fi's terms ask for a cite and a link (personal profile only; the store build uses adsb.lol).
+  // adsb.fi's terms ask for a cite and a link (both builds use adsb.fi; adsb.lol is only the backup).
   const fi=PROFILE.feed==='adsb.fi';$('about-qr').closest('figure').hidden=!fi;if(fi)$('about-qr').src=themedQr('https://adsb.fi');
   open('about','about-back');scrollDoc(doc);
 }
@@ -1044,12 +1088,22 @@ function eraseAll(){
   try{for(const k of Object.keys(localStorage))if(k.startsWith('whatsup.'))localStorage.removeItem(k);}catch{/* nothing stored */}
   try{indexedDB?.deleteDatabase?.('whatsup');}catch{/* none */}
   try{sessionStorage.setItem(ERASED_KEY,'1');}catch{/* the consent screen takes OK at once */}
+  // The app clears what the web view keeps for the page: its cache of the satellite pictures and aircraft photos
+  // (Google TV; Fire TV ignores the message).
+  tellApp({type:'erase'});
   location.reload();
 }
 
 // The app tells the page when it leaves or returns to the screen: polling pauses meanwhile (the pause saves
-// the route ledger), the logbook is saved, and a search still waiting for the typing to pause is not sent.
-window.__whatsupActive=on=>{onScreen=!!on;if(on)feed?.resume?.();else{feed?.pause?.();flushLog();clearTimeout(searchTimer);}countDown();keepTime();};
+// the route ledger), the logbook is saved, a search still waiting for the typing to pause is held (sent 0.8 s
+// after the return: dropped, the typed text stayed with no results, which read as no such place), and any
+// other request (a map build's next tile) waits for the return.
+window.__whatsupActive=on=>{
+  onScreen=!!on;setOnScreen(onScreen);
+  if(on){feed?.resume?.();if(searchHeld){searchHeld=false;searchTimer=setTimeout(runSearch,800);}}
+  else{feed?.pause?.();flushLog();if(searchTimer){clearTimeout(searchTimer);searchTimer=null;searchHeld=true;}}
+  countDown();keepTime();
+};
 addEventListener('pagehide',()=>{flushLog();feed?.flush?.();});
 
 // --- Boot

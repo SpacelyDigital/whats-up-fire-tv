@@ -1,12 +1,12 @@
 // Geocoding parsing, address detection, settings and unit formatting. The network is a stub.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {searchPlaces,searchAddress,looksLikeAddress,looksLikePostcode,locateByIp,loadSettings,placeLabel,refineZone} from '../web/place.mjs';
+import {searchPlaces,searchAddress,looksLikeAddress,looksLikePostcode,locateByIp,loadSettings,placeLabel,refineZone,searchBusy,resetGeocoders} from '../web/place.mjs';
 import {useSettings,fmt} from '../web/kit.mjs';
 
 // fetch stub: url pattern -> [status, body]. Unmatched URLs fail like a dropped connection.
 function stub(routes){
-  const seen=[];
+  const seen=[];resetGeocoders(); // no pause or pacing left from an earlier case
   globalThis.fetch=async url=>{
     seen.push(url);
     for(const [pattern,[status,body]] of routes)if(pattern.test(url))
@@ -34,11 +34,12 @@ test('city search: no results is [], a failure is null, one letter is []',async(
   assert.equal(await searchPlaces('Chicago'),null);
   assert.deepEqual(await searchPlaces('C'),[]);
 });
-test('city search: bad coordinates and unknown time zones are dropped or defaulted',async()=>{
+test('city search: bad coordinates are dropped; an unknown time zone stands in as the TV\'s until looked up',async()=>{
   stub([meteo({name:'Nowhere',latitude:'x',longitude:2},{name:'Odd',latitude:10,longitude:20,timezone:'Mars/Olympus'})]);
   const found=await searchPlaces('somewhere');
   assert.equal(found.length,1);
-  assert.equal(found[0].timeZone,'UTC');
+  assert.equal(found[0].timeZone,Intl.DateTimeFormat().resolvedOptions().timeZone);
+  assert.equal(found[0].tzGuess,true);
 });
 test('search: a null or malformed entry in a reply is skipped, the other results are still shown',async()=>{
   stub([meteo(null,42,'x',[],CHICAGO)]);
@@ -461,7 +462,8 @@ test('window view settings: defaults and saved values',()=>{
 test('Census gets only text that looks like a U.S. address', async () => {
   const {looksLikeUSAddress}=await import('../web/place.mjs');
   for(const q of ['123 Main St, Cincinnati, OH','123 MAIN ST CINCINNATI OH','1600 Pennsylvania Ave NW Washington DC 20500','12 Calle Luna San Juan Puerto Rico',
-    '400 Marine Dr, Tamuning, GU 96913','5 Elm Street Springfield, IL','77 Oak Rd 45202'])assert.ok(looksLikeUSAddress(q),q);
+    '400 Marine Dr, Tamuning, GU 96913','5 Elm Street Springfield, IL','77 Oak Rd 45202','4059 Mount Lee Drive Hollywood Los Angeles California 90068 US',
+    '1 Main St Springfield IL 62701 USA','1 Main St, Springfield, U.S.'])assert.ok(looksLikeUSAddress(q),q);
   for(const q of ['10 Downing Street London','123 Main St','221B Baker Street','45202','Cincinnati','8 Rue de Rivoli Paris','12 Queen St W Toronto ON'])assert.ok(!looksLikeUSAddress(q),q);
 });
 test('Census: a state name counts only at the end or after a comma, and a state code that is also a country code (DE, IN, CO, ME...) only after a comma, with a ZIP or after a street type and a town',async()=>{
@@ -595,4 +597,82 @@ test('address search: the same search asked again before it answers shares the r
   assert.equal(f1,null);assert.equal(f2,null);assert.equal(seen.length,2,'one request for both');
   await searchAddress('11 Test Street London',{census:true,nominatim:true});
   assert.equal(seen.length,3,'Try again asks again');
+});
+
+test('time zones: a place with no zone, an empty or unknown one (a name search, the IP guess) shows the TV\'s zone, marked to be looked up, and the lookup sets it; a zone renamed since this TV\'s time-zone data keeps its old name',async()=>{
+  const tv=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  stub([meteo({...CHICAGO,name:'Notzville',timezone:undefined},{...CHICAGO,name:'Blank',admin1:'Ohio',timezone:''},{...CHICAGO,name:'Odd',admin1:'Iowa',timezone:'Mars/Olympus'},{...CHICAGO,name:'Num',admin1:'Utah',timezone:7})]);
+  const found=await searchPlaces('somewhere');
+  assert.deepEqual(found.map(p=>[p.name,p.timeZone,p.tzGuess]),[['Notzville',tv,true],['Blank',tv,true],['Odd',tv,true],['Num',tv,true]]);
+  stub([[/api\.open-meteo\.com\/v1\/forecast/,[200,{timezone:'America/Chicago',elevation:180}]]]);
+  const fixed=await refineZone(found[0]);
+  assert.equal(fixed.timeZone,'America/Chicago');assert.ok(!fixed.tzGuess);
+  stub([[/geojs/,[200,{city:'Chicago',region:'Illinois',country:'United States',country_code:'US',latitude:'41.85',longitude:'-87.65'}]]]);
+  const {place}=await locateByIp();
+  assert.equal(place.timeZone,tv);assert.equal(place.tzGuess,true,'the IP guess with no zone is looked up too');
+  // WebView 93 to about 107 (time-zone data before 2022b) knows Kyiv only as Europe/Kiev.
+  const DTF=Intl.DateTimeFormat;
+  Intl.DateTimeFormat=function(locale,o){if(['Europe/Kyiv','Pacific/Kanton'].includes(o?.timeZone))throw new RangeError('Invalid time zone');return new DTF(locale,o);};
+  try{
+    stub([meteo({name:'Kyiv',admin1:'Kyiv City',country:'Ukraine',country_code:'UA',latitude:50.45,longitude:30.52,timezone:'Europe/Kyiv'},
+      {name:'Kanton',country:'Kiribati',country_code:'KI',latitude:-2.8,longitude:-171.7,timezone:'Pacific/Kanton'})]);
+    assert.deepEqual((await searchPlaces('Kyiv')).map(p=>[p.timeZone,!!p.tzGuess]),[['Europe/Kiev',false],['Pacific/Enderbury',false]]);
+    stub([[/forecast/,[200,{timezone:'Europe/Kyiv'}]]]);
+    assert.equal((await refineZone({...found[0],latitude:50.45,longitude:30.52}))?.timeZone,'Europe/Kiev','a looked-up zone too');
+  }finally{Intl.DateTimeFormat=DTF;}
+});
+
+// A stub whose answers carry headers (Retry-After); `routes` can be changed between requests.
+function stubH(routes){
+  const seen=[];resetGeocoders();
+  globalThis.fetch=async url=>{
+    seen.push({url,t:performance.now()});
+    for(const [pattern,[status,body,headers={}]] of routes)if(pattern.test(url))
+      return {status,headers:{get:k=>headers[k.toLowerCase()]??null},text:async()=>typeof body==='string'?body:JSON.stringify(body)};
+    throw new TypeError('network down');
+  };
+  return seen;
+}
+const ADDR={result:{addressMatches:[{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',addressComponents:{city:'CINCINNATI',state:'OH'},coordinates:{x:-84.67,y:39.06}}]}};
+test('geocoders: after a 429 (at least a minute) or a Retry-After, Try again asks nothing until the pause is over and the screen can say how long; other services and a plain 503 are not held',async()=>{
+  const real=performance.now;let t=5e8;performance.now=()=>t;
+  try{
+    const routes=[[/census/,[429,'',{'retry-after':'90'}]],[/geocoding-api/,[200,{results:[CHICAGO]}]]],seen=stubH(routes);
+    const census=()=>searchAddress('811 Plum St Cincinnati OH',{census:true});
+    assert.equal(await census(),null);assert.equal(seen.length,1);assert.equal(searchBusy(),90);
+    t+=30000;assert.equal(await census(),null);assert.equal(seen.length,1,'not asked within its Retry-After');assert.equal(searchBusy(),60);
+    assert.equal((await searchPlaces('Chicago')).length,1,'Open-Meteo is still asked');assert.equal(searchBusy(),0);
+    routes[0][1]=[200,ADDR];t+=61000;
+    assert.equal((await census())[0].street,'801 Plum St');assert.equal(seen.filter(c=>/census/.test(c.url)).length,2,'asked once it is over');
+    // A 429 with no Retry-After: a minute.
+    routes[0][1]=[429,''];
+    assert.equal(await searchAddress('812 Plum St Cincinnati OH',{census:true}),null);assert.equal(searchBusy(),60);
+    t+=59000;assert.equal(await searchAddress('812 Plum St Cincinnati OH',{census:true}),null);assert.equal(seen.filter(c=>/census/.test(c.url)).length,3);
+    t+=2000;routes[0][1]=[200,ADDR];assert.ok(await searchAddress('812 Plum St Cincinnati OH',{census:true}));
+    // A 503 with Retry-After 120 rests the service; a 503 without is asked again at once (Try again).
+    routes[0][1]=[503,'',{'retry-after':'120'}];
+    assert.equal(await searchAddress('813 Plum St Cincinnati OH',{census:true}),null);assert.equal(searchBusy(),120);
+    resetGeocoders();routes[0][1]=[503,''];
+    assert.equal(await searchAddress('814 Plum St Cincinnati OH',{census:true}),null);assert.equal(searchBusy(),0);
+    const before=seen.length;assert.equal(await searchAddress('814 Plum St Cincinnati OH',{census:true}),null);assert.equal(seen.length,before+1);
+    // At most 10 minutes, whatever it asks.
+    routes[0][1]=[429,'',{'retry-after':'86400'}];
+    assert.equal(await searchAddress('815 Plum St Cincinnati OH',{census:true}),null);assert.equal(searchBusy(),600);
+  }finally{performance.now=real;}
+});
+
+test('geocoders: Nominatim is asked at most once a second, however fast Try again is pressed',async()=>{
+  const seen=stubH([[/nominatim/,[503,'']]]);
+  for(let i=0;i<3;i++)assert.equal(await searchAddress('10 Downing Street London',{nominatim:true}),null);
+  const gaps=seen.slice(1).map((c,i)=>c.t-seen[i].t);
+  assert.equal(seen.length,3);assert.ok(gaps.every(g=>g>=990),`gaps ${gaps.map(Math.round)} ms`);
+});
+
+test('geocoder replies with fields of the wrong type: a result still, never a false "unavailable" or "[object Object]"',async()=>{
+  stub([[/census/,[200,{result:{addressMatches:[{matchedAddress:'801 PLUM ST, CINCINNATI, OH, 45202',addressComponents:{city:42,state:{x:1}},coordinates:{x:-84.67,y:39.06}}]}}]]]);
+  const [c]=await searchAddress('801 Plum St Cincinnati OH 45202',{census:true});
+  assert.equal(c.street,'801 Plum St');assert.doesNotMatch(placeLabel(c)+c.admin,/object|42/);
+  stub([[/nominatim/,[200,[{lat:'51.5',lon:'-0.12',name:'Ten',address:{house_number:[1,2],road:{a:1},city:['x'],town:'Westminster',country:'United Kingdom',country_code:'gb'}}]]]]);
+  const [n]=await searchAddress('10 Downing Street, Westminster SW1',{nominatim:true});
+  assert.equal(n.street,'Ten');assert.equal(n.name,'Westminster');
 });

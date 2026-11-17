@@ -9,6 +9,8 @@ const APP=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');
 // A top-level function or line of app.mjs as written (a function ends at the first "}" in column 0).
 const fn=name=>{const m=new RegExp(`^(async )?function ${name}\\(.*?\\n\\}`,'ms').exec(APP);assert.ok(m,`function ${name} in app.mjs`);return m[0];};
 const line=start=>{const m=new RegExp(`^${start}.*$`,'m').exec(APP);assert.ok(m,`${start} in app.mjs`);return m[0];};
+// A statement that starts in column 0 and runs to the first line that is just "};" (an arrow function over lines).
+const stmt=start=>{const m=new RegExp(`^${start}[^\\n]*\\{\\n[\\s\\S]*?^\\};$`,'m').exec(APP);assert.ok(m,`${start} in app.mjs`);return m[0];};
 // A context with those functions; setText(id,v) lands in `texts`.
 function page(code,globals={}){
   const texts={},ctx=vm.createContext({texts,setText:(id,v)=>{texts[id]=String(v??'');},console:{error(){}},...globals});
@@ -16,16 +18,40 @@ function page(code,globals={}){
   return ctx;
 }
 
-test('search entry: at most 40 characters, Space included; Space never leads or doubles',()=>{
-  const p=page([line('let entry='),fn('typeKey')],{clearTimeout(){},setTimeout(){},runSearch(){}});
+test('Keep screen awake left out of the build (WHATSUP_HIDE=awake): the app is told Off even when a saved setting says On, as no row could turn it off',()=>{
+  const told=[];
+  for(const hidden of [false,true]){
+    const p=page([line('const tellAwake=')],{settings:{keepAwake:true},tellApp:m=>told.push(m.on),$:id=>id==='set-awake'?{hidden}:null});
+    vm.runInContext('tellAwake()',p);
+  }
+  assert.deepEqual(told,[true,false]);
+});
+
+test('search as you type: a Space (or deleting one) doesn\'t look the same text up again; letters and digits wait 800 ms from 3 characters',()=>{
+  const timers=[];let cleared=0;
+  const p=page([line('let entry='),fn('typeKey')],{clearTimeout(){cleared++;},setTimeout(f,ms){timers.push(ms);return timers.length;},runSearch(){},fitEntry(){}});
+  for(const k of ['1','6','0','0','space'])p.typeKey(k);
+  assert.deepEqual(timers,[800,800],'"160" and "1600" wait to be looked up, "1600 " is the same text');
+  assert.equal(cleared,4,'one per digit: the space leaves the waiting search alone');
+  p.typeKey('del');assert.equal(timers.length,2,'deleting the space: still the same text');
+  p.typeKey('P');assert.equal(timers.length,3,'"1600P" is new');
+});
+
+test('search entry: at most 80 characters, Space included; Space never leads or doubles; fitted to its line as it changes',()=>{
+  let fits=0;
+  const p=page([line('let entry='),fn('typeKey')],{clearTimeout(){},setTimeout(){},runSearch(){},fitEntry(){fits++;}});
   const type=(...keys)=>{for(const k of keys)p.typeKey(k);return vm.runInContext('entry',p);};
-  const W40='W'.repeat(40);
-  assert.equal(type(...Array(45).fill('W')),W40);
-  assert.equal(type('space'),W40,'Space at the cap is ignored');
-  assert.equal(type('X'),W40);
-  assert.equal(p.texts['entry-text'],W40,'as shown');
-  assert.equal(type('del','space','space'),W40.slice(1)+' ','below the cap Space works, once');
+  const W80='W'.repeat(80);
+  assert.equal(type(...Array(85).fill('W')),W80);
+  assert.equal(fits,85,'fitted at every key');
+  assert.equal(type('space'),W80,'Space at the cap is ignored');
+  assert.equal(type('X'),W80);
+  assert.equal(p.texts['entry-text'],W80,'as shown');
+  assert.equal(type('del','space','space'),W80.slice(1)+' ','below the cap Space works, once');
   assert.equal(type('clear','space','A','space','space','B'),'A B');
+  // A full U.S. address keeps its state and ZIP (the Census geocoder needs one of them): 41 and 61 characters.
+  for(const addr of ['1600 PENNSYLVANIA AVENUE NW WASHINGTON DC','4059 MOUNT LEE DRIVE HOLLYWOOD LOS ANGELES CALIFORNIA 90068 US'])
+    assert.equal(type('clear',...[...addr].map(c=>c===' '?'space':c)),addr);
 });
 
 test('welcome card: the lookup\'s accuracy reads as whole miles or km, at least 1; none, zero, negative or absurd says nothing',()=>{
@@ -228,22 +254,29 @@ test('Privacy offers Erase all data whenever anything of the app\'s is stored, a
   assert.equal(offered(null),false,'storage refused');
 });
 
-test('After Erase all data the fresh consent screen ignores OK until a key is released on it or 0.8 s has passed; the next launch takes OK at once',()=>{
+test('After Erase all data the fresh consent screen ignores OK until a key pressed on it is released, or 0.8 s has passed: not the release of the Erase press itself, nor of a key held since (its repeats come at once); the next launch takes OK at once',()=>{
   const session=new Map(),sessionStorage={getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,String(v)),removeItem:k=>session.delete(k)};
-  let now=1000,agreed=0;
+  let now=1000,agreed=0;const keysDown=new Map();
   // One page load: the consent lines, askConsent and select cut from app.mjs; agree() counts.
   const load=(globals={})=>{
-    const keyup=[];
-    return Object.assign(page([line('let consentDone=null'),line('const ERASED_KEY='),line("addEventListener\\('keyup'"),fn('askConsent'),fn('select'),fn('eraseAll')],
-      {performance:{now:()=>now},sessionStorage,$:()=>({}),PROFILE:{consent:'Agree?'},open(){},agree:()=>{agreed++;},addEventListener:(type,f)=>{if(type==='keyup')keyup.push(f);},...globals}),{keyup});
+    const keyup=[],keydown=[];
+    return Object.assign(page([line('let consentDone=null'),line('const ERASED_KEY='),line('const pressedHere='),line("addEventListener\\('keydown'"),line("addEventListener\\('keyup'"),fn('askConsent'),fn('select'),fn('eraseAll')],
+      {performance:{now:()=>now},sessionStorage,keysDown,$:()=>({}),PROFILE:{consent:'Agree?'},open(){},agree:()=>{agreed++;},
+        addEventListener:(type,f)=>{if(type==='keyup')keyup.push(f);if(type==='keydown')keydown.push(f);},...globals}),{keyup,keydown});
   };
+  // As on the page: the window's capture listener sees a key before the key handler notes it down, and its
+  // release after the key handler forgets it. Google TV's web view sends a held key's repeats with repeat false.
+  const press=(p,key,ms=0)=>{now+=ms;for(const f of p.keydown)f({key,repeat:false,timeStamp:now});keysDown.set(key,now);};
+  const release=(p,key)=>{keysDown.delete(key);for(const f of p.keyup)f({key});};
   const ok=p=>{const was=agreed;p.select({id:'consent-ok',dataset:{}});return agreed>was;};
   // Erase: everything of the app's goes, the marker is set before the reload.
-  const ls=shelf({'whatsup.consent':'{"v":3}','whatsup.settings.v1':'{}','other.app':'1'}),at={};
+  const ls=shelf({'whatsup.consent':'{"v":3}','whatsup.settings.v1':'{}','other.app':'1'}),at={},told=[];
   const before=load({feed:null,store:{seal(){}},placeToken:0,detailToken:0,detailRetry:0,clearTimeout(){},localStorage:ls,indexedDB:{deleteDatabase(){}},
-    location:{reload(){at.marker=sessionStorage.getItem('whatsup.erased');at.keys=Object.keys(ls);}}});
+    tellApp:m=>told.push(m.type),location:{reload(){at.marker=sessionStorage.getItem('whatsup.erased');at.keys=Object.keys(ls);told.push('reload');}}});
   before.eraseAll();
   assert.deepEqual(at,{marker:'1',keys:['other.app']},'at the reload');
+  // The app is told first, so it clears the web view's cache of pictures (the policy says Erase deletes them).
+  assert.deepEqual(told,['erase','reload']);
   // The reload: OK is ignored for 0.8 s, or until a key is released.
   let p=load();p.askConsent();
   assert.equal(session.has('whatsup.erased'),false,'the marker is read once');
@@ -252,7 +285,10 @@ test('After Erase all data the fresh consent screen ignores OK until a key is re
   now+=150;assert.equal(ok(p),true,'0.85 s');
   sessionStorage.setItem('whatsup.erased','1');p=load();p.askConsent();
   now+=50;assert.equal(ok(p),false);
-  for(const f of p.keyup)f();assert.equal(ok(p),true,'after a key is released');
+  release(p,'Enter');assert.equal(ok(p),false,'the Erase press\'s own release, which lands on this page');
+  press(p,'Enter',20);for(let i=0;i<4;i++)press(p,'Enter',50);release(p,'Enter');
+  assert.equal(ok(p),false,'a key held since the Erase press: its repeats reached this page at once');
+  press(p,'ArrowDown',100);release(p,'ArrowDown');assert.equal(ok(p),true,'after a key pressed here is released');
   // Any other launch: OK at once.
   p=load();p.askConsent();assert.equal(ok(p),true,'no Erase before it');
 });
@@ -339,7 +375,7 @@ test('an outage: with no model for minutes the dashboard is drawn again at each 
   let t=Date.parse('2026-11-06T05:59:35Z'),ticks=0;const timers=new Set(),drawn=[],swaps=[];
   // The feed's tick() (model.mjs) runs the model again: the time, the day's tallies and the countdown move on together.
   const feed={resume(){},pause(){},tick(){ticks++;p.render({...p.lastModel,now:t});}};
-  const p=page([line('let clockTimer='),fn('keepTime'),line('let waitTimer='),fn('countDown'),fn('render'),line('window.__whatsupActive=')],{window:{},onScreen:true,lastModel:null,searchTimer:null,Date:{now:()=>t},
+  const p=page([line('let clockTimer='),fn('keepTime'),line('let waitTimer='),fn('countDown'),fn('render'),stmt('window.__whatsupActive=')],{window:{},onScreen:true,setOnScreen(){},lastModel:null,searchTimer:null,searchHeld:false,Date:{now:()=>t},
     setTimeout:(fn,ms)=>{const h={fn,at:t+ms};timers.add(h);return h;},clearTimeout:h=>{timers.delete(h);},
     setInterval:(fn,ms)=>{const h={fn,at:t+ms,every:ms};timers.add(h);return h;},clearInterval:h=>{timers.delete(h);},
     draw:m=>drawn.push(m.now),listen(){},credited:'',sourceFlashAt:0,SOURCE_FLASH_MS:0,flashCredits(){},performance:{now:()=>0},
@@ -439,11 +475,52 @@ test('media keys are the system\'s (Fire TV test 4.6): Play/Pause, Fast Forward 
   p.layer={id:'locate'};assert.equal(hold('r',82,3),'R,R,R,R','a held R on the search screen types R each repeat');
 });
 
+test('Google TV: a held key whose repeats come with repeat false (Android\'s web view) still acts once: a held OK opens Settings only; released and pressed again it acts again, also when a keyup went missing (0.7 s on); held arrows in Adjust position move faster',()=>{
+  const region=/^const DIRS=[\s\S]*?^\}\);$/m.exec(APP)?.[0];assert.ok(region,'the keydown handler in app.mjs');
+  let handler,keyup,now=0;const seen=[];
+  const p=page([region],{document:{addEventListener:(t,f)=>{if(t==='keydown')handler=f;if(t==='keyup')keyup=f;}},performance:{now:()=>now},busyNow:false,layer:null,adj:null,editing:null,heldOk:null,focused:null,
+    openSettings:()=>{seen.push('open');p.layer={id:'settings'};},back(){},typeKey:k=>seen.push(k),$:()=>({}),move(){},select:()=>seen.push('select'),
+    stepMap(){},stepPlanes(){},stepPick(){},endPick(){},close(){},nudge:(dir,fast)=>seen.push(dir+(fast?'+':'')),endAdjust:()=>seen.push('save')});
+  const down=(key,keyCode,ms=50)=>{now+=ms;handler({key,keyCode,repeat:false,isTrusted:true,preventDefault(){}});};
+  const up=key=>keyup?.({key});
+  // Held OK on the main screen: one press, then repeats every 50 ms, all with repeat false.
+  seen.length=0;p.layer=null;down('Enter',13);for(let i=0;i<12;i++)down('Enter',13);up('Enter');
+  assert.equal(seen.join(),'open','a held OK opens Settings and does nothing more');
+  // Released and pressed again (in Settings now): a second press.
+  seen.length=0;down('Enter',13,200);up('Enter');assert.equal(seen.join(),'select','a new press after the keyup acts');
+  // A keyup that never came: the next press 0.8 s later is a press, one 0.3 s later still a repeat.
+  seen.length=0;p.layer=null;down('Enter',13,1000);down('Enter',13,300);assert.equal(seen.join(),'open','0.3 s after, no keyup: a repeat');
+  p.layer=null;down('Enter',13,800);assert.equal(seen.join(),'open,open','0.8 s after, no keyup: a new press');up('Enter');
+  // Held arrows in Adjust position: the first step, then fast steps.
+  seen.length=0;p.layer=null;p.adj={};down('ArrowRight',39);down('ArrowRight',39);down('ArrowRight',39);up('ArrowRight');down('ArrowRight',39,200);up('ArrowRight');
+  assert.equal(seen.join(),'right,right+,right+,right','held arrows: first step, then fast; a new press is a single step again');
+  p.adj=null;
+  // Untrusted events (the app's Menu, the page's replayed OK) are never held: their own repeat flag counts.
+  seen.length=0;p.layer=null;now+=50;handler({key:'Enter',keyCode:13,repeat:false,isTrusted:false,preventDefault(){}});p.layer=null;now+=50;handler({key:'Enter',keyCode:13,repeat:false,isTrusted:false,preventDefault(){}});
+  assert.equal(seen.join(),'open,open','replayed or synthetic presses act each time');
+});
+
+test('Back: on Fire TV one press reported twice within 350 ms (by the app and by the page) acts once; on Google TV, where only the app reports it, two quick presses close two screens; a report from the other side within 350 ms is still the same press',()=>{
+  const code=[line('let lastBack='),fn('back'),line('window.__whatsupBack=')];
+  for(const platform of ['vega','android']){
+    let now=1000;const seen=[];
+    const p=page(code,{PLATFORM:platform,performance:{now:()=>now},window:{},editing:null,adj:null,layer:{id:'settings'},browse:null,
+      cancelEdit:()=>seen.push('cancel'),endAdjust:()=>seen.push('adjust'),endBrowse:()=>seen.push('browse'),close:()=>seen.push('close')});
+    const app=(ms=0)=>{now+=ms;p.window.__whatsupBack();},key=(ms=0)=>{now+=ms;p.back();};
+    app();key(20);assert.equal(seen.length,1,`${platform}: app + page report of one press: once`);
+    seen.length=0;app(400);app(120);
+    assert.equal(seen.length,platform==='android'?2:1,`${platform}: two of the app's reports 120 ms apart`);
+    seen.length=0;key(400);app(30);assert.equal(seen.length,1,`${platform}: a key and the app within 350 ms: once`);
+    seen.length=0;key(400);key(100);assert.equal(seen.length,platform==='android'?2:1,`${platform}: two of the page's own 100 ms apart (a keyboard's Escape pressed twice)`);
+    seen.length=0;app(400);app(400);assert.equal(seen.length,2,`${platform}: 400 ms apart: twice`);
+  }
+});
+
 test('a search typed and then left within 0.8 s (Back, a result picked, Home) is never sent to the geocoder; one left alone is',async()=>{
   const timers=new Map();let nextId=0;const asked=[];
   const el=()=>({replaceChildren(){},querySelector:()=>el(),append(){},textContent:'',dataset:{},style:{}});
-  const p=page([line('let entry='),line('const stopSearch='),line('const SEARCH_LIMIT_MS='),fn('typeKey'),fn('runSearch'),fn('close'),line('function closeAll\\('),line('window.__whatsupActive=')],
-    {setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:id=>id==='ip-retry'?null:el(),document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
+  const p=page([line('let entry='),line('const stopSearch='),line('const SEARCH_LIMIT_MS='),fn('typeKey'),fn('runSearch'),fn('close'),line('function closeAll\\('),stmt('window.__whatsupActive=')],
+    {setOnScreen(){},searchBusy:()=>0,fitEntry(){},setTimeout:(f,ms)=>{timers.set(++nextId,{f,ms});return nextId;},clearTimeout:id=>timers.delete(id),$:id=>id==='ip-retry'?null:el(),document:{createElement:el},fitLine(){},keepFocus(){},setFocus(){},
       focusables:()=>[],syncApp(){},showSettings(){},refitSettings(){},endPick(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,
       PROFILE:{},placeLabel:()=>'',searchPlaces:async q=>{asked.push(q);return [];},searchAddress:async()=>[],lastQuery:'',settings:{place:{}},layer:null,layers:[],
       window:{},feed:null,flushLog(){},countDown(){},keepTime(){},onScreen:true});
@@ -460,6 +537,9 @@ test('a search typed and then left within 0.8 s (Back, a result picked, Home) is
   assert.equal(await typed(()=>p.close()),'','Back to Settings');
   assert.equal(await typed(()=>p.closeAll()),'','a result picked (every screen closes)');
   assert.equal(await typed(()=>p.window.__whatsupActive(false)),'','the app sent to the background');
+  p.window.__whatsupActive(true);for(const [id,t] of [...timers])if(t.ms===800&&timers.delete(id))t.f();await new Promise(r=>setImmediate(r));
+  assert.equal(asked.join(),'OMA','back on screen: the held search goes 0.8 s on');
+  p.window.__whatsupActive(false);p.window.__whatsupActive(true);assert.equal([...timers.values()].filter(t=>t.ms===800).length,0,'held once only: it went');
   assert.equal(await typed(()=>{p.layers.push(p.layer);p.layer=screen('confirm');}),'','the timer fires under another screen');
 });
 
@@ -570,7 +650,7 @@ test('search screen, first run offline: Search with fewer than 2 characters type
   const results=el({id:'results'}),card=el(),help=el({id:'entry-help'}),ip=el({id:'ip-retry',className:'retry',textContent:'Try again'});
   const offline=()=>{card.replaceChildren(help,ip);results.replaceChildren();p.texts['entry-help']=NO_NET;}; // a first run, the lookup refused: findHome's screen
   let geocoder=async()=>[{name:'Denver',admin:'Colorado',country:'United States',source:'search'}];
-  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),line('const NO_NET='),fn('runSearch')],{layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),line('const NO_NET='),fn('runSearch')],{searchBusy:()=>0,fitEntry(){},layer:{id:'locate'},layers:[],clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},
     $:id=>id==='results'?results:id==='ip-retry'?(ip.parent?ip:null):id==='keys'?{querySelector:()=>({})}:el({id}),
     document:{createElement:tag=>el({tag})},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
     searchPlaces:q=>geocoder(q),searchAddress:async()=>[],placeLabel:pl=>pl.name});
@@ -595,6 +675,33 @@ test('search screen, first run offline: Search with fewer than 2 characters type
   assert.deepEqual(await search('DENVER'),{results:['button'],buttons:[],help:NO_PLACE},'a search that answers');
   assert.equal(results.kids[0]._place?.name,'Denver');
   assert.deepEqual(await search(''),{results:[FIRST],buttons:[],help:NO_PLACE},'later: the message alone');
+});
+
+test('map note: while the shared note says the map is unavailable, the layouts\' own "Drawing the map" notes are hidden; back when it clears',()=>{
+  const classes=new Set(),note={textContent:''};
+  const p=page([stmt('const setText=')],{$:id=>id==='layout-note'?note:null,document:{documentElement:{classList:{toggle:(c,on)=>on?classes.add(c):classes.delete(c)}}}});
+  const set=v=>vm.runInContext(`setText('layout-note',${JSON.stringify(v)})`,p); // the cut setText (the context's is a stub)
+  set('Map unavailable, retrying');assert.ok(classes.has('map-down'));assert.equal(note.textContent,'Map unavailable, retrying');
+  set('Street map unavailable, trying again soon');assert.ok(classes.has('map-down'));
+  set('');assert.ok(!classes.has('map-down'));
+  set('Finding your location');assert.ok(!classes.has('map-down'));
+  const css=readFileSync(new URL('../web/whatsup.css',import.meta.url),'utf8');
+  assert.match(css,/\.map-down \.at-note,\.map-down \.scope-note\{visibility:hidden\}/,'Atlas and Radar notes');
+});
+
+test('search: a geocoder that asked for a pause (a 429, a Retry-After) reads as busy, with how long, not as a lost connection; Try again stays',async()=>{
+  const el=(props={})=>({className:'',...props,dataset:{},kids:[],parent:null,querySelectorAll:()=>[],
+    append(...xs){for(const x of xs){x.remove?.();x.parent=this;this.kids.push(x);}},replaceChildren(...xs){for(const k of this.kids)k.parent=null;this.kids=[];this.append(...xs);},
+    remove(){if(this.parent){this.parent.kids.splice(this.parent.kids.indexOf(this),1);this.parent=null;}}});
+  const results=el({id:'results'});let busy=0;
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),line('let lastQuery='),line('const NO_NET='),fn('runSearch')],{searchBusy:()=>busy,fitEntry(){},layer:{id:'locate'},layers:[],
+    clearTimeout(){},setTimeout:()=>0,fitLine(){},keepFocus(){},setFocus(){},$:id=>id==='results'?results:id==='ip-retry'?null:id==='keys'?{querySelector:()=>({})}:el({id}),
+    document:{createElement:tag=>el({tag})},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
+    searchPlaces:async()=>null,searchAddress:async()=>null,placeLabel:pl=>pl.name});
+  const search=async()=>{vm.runInContext('entry="DENVER"',p);await p.runSearch(true);return results.kids.map(k=>k.id||k.textContent);};
+  assert.deepEqual(await search(),['Search is unavailable. Check the connection.','search-retry']);
+  busy=45;assert.deepEqual(await search(),['Search is busy right now. Try again in a minute.','search-retry']);
+  busy=170;assert.deepEqual(await search(),['Search is busy right now. Try again in 3 minutes.','search-retry']);
 });
 
 test('screen reader: the plane on the card is read again, with its distance, as it enters the alert zone and as it leaves; Approaching and Nearest trading places on it, a zone change while browsing, or a poll with nothing new are not',()=>{
@@ -718,7 +825,7 @@ test('screen reader: the search screen reads its status once as it changes: "Sea
   const box=Object.assign(elem('div'),{replaceChildren(...n){this.children=n;},querySelectorAll:()=>[]});
   const els={results:box,'results-src':elem('p'),'search-src':elem('p'),keys:{querySelector:()=>({})},'search-retry':{}};
   const writes=[],places={CHI:[{name:'Chicago, IL',admin:'Illinois',country:'United States'},{name:'Chicago Heights, IL'},{name:'Chicago Ridge, IL'}],DEN:[{name:'Denver, CO'}],QZXWV:[]};
-  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),fn('runSearch'),line('let lastQuery=')],{setText:(id,v)=>{if(id==='sr-live')writes.push(v);},
+  const p=page([line('let entry='),line('const SEARCH_LIMIT_MS='),fn('runSearch'),line('let lastQuery=')],{searchBusy:()=>0,fitEntry(){},setText:(id,v)=>{if(id==='sr-live')writes.push(v);},
     $:id=>els[id],fitLine(){},keepFocus(){},setFocus(){},looksLikeAddress:()=>false,looksLikeUSAddress:()=>false,looksLikePostcode:()=>false,PROFILE:{nominatim:false},
     searchPlaces:async q=>{if(q==='DOWN')throw new Error('503');return places[q];},searchAddress:async()=>[],placeLabel:pl=>pl.name,layer:{id:'locate'},layers:[],
     clearTimeout(){},setTimeout:()=>0,document:{createElement:elem}});
@@ -850,3 +957,45 @@ test('screen reader: a plane the card keeps as Above you now just past the zone 
   assert.deepEqual(writes,['Above you now, N123HX, Robinson R44, 2.9 mi'],'a hover on the edge: one line');
   p.announce({hero:H(3.4,false)});assert.equal(writes.length,2,'read again once it really leaves');assert.match(writes[1],/^Nearest, N123HX/);
 });
+
+test('the letter R on the main screen does nothing (its keyCode is 82, as Menu\'s is): Menu, ContextMenu, OK and Space open Settings',()=>{
+  const region=/^const DIRS=[\s\S]*?^\}\);$/m.exec(APP)?.[0];assert.ok(region,'the keydown handler in app.mjs');
+  let handler;const seen=[];
+  const p=page([region],{document:{addEventListener:(t,f)=>{if(t==='keydown')handler=f;}},busyNow:false,layer:null,adj:null,editing:null,heldOk:null,
+    openSettings:()=>seen.push('open'),back(){},typeKey(){},$:()=>({}),move(){},select(){},stepMap(){},stepPlanes(){},stepPick(){},endPick(){},close(){}});
+  const press=(key,keyCode)=>{seen.length=0;p.layer=null;handler({key,keyCode,repeat:false,preventDefault(){}});return seen.join();};
+  for(const [key,code] of [['r',82],['R',82]])assert.equal(press(key,code),'',`${key} (${code})`);
+  for(const [key,code] of [['Menu',82],['Unidentified',82],['ContextMenu',93],['ContextMenu',0],['Enter',13],[' ',32]])assert.equal(press(key,code),'open',`${key} (${code})`);
+});
+
+test('Back forgets an OK pressed while the busy cog shows: on Google TV, Back comes only from the app (never as a key), so after Back ends browsing nothing opens when the cog clears; with no Back the kept OK is acted on',()=>{
+  const run=withBack=>{
+    const timers=[],frames=[],replayed=[];
+    const p=page([line('let busyNow='),line('let busyToken='),line('let heldOk='),fn('busy'),line('let lastBack='),fn('back'),line('window.__whatsupBack=')],{
+      PLATFORM:'android',performance:{now:()=>5000},window:{},editing:null,adj:null,layer:null,focused:null,browse:{},
+      $:()=>({classList:{add(){},remove(){}}}),setTimeout:f=>timers.push(f),requestAnimationFrame:f=>frames.push(f),
+      KeyboardEvent:class{constructor(type,o){Object.assign(this,{type},o);}},document:{dispatchEvent:e=>replayed.push(e.key)},
+      cancelEdit(){},endAdjust(){},endBrowse(){p.browse=null;},close(){}});
+    p.busy(()=>{}); // a map zoom while browsing a plane: the cog shows
+    vm.runInContext('heldOk={layer,focused,editing,adj}',p); // OK under the cog, as the key handler keeps it
+    if(withBack)p.window.__whatsupBack();
+    while(timers.length||frames.length)(timers.shift()||frames.shift())();
+    return replayed.join();
+  };
+  assert.equal(run(true),'','Back: the kept OK is forgotten');
+  assert.equal(run(false),'Enter','no Back: the kept OK is acted on when the cog clears');
+});
+
+test('screen reader: back on the dashboard from a screen that wrote #sr-live itself (About, Privacy), the plane on the card is read again, the same one as before',()=>{
+  const live={textContent:''},M={hero:{hex:'a1b2c3',status:'Above you now',flight:'DAL1234',type:'Airbus A321',ground:2.1,inside:true}};
+  const p=page([line('let spoken='),fn('announce'),fn('close'),'function draw(m){announce(m);}'],{
+    $:id=>id==='sr-live'?live:null,quietText:()=>'Quiet',demo:false,fmt:{dist:d=>`${d} mi`},settings:{place:{}},layers:[],layer:null,adj:null,
+    lastModel:M,setFocus(){},syncApp(){},endPick(){},stopSearch(){},showSettings(){},refitSettings(){},focusables:()=>[]});
+  p.announce(M);const read=live.textContent;
+  assert.equal(read,'Above you now, DAL1234, Airbus A321, 2.1 mi');
+  p.layer={id:'about',hidden:false,style:{}};live.textContent='About. Made by Spacely Digital.'; // no poll while it is open
+  p.close();
+  assert.equal(live.textContent,read,'the plane is read again on close');
+  p.announce(M);assert.equal(live.textContent,read,'and not again at the next poll');
+});
+

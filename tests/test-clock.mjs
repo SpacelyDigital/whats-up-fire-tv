@@ -18,7 +18,7 @@ const gapsOf=ts=>ts.slice(1).map((v,i)=>v-ts[i]);
 function rig(){
   const real={now:Date.now,perf:performance.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
   let t=0,err=0;const timers=new Set(),calls=[],updates=[];
-  const feeds={fi:{mode:'ok',ms:200},lol:{mode:'ok',ms:200}};
+  const feeds={fi:{mode:'ok',ms:200},lol:{mode:'ok',ms:200}}; // shift: the feed's clock against true time (ms)
   Date.now=()=>T0+t+err;performance.now=()=>t;Math.random=()=>.5;
   globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
   globalThis.clearTimeout=h=>{timers.delete(h);};
@@ -27,7 +27,7 @@ function rig(){
     const h=globalThis.setTimeout(()=>{c.done=t;
       if(f.mode==='offline')return no(new TypeError('offline'));
       const status=f.mode==='ok'?200:Number(f.mode.slice(1));
-      ok({status,url,headers:{get:()=>null},text:async()=>status===200?JSON.stringify({ac:f.ac||[PLANE],msg:'No error',now:T0+t}):''});
+      ok({status,url,headers:{get:()=>null},text:async()=>status===200?JSON.stringify({ac:f.ac||[PLANE],msg:'No error',now:T0+t+(f.shift||0)}):''});
     },f.ms);
     opts.signal?.addEventListener('abort',()=>{globalThis.clearTimeout(h);no(new Error('aborted'));});
   });
@@ -110,6 +110,19 @@ test('map tiles: a 429\'s pause runs on performance.now(): the TV clock stepped 
     p+=30000;d+=30000;assert.equal(await getBytes(TILE),null,'paused');assert.equal(calls,1);
     p+=31000;d-=3600000;assert.equal((await getBytes(TILE))?.length,8,'asked again a minute after the 429');assert.equal(calls,2);
   }finally{Date.now=real.now;performance.now=real.perf;globalThis.fetch=real.fetch;resetOutage();}
+});
+
+test('map tiles: a tile\'s 429 with a Retry-After is waited out (up to an hour), not just the pause\'s first minute',async()=>{
+  const real={perf:performance.now,fetch:globalThis.fetch};let p=3e7,status=429;const asked=[];
+  performance.now=()=>p;
+  globalThis.fetch=async url=>{asked.push(String(url));return {status,headers:{get:k=>k==='retry-after'?'1800':null},arrayBuffer:async()=>new ArrayBuffer(8)};};
+  const TILE='https://tiles.openfreemap.org/planet/x/10/271/391.pbf';
+  try{
+    assert.equal(await getBytes(TILE),null);status=200;
+    p+=61000;assert.equal(await getBytes(TILE),null,'still waiting a minute on');assert.equal(asked.length,1);
+    p+=1740000; // 1801 s after the 429
+    assert.equal((await getBytes(TILE))?.length,8);assert.equal(asked.length,2);
+  }finally{performance.now=real.perf;globalThis.fetch=real.fetch;resetOutage();}
 });
 
 test('map: a 429 on the TileJSON waits out its Retry-After and the tile pause; neither it nor a tile is asked meanwhile',async()=>{
@@ -289,3 +302,42 @@ test('a feed restarted for the same place carries the planes on, but not \'Recen
     assert.deepEqual(c[0].recent,[],'\'Recently above\' starts afresh');assert.equal(c[0].log.today,0,'so does the logbook');
   }finally{for(const s of stops)s.stop();r.restore();}
 });
+
+test('back on screen after a minute away with a slow network: the old picture is judged 2 s on, not left as live until the poll answers; after a quick answer nothing old is shown',async()=>{
+  const r=fresh();resetLog();const models=[];
+  try{
+    const s=start({...CVG,timeZone:'America/New_York'},CFG,m=>models.push({t:r.t,m}));
+    await r.advance(16000);assert.ok(models.at(-1).m.fresh&&models.at(-1).m.planes.length,'live first');
+    s.pause();await r.advance(70000);r.feeds.fi.ms=3500;let at=r.t;s.resume();
+    await r.advance(1990);assert.equal(models.filter(x=>x.t>at).length,0,'the picture stands for 2 s');
+    await r.advance(20);
+    const judged=models.filter(x=>x.t>at);
+    assert.ok(judged.length===1&&judged[0].t-at===2000&&!judged[0].m.fresh&&!judged[0].m.planes.length,`judged old: ${judged.map(x=>`+${x.t-at} ${x.m.fresh?'live':'old'} ${x.m.planes.length}`)}`);
+    await r.advance(2000);assert.ok(models.at(-1).m.fresh&&models.at(-1).m.planes.length,'live once the poll is answered');
+    s.pause();await r.advance(70000);r.feeds.fi.ms=200;at=r.t;s.resume();await r.advance(5000);
+    const quick=models.filter(x=>x.t>at);
+    assert.ok(quick.length&&quick.every(x=>x.m.fresh),`after a quick answer: ${quick.map(x=>x.m.fresh?'live':'old')}`);
+    // Away 20 s: the picture is 20 s old and the poll slow: judged when it is a minute old, not at 2 s.
+    s.pause();await r.advance(20000);r.feeds.fi.mode='s503';r.feeds.lol.mode='s503';at=r.t;s.resume();await r.advance(3000);
+    assert.ok(models.filter(x=>x.t>at).every(x=>x.m.planes.length),'a 20 s old picture stays through a failed poll');
+    s.stop();
+  }finally{r.restore();}
+});
+
+test('an outage that begins just before midnight: the last picture, kept up to a minute, shows today\'s tallies after midnight, not yesterday\'s',async()=>{
+  const r=fresh();resetLog();const models=[];
+  try{
+    // T0 is midnight in Tokyo: the TV's clock and the feeds' start a minute before it.
+    r.step(-60000);r.feeds.fi.shift=-60000;r.feeds.lol.shift=-60000;
+    const s=start({...CVG,timeZone:'Asia/Tokyo'},CFG,m=>models.push({t:r.t,m}));
+    await r.advance(30000);assert.ok(models.at(-1).m.fresh&&models.at(-1).m.log.today>=1,`seen before midnight: ${models.at(-1).m.log.today}`);
+    r.feeds.fi.mode='offline';r.feeds.lol.mode='offline';
+    await r.advance(55000);
+    const kept=models.filter(x=>x.t>60500&&x.m.planes.length);
+    assert.ok(kept.length,'the last picture is kept after midnight');
+    assert.deepEqual(kept.map(x=>x.m.log.today),kept.map(()=>0),'with today\'s tallies');
+    assert.ok(models.filter(x=>x.t>30000&&x.t<59500&&x.m.planes.length).every(x=>x.m.log.today>=1),'before midnight: the day\'s');
+    s.stop();
+  }finally{r.restore();}
+});
+

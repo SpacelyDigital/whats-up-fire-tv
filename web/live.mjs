@@ -48,6 +48,14 @@ export const nativeHost=()=>(typeof window!=='undefined'&&(window.ReactNativeWeb
 // Ids start at a random point: a late reply meant for the page before a reload (Erase) must
 // not answer this page's requests.
 const pending=new Map();let nextRequest=Math.floor(Math.random()*1e9);
+// Off screen the page asks for nothing. Google TV's app holds the page's timers then, but the replies to what it asked
+// before still run the page on, and a map build that got one tile asked for the next: 31 tiles in 12 s away. A request
+// made while the app is away waits for its return (told by app.mjs, as the app tells it).
+let away=null,returned=null;
+export function setOnScreen(on){
+  if(!on){away??=new Promise(r=>{returned=r;});return;}
+  const r=returned;away=returned=null;r?.();
+}
 if(typeof window!=='undefined')window.__whatsupReply=(id,status,text)=>{
   const done=pending.get(id);if(done){pending.delete(id);done(status,text);}
 };
@@ -63,6 +71,7 @@ export function getJson(url,timeoutMs=8000){
 // Retry-After as seconds: a number, or an HTTP date (the seconds until it); anything else 0.
 const retrySeconds=t=>{const s=String(t??'').trim(),n=Number(s);if(Number.isFinite(n))return n;const d=Date.parse(s);return Number.isFinite(d)?Math.max(0,Math.ceil((d-Date.now())/1000)):0;};
 function rawGetJson(url,timeoutMs){
+  if(away)return away.then(()=>rawGetJson(url,timeoutMs));
   const bridge=nativeHost();
   // Non-200: `retryAfter` is the service's Retry-After in seconds, when it sent one.
   const parse=(status,text)=>{
@@ -85,7 +94,8 @@ function rawGetJson(url,timeoutMs){
 // app's own User-Agent (OpenFreeMap's terms); the page's fetch (CORS) only where there is no
 // bridge (desktop tests). At most TILE_PARALLEL in flight across the whole app, and after a
 // 429, 403 or 5xx every tile request waits out a shared cooldown (1 min, doubling to 10 min);
-// the maps then keep what's saved (longer when the TileJSON's Retry-After asks, up to an hour).
+// the maps then keep what's saved (longer when the TileJSON's or a tile's Retry-After asks, up to
+// an hour: the app passes a tile's Retry-After on as the reply text).
 // Resolves bytes or null. The cooldown runs on performance.now(): a TV clock step can't stretch it.
 const TILE_PARALLEL=4;
 let tileSlots=TILE_PARALLEL,tileCooldown=0,tileStrikes=0;const tileQueue=[];
@@ -98,24 +108,32 @@ function tileStatus(status,retryAfter=0){
     tileCooldown=performance.now()+Math.max(Math.min(600000,60000*2**tileStrikes++),Math.min(3600,retryAfter)*1000);
   }
 }
+// A tile the Google TV app sends as base64, as bytes. A plain loop: Uint8Array.from with a map function called it for
+// each of a tile's ~130,000 bytes, 50-75 ms a tile on a TV-speed core, seconds over a map's 70 tiles.
+export function fromBase64(text){
+  const s=atob(text),b=new Uint8Array(s.length);
+  for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);
+  return b;
+}
 export async function getBytes(url,timeoutMs=10000){
   if(performance.now()<tileCooldown)return null;
   await tileSlot();
   tileStats.inFlight++;tileStats.peak=Math.max(tileStats.peak,tileStats.inFlight);tileStats.requests++;
   try{
+    while(away)await away;
     if(performance.now()<tileCooldown)return null;
     const bridge=nativeHost();
     if(bridge)return await new Promise(resolve=>{
       const id=++nextRequest,timer=setTimeout(()=>{pending.delete(id);resolve(null);},timeoutMs+2000);
       pending.set(id,(status,text)=>{
-        clearTimeout(timer);tileStatus(status);
-        try{const b=status===200?Uint8Array.from(atob(text),c=>c.charCodeAt(0)):null;if(b)tileStats.bytes+=b.length;resolve(b);}catch{resolve(null);}
+        clearTimeout(timer);tileStatus(status,status===200?0:retrySeconds(text));
+        try{const b=status===200?fromBase64(text):null;if(b)tileStats.bytes+=b.length;resolve(b);}catch{resolve(null);}
       });
       try{bridge.postMessage(JSON.stringify({type:'get',id,url,timeoutMs,binary:true}));}catch{pending.delete(id);clearTimeout(timer);resolve(null);}
     });
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
     try{
-      const r=await fetch(url,{credentials:'omit',signal:controller.signal});tileStatus(r.status);
+      const r=await fetch(url,{credentials:'omit',signal:controller.signal});tileStatus(r.status,r.status===200?0:retrySeconds(r.headers?.get?.('retry-after')));
       if(r.status!==200)return null;
       const b=new Uint8Array(await r.arrayBuffer());tileStats.bytes+=b.length;return b;
     }catch{return null;}finally{clearTimeout(timer);}
@@ -176,7 +194,8 @@ export function selection(ac,stamp,home,radius,now){
   let nearest=null,best=Infinity;const inside=[];
   for(const a of fresh&&Array.isArray(ac)?ac:[]){
     if(!a||typeof a!=='object'||!position(a.lat,a.lon)||typeof a.hex!=='string'||!/^[a-fA-F0-9]{6}$/.test(a.hex)||
-      !number(a.alt_baro)||!number(a.seen_pos)||a.seen_pos<0||a.seen_pos+age<0||a.seen_pos+age>20)continue;
+      !number(a.alt_baro)||a.alt_baro>60000||a.alt_baro<-1500|| // as airspace() (core.mjs): an impossible reading is none, so
+      !number(a.seen_pos)||a.seen_pos<0||a.seen_pos+age<0||a.seen_pos+age>20)continue; // 'Recently above' can't list what the map drops
     const x=dLon(a.lon,home.longitude)*radians*Math.cos((home.latitude+a.lat)/2*radians),y=(a.lat-home.latitude)*radians;
     const miles=Math.sqrt(x*x+y*y)*3958.7613;
     const record={hex:a.hex,callsign:text(a.flight,10),registration:text(a.r,12),
@@ -296,9 +315,11 @@ export function commercialRoute(payload,a,previous=null){
 // Keep only what route selection reads, bounded: a route reply is remote data that is
 // cached for hours and saved, so every field is typed and length-capped.
 // Community-sourced text: control, formatting and invisible characters (bidi overrides,
-// zero-width) are dropped, spaces collapsed, then capped. Airport codes are 3-4 of A-Z, 0-9.
-const INVISIBLE=/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB]/g;
-export const text=(v,n)=>typeof v==='string'?v.replace(INVISIBLE,'').replace(/\s+/g,' ').trim().slice(0,n).trim():'';
+// zero-width space) are dropped, spaces collapsed, then capped, never through a character (half an
+// emoji goes). The zero-width joiner and non-joiner stay: Persian, Sinhala and Indic names and emoji
+// sequences are spelled with them. Airport codes are 3-4 of A-Z, 0-9.
+const INVISIBLE=/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B\u200E\u200F\u2028-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB]/g;
+export const text=(v,n)=>typeof v==='string'?v.replace(INVISIBLE,'').replace(/\s+/g,' ').trim().slice(0,n).replace(/[\uD800-\uDBFF]$/,'').trim():'';
 const code=v=>{const s=String(v||'').trim().toUpperCase();return /^[A-Z0-9]{3,4}$/.test(s)?s:'';};
 const slim=p=>({callsign:text(p.callsign,10),_airports:Array.isArray(p._airports)?p._airports.slice(0,12).map(x=>
   ({iata:code(x?.iata),icao:code(x?.icao),name:text(x?.name,60),location:text(x?.location,40),
@@ -432,7 +453,7 @@ export class Enricher {
 // and 15 s mark are kept (a failure that lands after the restart counts too, unless a request made
 // since has succeeded), and while adsb.fi is known to be down the new feed starts on the backup with
 // both back-offs kept.
-export const FAILOVER_MS=15000,PROBE_MS=60000,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20],LEDGER_FLUSH_MS=300000;
+export const FAILOVER_MS=15000,PROBE_MS=60000,DUE_MS=5,BACKUP_PAUSE_S=900,BACKUP_STEPS_S=[10,15,20],LEDGER_FLUSH_MS=300000;
 const BACKUP_COOLDOWN='cooldown:adsblol-positions';
 // Times are performance.now() ms: the TV's clock can step (an NTP correction) and must not stall the feed.
 // okAt: when the last adsb.fi request that answered with data went out. lastStamp: the last good reply's
@@ -454,6 +475,11 @@ let coverageOf={...UNCHECKED};
 export const resetOutage=()=>{Object.assign(outage,CLEAR);coverageOf={...UNCHECKED};paceAt=0;tileCooldown=0;tileStrikes=0;}; // tests (the map tiles' pause too)
 // config: CONFIG plus the saved place {latitude, longitude} and radiusMiles; paused: started while
 // the app is hidden (a restart just before Home), so nothing is asked until resume().
+// What a draw shows of the routes: each one's flight and airports, and whether it covers its plane's sighting now (a
+// route holds for 2 min around the sighting it was matched to, and each lookup moves that on: its times and its
+// expiry change every poll, what it shows doesn't).
+const routeView=(list,at)=>JSON.stringify(list.map(r=>{const t=at.get(r.hex);
+  return [r.hex,r.callsign,r.registration,r.flight,r.origin,r.destination,!!r.historical,r.from,r.to,t!==undefined&&t>=r.valid_from&&t<=r.valid_until];}));
 export function startLive(show,config){
   // An update the display chokes on (a damaged saved value) is logged; the polling goes on.
   const onUpdate=(s,ok)=>{try{show(s,ok);}catch(e){console.error('feed update',e);}};
@@ -491,11 +517,14 @@ export function startLive(show,config){
     if(enriching||stopped)return;
     enriching=true;
     try{
-      routes=await enricher.tick(observations(ac,stamp,home,zone,history,feedNow),now);
+      const seen=observations(ac,stamp,home,zone,history,feedNow),at=new Map(seen.map(a=>[a.hex,a.observed])),drawn=routeView(routes,at);
+      routes=await enricher.tick(seen,now);
       if(stopped)return; // a stopped feed (place or zone changed) must not render or save
       states={...states,[IDS.routes]:{state:String(routes.length),attributes:{routes}}};
       if(ledger.urgent||performance.now()-saved>=LEDGER_FLUSH_MS)flush();
-      onUpdate(states,true);
+      // The poll has just drawn these planes with the routes as they were: again only if what they show changed
+      // (each draw lays the whole dashboard out; drawing every poll twice was about 30% of the page's idle time).
+      if(routeView(routes,at)!==drawn)onUpdate(states,true);
     }catch{/* Routes stay as they were; retried next poll. */}
     finally{enriching=false;}
   }
@@ -532,8 +561,12 @@ export function startLive(show,config){
   {const t=Date.now(),v=Number(ledger.get(BACKUP_COOLDOWN,t/1000))*1000;
     if(Number.isFinite(v)&&v<=t+3600000)outage.backupRetryAt=Math.max(outage.backupRetryAt,performance.now()+v-t);}
   const backupAt=()=>Math.max(outage.backupRetryAt,outage.lastBackupAt+backupGap());
-  // The one feed this poll asks, or null when neither may be asked yet.
+  // The one feed this poll asks, or null when neither may be asked yet. A timer can fire a fraction of a
+  // millisecond before the time it was set for (setTimeout drops the delay's fraction, and the clock is
+  // coarse): up to DUE_MS early counts as due, or the poll would slip a whole interval (adsb.lol every 15 s
+  // instead of 10, the checks on adsb.fi 65-70 s apart instead of 60).
   function pick(t){
+    t+=DUE_MS;
     if(!outage.down&&outage.fails&&t-outage.since>=FAILOVER_MS)outage.down=true; // 15 s of failures
     if(t>=fiAt())return 'adsb.fi';
     return outage.down&&t>=backupAt()?'adsb.lol':null;

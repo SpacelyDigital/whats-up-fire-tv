@@ -187,12 +187,12 @@ function render(m){
   $['mil-by'].replaceChildren(...((L.militaryTypes||[]).length?L.militaryTypes.slice(0,3).map(([t,n])=>{
     const d=el('div');d.append(el('em','',n),` ${t}`);return d;
   }):[el('div','','none yet')]));
-  const cell=(text,tag='span',cls='')=>el(tag,cls,text);
+  const cell=(text,tag='span',cls='')=>el(tag,cls,text),rarest=L.rarest; // a getter that goes through the whole day's log
   $.log.replaceChildren(cell('Seen'),cell(`${fmt.int(L.today)} aircraft`,'b'),
     cell('High'),cell(L.highest?`${L.highest.name} ${fmt.alt(L.highest.value)}`:'—','b'),
     cell('Fast'),cell(L.fastest?`${L.fastest.name} ${fmt.speed(L.fastest.value)}`:'—','b'),
-    cell('Rare'),cell(L.rarest?L.rarest.name:'—','b'));
-  const rare=$.log.lastElementChild;rare._alts=L.rarest?[L.rarest.name,L.rarest.code]:null;
+    cell('Rare'),cell(rarest?rarest.name:'—','b'));
+  const rare=$.log.lastElementChild;rare._alts=rarest?[rarest.name,rarest.code]:null;
   const recent=m.recent.slice(0,3);
   $.recent.replaceChildren(...(recent.length?recent.flatMap(a=>[
     cell(a.flight,'b',a.cargo?'cargo-row-t':''),

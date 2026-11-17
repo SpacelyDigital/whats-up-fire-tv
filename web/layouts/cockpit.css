@@ -58,10 +58,15 @@
 
 /* Emergency: master warning annunciator */
 .L-cockpit .warn{position:absolute;left:50%;top:78px;transform:translateX(-50%);text-align:center;border:2.5px solid var(--r);
-  background:#120000;padding:6px 18px;animation:ck-warn 1.2s steps(2) infinite;z-index:2}
-.L-cockpit .warn-a{color:var(--r);font:700 28px var(--b6);letter-spacing:.14em}
+  background:#120000;padding:6px 18px;z-index:2}
+/* The master warning blinks: dark with a red WARNING, then lit red with a white border and a dark WARNING (red on red hid
+   the word a quarter of each cycle). Both are layers whose opacity flips, a true two-state blink: animating the colours
+   themselves restyled the panel every frame. The dark word copies the one in cockpit.mjs's template. */
+.L-cockpit .warn::before{content:'';position:absolute;inset:-2.5px;z-index:-1;border:2.5px solid #fff;background:var(--r);opacity:0;animation:ck-warn 1.2s steps(1,end) infinite}
+.L-cockpit .warn-a{position:relative;color:var(--r);font:700 28px var(--b6);letter-spacing:.14em}
+.L-cockpit .warn-a::after{content:'WARNING';position:absolute;inset:0;color:#120000;opacity:0;animation:ck-warn 1.2s steps(1,end) infinite}
 .L-cockpit .warn-b{color:var(--w);font:700 15px var(--b6);white-space:nowrap}
-@keyframes ck-warn{50%{background:var(--r)}50%{border-color:#fff}}
+@keyframes ck-warn{50%{opacity:1}}
 .L-cockpit .emergency .route,.L-cockpit .emergency .wpt-star{stroke:var(--r)}
 .L-cockpit .emergency .wpt,.L-cockpit .emergency .fl{color:var(--r)}
 .L-cockpit .emergency .tcas.hero .cs{fill:var(--r)}

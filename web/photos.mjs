@@ -10,7 +10,7 @@
 // sends one, no Origin or Referer is set). Lookups: only for the aircraft on screen (one picked
 // with Left/Right once it has stayed on the card about a second, browse.mjs), at most
 // one every 1.5 s; "no photo" kept 24 h, failures 5 min; a 429 waits out Retry-After, a 403
-// stops lookups for 6 h (kept across restarts). Store profile: no lookups at all.
+// stops lookups for 6 h (kept across restarts). Both profiles look photos up (PROFILE.photos).
 import {getJson,store} from './live.mjs';
 import {modelPhoto} from './models.mjs';
 import {PROFILE} from './profile.mjs';
@@ -18,7 +18,8 @@ export {modelPhoto};
 
 export const PHOTO_URL=(kind,id)=>`https://api.planespotters.net/pub/photos/${kind}/${id}`;
 const IMG=/^https:\/\/(cdn\.planespotters\.net|[a-z0-9-]+\.plnspttrs\.net)\/[^\s"'<>]+\.(jpe?g|png|webp)$/i;
-const LINK=/^https:\/\/www\.planespotters\.net\/photo\/[^\s"'<>]{1,200}$/; // length-capped: it becomes a QR code
+// Length-capped and printable ASCII only: it becomes a QR code, which carries one byte a character.
+const LINK=/^https:\/\/www\.planespotters\.net\/photo\/[!#-&(-;=?-~]{1,200}$/;
 const cache=new Map(),DAY=86400000,PAUSE_KEY='whatsup.photos.pause',GAP_MS=1500;
 
 // A photo record {src,width,height,link,photographer} from an API reply, or null.
@@ -26,7 +27,7 @@ export function parsePhoto(payload){
   const p=Array.isArray(payload?.photos)?payload.photos[0]:null;
   const t=p?.thumbnail_large?.src?p.thumbnail_large:p?.thumbnail;
   if(!t||!IMG.test(String(t.src))||!LINK.test(String(p.link)))return null;
-  const photographer=typeof p.photographer==='string'?p.photographer.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,'').trim().slice(0,60):'';
+  const photographer=typeof p.photographer==='string'?p.photographer.replace(/[\u0000-\u001F\u007F-\u009F\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,'').trim().slice(0,60).replace(/[\uD800-\uDBFF]$/,''):''; // joiners kept (as live.mjs text)
   if(!photographer)return null; // the credit is required: no name, no photo
   return {src:t.src,width:Number(t.size?.width)||0,height:Number(t.size?.height)||0,link:p.link,photographer};
 }

@@ -4,7 +4,7 @@
 // layout: hero flight, route and progress, six stats, cargo and military today, today, recent.
 // Layout 1, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 3,
 // Atlas Satellite, puts satellite imagery under a light road overlay (atlas-satellite.css).
-import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
+import {satTiles,loadTiles,svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
   airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit,headingAlts} from '../kit.mjs';
 import {PROFILE} from '../profile.mjs';
 
@@ -88,8 +88,8 @@ const SAT_BASE=[
 ];
 // Imagery: USGS The National Map in the US (USGSImageryOnly, public domain), else EOxCloudless
 // 2016 by EOX (CC BY 4.0; Contains modified Copernicus Sentinel data 2016) where the build
-// profile allows it (personal). Without imagery (store build outside the US) Atlas Satellite
-// draws the dark vector map instead. Only the imagery layer is loaded from EOX: no overlay,
+// profile allows it (PROFILE.eox: both builds). Without imagery (a profile without EOX, outside the US) Atlas
+// Satellite draws the dark vector map instead. Only the imagery layer is loaded from EOX: no overlay,
 // label or road layer. {z}/{y}/{x} web-mercator tiles.
 const SAT_TILES=48;
 const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';
@@ -104,7 +104,7 @@ const BASE=[
 
 const usPlace=p=>p?.countryCode==='US'||p?.countryCode==='PR';
 const imagery=()=>sat&&(usPlace(ctx?.place?.())||PROFILE.eox);
-let root,demo,ctx,dark=false,sat=false,satToken=0,satKey='',$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
+let root,demo,ctx,dark=false,sat=false,satToken=0,satKey='',satStop=()=>{},$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
 
 function ui(){
   const map=el('div','at-map'),side=el('aside','at-side');
@@ -155,7 +155,7 @@ function ui(){
 // ~40 tiles), drawn as they arrive onto their own canvas; the images are dropped once drawn.
 function drawSatellite(){
   const place=ctx?.place?.();if(!sat||!$.sat||!place)return;
-  if(!imagery()){const g=$.sat.getContext('2d');g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,$.sat.width,$.sat.height);g.restore();satKey='';satToken++;return;}
+  if(!imagery()){const g=$.sat.getContext('2d');g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,$.sat.width,$.sat.height);g.restore();satKey='';satToken++;satStop();return;}
   const c=$.sat,k=c._k||1,g=c.getContext('2d');
   const us=usPlace(place),ppm=ppmOf(VIEW),cos=Math.cos(place.latitude*Math.PI/180);
   // Nothing changed that moves the imagery (place, scale, the water drawn under it): keep
@@ -182,17 +182,12 @@ function drawSatellite(){
   const lonOf=x=>x/n*360-180,latOf=y=>Math.atan(Math.sinh(Math.PI-2*Math.PI*y/n))*180/Math.PI;
   // Screen point of a lat/lon (same equirectangular miles as the vector maps, from the true home).
   const px=(lat,lon)=>({x:VIEW.cx+(lon-place.longitude)*69.172*cos*ppm,y:VIEW.cy-(lat-place.latitude)*69*ppm});
-  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){
-    const img=new Image();
-    img.onload=()=>{
-      if(token!==satToken||!$.sat)return;
-      const a=px(latOf(y),lonOf(x)),b=px(latOf(y+1),lonOf(x+1));
-      g.drawImage(img,a.x,a.y,b.x-a.x+.5,b.y-a.y+.5);img.src='';
-    };
-    img.src=(us?USGS:EOX).replace('{z}',z).replace('{y}',y).replace('{x}',x);
-  }
+  satStop();
+  satStop=loadTiles(satTiles(us?USGS:EOX,z,x0,x1,y0,y1),(t,img)=>{
+    const a=px(latOf(t.y),lonOf(t.x)),b=px(latOf(t.y+1),lonOf(t.x+1));
+    g.drawImage(img,a.x,a.y,b.x-a.x+.5,b.y-a.y+.5);
+  },()=>token===satToken&&!!$.sat);
 }
-
 function drawMap(){
   drawSatellite();
   paintMap($.canvas,maps,VIEW,imagery()?(maps.detail?SAT_DETAIL:SAT_BASE):maps.detail?(dark?DARK_DETAIL:DETAIL):(dark?DARK_BASE:BASE));
@@ -242,15 +237,19 @@ function scaleBar(){
 
 // The hero's picture block: a Planespotters photo of this exact aircraft, with the
 // photographer credit and a QR code to the photo's page beside it (their terms). Only the
-// shown image is held; switching aircraft drops it.
+// shown image is held; switching aircraft drops it. The block keeps its place but stays
+// invisible (credit and QR too) until the picture has loaded: a picture that never comes
+// no longer leaves a credit beside an empty frame.
 let picHex='',photo=null;
 function showPhoto(a){
   const hex=a?.hex||'';
   if(hex===picHex)return;
   picHex=hex;photo=null;$.pic.hidden=true;$.img.removeAttribute('src');$.qr.removeAttribute('src');$.pic.classList.remove('model');
+  $.pic.classList.add('loading');
   if(!hex)return;
   photoFor(a).then(p=>{
     if(!root||picHex!==hex)return;
+    $.img.onload=()=>{if(picHex===hex)$.pic.classList.remove('loading');};
     const qr=p&&themedQr(p.link);
     // No photo of this aircraft, or its image fails to load: a typical one of its type,
     // labelled so, if bundled.
@@ -355,10 +354,12 @@ function render(m){
   $['cargo-by']._alts=L.cargoBy.length?[brands(4),brands(3),brands(2)]:['none yet'];
   setText($['mil-n'],L.militaryToday||0);$['mil-by']._alts=militaryAlts(L);
   const cell=(k,v,cls='',alts)=>{const d=el('div',cls),dd=el('dd','',v);dd._alts=alts;d.append(el('dt','',k),dd);return d;};
-  const far=L.farthest,farMi=far&&fmt.far(far.value);
+  // Farthest and Rarest are getters that go through the whole day's log: each read once a draw.
+  // The route's place names are isolated (FSI...PDI): a right-to-left name can't pull the distance into its run.
+  const far=L.farthest,farMi=far&&fmt.far(far.value),rare=L.rarest,iso=t=>`\u2068${t}\u2069`,from=far&&iso(far.from),fromCode=far&&iso(far.code||far.from);
   $.log.replaceChildren(cell('Seen',fmt.int(L.today)),cell('Highest',L.highest?fmt.alt(L.highest.value):'—'),
-    cell('Fastest',L.fastest?fmt.speed(L.fastest.value):'—'),cell('Rarest',L.rarest?L.rarest.name:'—','wide',L.rarest&&[L.rarest.name,L.rarest.code]),
-    cell('Farthest',far?`${far.name} · ${far.from} · ${farMi}`:'—','wide far',far&&[`${far.name} · ${far.from} · ${farMi}`,`${far.from} · ${farMi}`,`${far.name} · ${far.code||far.from} · ${farMi}`,`${far.code||far.from} · ${farMi}`]));
+    cell('Fastest',L.fastest?fmt.speed(L.fastest.value):'—'),cell('Rarest',rare?rare.name:'—','wide',rare&&[rare.name,rare.code]),
+    cell('Farthest',far?`${far.name} · ${from} · ${farMi}`:'—','wide far',far&&[`${far.name} · ${from} · ${farMi}`,`${from} · ${farMi}`,`${far.name} · ${fromCode} · ${farMi}`,`${fromCode} · ${farMi}`]));
   setText(root.querySelector('.at-rech'),windowView()?'Through your window':'Recently above');
   const rec=m.recent.slice(0,hero?3:5);
   $.rec.replaceChildren(...(rec.length?rec.map(a=>{
@@ -398,5 +399,5 @@ export default {
   render,shows,
   refresh(){scaleBar();}, // units: the scale bar; the map itself shows no distance, and the card's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
-  unmount(){root=null;satToken++;picHex='';photo=null;$={};maps={};trails.clear();},
+  unmount(){root=null;satToken++;satStop();picHex='';photo=null;$={};maps={};trails.clear();},
 };

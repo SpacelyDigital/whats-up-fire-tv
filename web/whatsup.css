@@ -15,8 +15,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000}
 .stage{position:absolute;left:50%;top:50%;width:960px;height:540px;transform:translate(-50%,-50%);transform-origin:center;overflow:hidden;
   background:#000;color:var(--ui-ink);font-family:var(--mono);font-size:14px;line-height:1.45}
 .layout{position:absolute;inset:0;overflow:hidden;isolation:isolate} /* nothing a layout draws can rise over the credit line */
-.layout-note{position:absolute;left:0;right:0;bottom:44%;text-align:center;font:600 16px var(--ui-font);color:var(--ui-dim);pointer-events:none;z-index:4}
+/* On the layout's own background: in one place for every layout, it lands on a plane's tag or a board row in some. */
+.layout-note{position:absolute;left:0;right:0;bottom:44%;width:fit-content;max-width:80%;margin:0 auto;padding:3px 14px;border-radius:14px;
+  background:var(--ui-bg);text-align:center;font:600 16px var(--ui-font);color:var(--ui-dim);pointer-events:none;z-index:4}
 .layout-note:empty{display:none}
+.map-down .at-note,.map-down .scope-note{visibility:hidden} /* 'Map unavailable' over 'Drawing the map' said both */
 /* Inside the 5% title-safe area (48 px sides, 27 px bottom), above every layout, under screens. */
 .credit-flash{position:absolute;left:50%;bottom:27px;transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;max-width:864px;overflow:hidden;box-sizing:border-box;
   font:500 12px/1 var(--ui-font);color:var(--ui-ink);background:var(--ui-bg);border:1px solid var(--ui-faint);padding:4px 11px;border-radius:10px;
@@ -50,7 +53,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 .overlay .row span{color:var(--ui-dim)}.overlay .row b{font-weight:700;white-space:nowrap;overflow:hidden}.overlay .row i{font-style:normal;color:var(--ui-faint);font-size:15px}
 .overlay .row.focus span,.overlay .row.focus i{color:var(--ui-on)}
 .overlay .row.done{grid-template-columns:1fr;text-align:center;margin-top:12px}.overlay .row.done span{color:inherit;font-weight:700}
-.entry{font-size:28px;font-weight:700;border-bottom:1.5px solid var(--ui-ink);padding:2px 4px;min-height:44px}
+.entry{font-size:28px;font-weight:700;border-bottom:1.5px solid var(--ui-ink);padding:2px 4px;min-height:44px;overflow-wrap:anywhere} /* 40 letters, no space: off the card */
 .caret{display:inline-block;width:3px;height:28px;background:var(--ui-ink);vertical-align:-4px;margin-left:2px;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
 .locate-body{display:grid;grid-template-columns:auto 1fr;gap:22px;margin-top:14px}
@@ -73,7 +76,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 .results button span,.results button small{display:block;white-space:nowrap;overflow:hidden}
 .results button small{font-size:12px;color:var(--ui-dim)}
 .results button.focus small{color:var(--ui-on)}
-.results .msg,#locate .card>.msg{color:var(--ui-dim);font-size:14px;line-height:1.4}
+.results .msg,#locate .card>.msg{color:var(--ui-dim);font-size:14px;line-height:1.4;overflow-wrap:anywhere} /* 'No places match' a long word */
 .results .msg.busy,#locate .card>.msg.busy{animation:busy 1.2s ease-in-out infinite alternate}
 /* A first run offline: the IP lookup's Try again, and 'Finding your location' while it asks again, under the help line. */
 #locate .card>.retry{margin-top:8px;padding:6px 12px;font-size:16px}#locate .card>.msg{margin-top:8px}
@@ -111,7 +114,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 .adjust-panel .title{font-size:24px;font-weight:800}
 .adjust-panel p{margin:12px 0;color:var(--ui-dim)}
 .adjust-panel .note.small{color:var(--ui-dim);font-size:13px}
-.adjust-where{font-size:20px;font-weight:700;margin-top:4px}
+.adjust-where{font-size:20px;font-weight:700;margin-top:4px;overflow-wrap:anywhere} /* a long one-word place name, as .big-city */
 .adjust-moved{font-size:22px;font-weight:700;margin-top:14px}
 .keys-help{font-size:17px}
 /* Settings: two columns (Your sky | Display & sound) inside the 1080p safe area, no scrolling.

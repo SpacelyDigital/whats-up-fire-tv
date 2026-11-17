@@ -25,7 +25,7 @@ const FI_PLANE=plane('a1f1f1','FIX101'),LOL_PLANE=plane('a10101','LOL202');
 function rig(t0=T0){
   const real={now:Date.now,perf:performance.now,set:globalThis.setTimeout,clear:globalThis.clearTimeout,fetch:globalThis.fetch,random:Math.random};
   let t=t0,inFlight=0;const timers=new Set(),calls=[],updates=[];
-  const feeds={fi:{mode:'ok'},lol:{mode:'ok'}};
+  const feeds={fi:{mode:'ok'},lol:{mode:'ok'},route:null}; // route: what the route lookup answers (404 when null)
   Date.now=()=>t;performance.now=()=>t-t0;Math.random=()=>.5; // jitter ×1: back-offs are exact
   globalThis.setTimeout=(fn,ms)=>{const h={fn,at:t+Math.max(0,Number(ms)||0)};timers.add(h);return h;};
   globalThis.clearTimeout=h=>{timers.delete(h);};
@@ -34,6 +34,7 @@ function rig(t0=T0){
     url=String(url);
     const which=FI.test(url)?'fi':LOL.test(url)?'lol':/vrs-standing-data\.adsb\.lol/.test(url)?'route':'other';
     const call={t,url,which,done:null};calls.push(call);
+    if(which==='route'&&feeds.route)return Promise.resolve(res(200,JSON.stringify(feeds.route)));
     if(which==='route'||which==='other')return Promise.resolve(res(404,''));
     const f=feeds[which];inFlight++;
     if(inFlight>1)call.overlap=true;
@@ -97,6 +98,24 @@ test('backup: adsb.fi down, positions come from adsb.lol within 20 s, same point
     const gaps=r.at('lol').slice(1).map((v,i)=>v-r.at('lol')[i]);
     assert.ok(gaps.length>=4&&gaps.every(g=>g===10000),`adsb.lol every 10 s: ${gaps}`);
     assert.deepEqual(r.at('fi'),[0,9480],'no adsb.fi request within a minute of the last');
+    live.stop();
+  }finally{r.restore();}
+});
+
+test('backup: on a real clock (it moves between reads; setTimeout drops a delay\'s fraction of a ms, so a timer can fire just early) adsb.lol is still asked every 10 s, not 15',async()=>{
+  const r=fresh();
+  const perf=performance.now,set=globalThis.setTimeout;let reads=0;
+  performance.now=()=>perf()+(++reads)*0.001; // a microsecond a read
+  globalThis.setTimeout=(fn,ms)=>set(fn,Math.trunc(Number(ms)||0)); // WebIDL long: truncated
+  try{
+    r.feeds.fi={mode:'s503'};
+    const live=r.live();
+    await r.advance(150000);
+    const lol=r.at('lol'),gaps=lol.slice(1).map((v,i)=>v-lol[i]);
+    assert.ok(gaps.length>=10,`asked ${lol.length} times`);
+    // Gaps of 10 s (give or take the few ms a timer fires early or late); an adsb.fi check may take adsb.lol's turn.
+    const slipped=gaps.filter(g=>Math.abs(g-10000)>5);
+    assert.ok(slipped.length<=2&&slipped.every(g=>g<=15005),`adsb.lol gaps: ${gaps}`);
     live.stop();
   }finally{r.restore();}
 });
@@ -1539,3 +1558,34 @@ test('store: after a failed write, reads return the newer value from memory unti
     assert.equal(store.get('test:full'),null,'removed means gone, from memory too');
   }finally{store.onFull=onFull;store.remove('test:full');if(real)Object.defineProperty(globalThis,'localStorage',real);else delete globalThis.localStorage;}
 });
+
+test('each poll draws the dashboard once; a route lookup that brings a new route draws it again, one that changes nothing doesn\'t (every draw lays the whole dashboard out)',async()=>{
+  const r=fresh();
+  try{
+    r.feeds.route={callsign:'FIX101',_airports:[{iata:'ORD',lat:41.9786,lon:-87.9048},{iata:'CVG',lat:39.0488,lon:-84.6678}]};
+    const live=r.live();
+    await r.advance(31000);
+    const polls=r.at('fi').length,routeAsks=r.at('route').length,ok=r.updates.filter(u=>u.ok);
+    const routed=ok.filter(u=>u.states[IDS.routes]?.attributes?.routes?.length);
+    assert.ok(polls>=6,`${polls} polls`);assert.equal(routeAsks,1,'the route asked once (cached a day)');
+    assert.ok(routed.length,'the route arrives');
+    assert.equal(ok.length,polls+1,`${ok.length} draws for ${polls} polls: one each, and one more for the new route`);
+    // Both feeds down for 3 minutes: the route held for 2 min around the last sighting, so the first poll back draws
+    // the plane without it, and the lookup (from the day's cache) draws it again with it.
+    r.feeds.fi={mode:'offline'};r.feeds.lol={mode:'offline'};await r.advance(180000);
+    r.feeds.fi={mode:'ok'};r.feeds.lol={mode:'ok'};const back=r.updates.length;
+    while(!r.updates.slice(back).some(u=>u.ok))await r.advance(1000);
+    const first=r.updates.slice(back).find(u=>u.ok),same=r.updates.slice(back).filter(u=>u.ok&&u.t-first.t<1000);
+    const covers=u=>u.states[IDS.routes].attributes.routes.some(x=>x.hex==='a1f1f1'&&x.valid_until>=(u.t-400)/1000);
+    assert.deepEqual(same.map(covers),[false,true],'back from the outage: drawn, then drawn again with the route');
+    live.stop();
+  }finally{r.restore();}
+  const q=fresh();
+  try{
+    const live=q.live();
+    await q.advance(31000);
+    assert.equal(q.updates.filter(u=>u.ok).length,q.at('fi').length,'no route (404): one draw a poll');
+    live.stop();
+  }finally{q.restore();}
+});
+

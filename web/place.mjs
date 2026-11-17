@@ -2,7 +2,7 @@
 // First launch: approximate location from the connection's IP (GeoJS, free, no key).
 // "Change location": a ZIP/postcode or city name (Open-Meteo geocoding), or a street
 // address (US Census geocoder for US addresses, else Nominatim). Exact coordinates stay
-// on the device; the time-zone lookup and adsb.fi only see them rounded to 2 decimals.
+// on the device; the time-zone lookup and adsb.fi only see them snapped to a 0.05° grid (core.mjs snapped).
 import {getJson,store,text} from './live.mjs';
 import {number,snapped} from './core.mjs';
 import {CONFIG} from './config.js';
@@ -44,17 +44,24 @@ export function placeLabel(p){
   const country=own(SHORT_COUNTRY,cc)||(clean(p.country).length<=12?clean(p.country):cc);
   return [clean(p.name),region||country].filter(Boolean).join(', ');
 }
-const validTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true;}catch{return false;}};
+// A time zone this TV knows (Intl ignores an undefined one: no zone is no valid zone).
+const validTz=tz=>{if(typeof tz!=='string'||!tz)return false;try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true;}catch{return false;}};
+// Zones renamed since the time-zone data of older WebViews (the app runs on WebView 93 and later): the old
+// name, which those know and newer ones keep as a link.
+const OLD_TZ={'Europe/Kyiv':'Europe/Kiev','America/Nuuk':'America/Godthab','Pacific/Kanton':'Pacific/Enderbury'};
+const knownTz=tz=>validTz(tz)?tz:typeof tz==='string'&&Object.hasOwn(OLD_TZ,tz)&&validTz(OLD_TZ[tz])?OLD_TZ[tz]:'';
 // A number, or one written as text (Nominatim, GeoJS); null, '', false or [] is none, never 0 (Null Island).
 const num=v=>typeof v==='number'?v:typeof v==='string'&&v.trim()?Number(v):NaN;
 function makePlace(o){
   const latitude=num(o.latitude),longitude=num(o.longitude);
   if(!number(latitude)||!number(longitude)||Math.abs(latitude)>85||Math.abs(longitude)>180)return null;
-  const timeZone=validTz(o.timeZone)?o.timeZone:'UTC';
+  // No zone, or one this TV doesn't know (a geocoder that sent none, older time-zone data): the TV's own
+  // stands in, marked tzGuess, and the app looks the place's up (refineZone). UTC only if the TV has none.
+  const zone=knownTz(o.timeZone),timeZone=zone||knownTz(deviceTz())||'UTC';
   return {name:clean(o.name)||'Unknown place',admin:clean(o.admin),country:clean(o.country),
     countryCode:clean(o.countryCode,2).toUpperCase(),latitude,longitude,timeZone,source:o.source,
     elevationM:number(num(o.elevationM))?num(o.elevationM):0,street:clean(o.street,80),
-    accuracyKm:number(num(o.accuracyKm))?num(o.accuracyKm):null,...(o.tzGuess===true?{tzGuess:true}:{})};
+    accuracyKm:number(num(o.accuracyKm))?num(o.accuracyKm):null,...(o.tzGuess===true||!zone?{tzGuess:true}:{})};
 }
 
 // Window view reach (Settings > Window distance) and whole-degree bearings.
@@ -96,6 +103,26 @@ export async function locateByIp(){
     latitude:p.latitude,longitude:p.longitude,timeZone:p.timezone,source:'ip',accuracyKm:p.accuracy}),offline:false};
 }
 
+// Geocoders: one that answers 429 (or sends a Retry-After, as with a 503) is left alone that long (a 429 at
+// least a minute; at most 10 min), and Nominatim gets one request a second at most (its usage policy). Try
+// again pressed meanwhile asks nothing: searchBusy() says for how long, so the screen can say "busy", not
+// "check the connection".
+const resting=new Map(),paced=new Map();let busyFor=0;
+export const searchBusy=()=>busyFor;
+export const resetGeocoders=()=>{resting.clear();paced.clear();busyFor=0;}; // tests
+async function ask(url,timeoutMs){
+  const host=url.split('/')[2],t=performance.now(),until=resting.get(host)||0;
+  if(until>t){busyFor=Math.ceil((until-t)/1000);return {status:'busy',payload:null};}
+  if(host==='nominatim.openstreetmap.org'){
+    const at=Math.max(t,paced.get(host)||0);paced.set(host,at+1000);
+    if(at>t)await new Promise(r=>setTimeout(r,at-t));
+  }
+  const r=await getJson(url,timeoutMs),rest=Math.min(600,r.status===429?Math.max(60,r.retryAfter||0):r.retryAfter||0);
+  if(rest>0)resting.set(host,performance.now()+rest*1000);
+  busyFor=rest>0?Math.ceil(rest):0;
+  return r;
+}
+
 // ZIP/postcode or place name -> up to 6 places, biggest first. Open-Meteo matches names
 // only, so "Rosemont, Illinois" or "Rosemont IL" finds nothing: then the leading words are
 // searched as the name and only places whose state, region or country matches the rest kept.
@@ -114,7 +141,7 @@ export async function searchPlaces(query){
     ||String(p.admin).toLowerCase().startsWith(r)&&r.length>=3||ISO3[r.toUpperCase()]===p.countryCode);
 }
 async function searchNames(q){
-  const {status,payload}=await getJson(SEARCH_URL(q),6000);
+  const {status,payload}=await ask(SEARCH_URL(q),6000);
   if(status!==200||!Array.isArray(payload?.results))return status===200?[]:null;
   return entries(payload.results).slice(0,10).map(r=>makePlace({name:r.name,admin:r.admin1,country:r.country,countryCode:r.country_code,
     latitude:r.latitude,longitude:r.longitude,timeZone:r.timezone,elevationM:r.elevation,source:'search'})).filter(Boolean)
@@ -130,7 +157,7 @@ export const looksLikeAddress=q=>/^\d+[A-Z]?\s+([A-Z]|\d+(st|nd|rd|th)\b)/i.test
 // state, territory (Puerto Rico, Island Areas) or ZIP. Only such text is ever sent to it.
 const TERRITORIES={'Guam':'GU','U.S. Virgin Islands':'VI','Virgin Islands':'VI','American Samoa':'AS','Northern Mariana Islands':'MP'};
 const US_CODES=new Set([...Object.values(US),...Object.values(TERRITORIES)]);
-const US_NAMES=[...Object.keys(US),...Object.keys(TERRITORIES),'United States','USA'].map(n=>n.toLowerCase().replace(/[.,]/g,''));
+const US_NAMES=[...Object.keys(US),...Object.keys(TERRITORIES),'United States','USA','US'].map(n=>n.toLowerCase().replace(/[.,]/g,'')); // "... 90068 US", "..., U.S."
 // State codes that are also countries' (Germany DE, India IN, Colombia CO, Montenegro ME...): "... Berlin DE" is
 // no Delaware address, so these count only after a comma, with a ZIP, or after a street type that follows the street's
 // name, then the town ("233 S Wacker Dr Chicago IL"; not "5 Unter den Linden Berlin DE", "12 Avenue Habib Bourguiba Tunis TN").
@@ -150,7 +177,7 @@ export function looksLikeUSAddress(query){
   const flat=rest.toLowerCase().replace(/[.]/g,'').replace(/[\s,]+$/,'').replace(/\s+/g,' '),parts=flat.split(/\s*,\s*/).slice(1);
   return US_NAMES.some(n=>flat.endsWith(` ${n}`)||parts.includes(n));
 }
-const title=s=>s.toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
+const title=s=>clean(s,120).toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); // replies are checked: a city sent as a number is none
 
 // Time zone and elevation for a geocoded address (the snapped grid point only). If the
 // lookup fails, the TV's own time zone stands in, marked tzGuess, and the app looks it up
@@ -164,7 +191,8 @@ export async function refineZone(p){
   if(!p?.tzGuess)return null;
   const g=snapped(p);
   const {status,payload}=await getJson(TZ_URL(g.latitude,g.longitude),6000);
-  return status===200&&validTz(payload?.timezone)?makePlace({...p,timeZone:payload.timezone,elevationM:payload?.elevation??p.elevationM,tzGuess:false}):null;
+  const zone=status===200?knownTz(payload?.timezone):'';
+  return zone?makePlace({...p,timeZone:zone,elevationM:payload?.elevation??p.elevationM,tzGuess:false}):null;
 }
 
 // Street address -> matches: the U.S. Census geocoder for text that looks like a U.S.
@@ -189,14 +217,14 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
   const q=clean(query,120);
   let failed=false;
   if(census&&looksLikeUSAddress(q)){
-    const {status,payload}=await getJson(CENSUS_URL(q),10000);
+    const {status,payload}=await ask(CENSUS_URL(q),10000);
     const matches=status===200&&Array.isArray(payload?.result?.addressMatches)?payload.result.addressMatches:[];
     if(status!==200)failed=true;
     const found=[];
     for(const m of entries(matches).slice(0,4)){
       const a=m.addressComponents||{},full=clean(m.matchedAddress,120);
       const street=title(full.split(',')[0]||'');
-      const p=guessZone({name:title(a.city||''),admin:STATE_NAME[a.state]||a.state,country:'United States',countryCode:'US',
+      const p=guessZone({name:title(a.city),admin:Object.hasOwn(STATE_NAME,a.state)?STATE_NAME[a.state]:a.state,country:'United States',countryCode:'US',
         latitude:m.coordinates?.y,longitude:m.coordinates?.x,timeZone:'America/New_York',street,source:'census',accuracyKm:.05});
       if(p)found.push(p);
     }
@@ -206,13 +234,13 @@ async function searchAddressUncached(query,{census=false,nominatim=false}={}){
   // a failed Census search ends as "Search is unavailable", with Try again.
   if(failed)return null;
   if(!nominatim)return [];
-  const {status,payload}=await getJson(NOMINATIM_URL(q),10000);
+  const {status,payload}=await ask(NOMINATIM_URL(q),10000);
   if(status!==200||!Array.isArray(payload))return status!==200?null:[];
   const found=[];
   for(const r of entries(payload).slice(0,4)){
     const a=r.address||{};
-    const street=[a.house_number,a.road].filter(Boolean).join(' ')||clean(r.name);
-    const p=guessZone({name:a.city||a.town||a.village||a.suburb||a.county||clean(r.name),admin:a.state,country:a.country,
+    const street=[clean(a.house_number,20),clean(a.road,80)].filter(Boolean).join(' ')||clean(r.name);
+    const p=guessZone({name:[a.city,a.town,a.village,a.suburb,a.county].map(v=>clean(v)).find(Boolean)||clean(r.name),admin:a.state,country:a.country,
       countryCode:a.country_code,latitude:r.lat,longitude:r.lon,timeZone:'UTC',street,source:'nominatim',accuracyKm:.1});
     if(p)found.push(p);
   }

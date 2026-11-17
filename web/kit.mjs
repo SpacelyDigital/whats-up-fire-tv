@@ -128,7 +128,9 @@ export const airlineAlts=(name,cut=true)=>{
 };
 // A Departures cell of n flaps: a city too long for it gives its airport code (SFO, never "SAN" or
 // "INDIANAPOLI"); an operator its short name, else the callsign's airline code (ANZ, not "AIR NEW").
-export const boardCity=(name,code,n)=>{const s=String(name||'').toUpperCase().trim();return s&&s.length<=n?s:String(code||'').toUpperCase();};
+// A name the flaps can't show as written (another script: Arabic or Hebrew would read backwards a letter
+// a cell) gives the code as well.
+export const boardCity=(name,code,n)=>{const s=String(name||'').toUpperCase().trim();return s&&s.length<=n&&/^[\x20-\x7E\u00C0-\u024F]+$/.test(s)?s:String(code||'').toUpperCase();};
 export const boardOperator=(name,call,n)=>airlineAlts(name,false).map(s=>s.toUpperCase()).find(s=>s.length<=n)||String(call||'').slice(0,3).toUpperCase();
 export const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 // First spot (dx,dy offsets from p) where a w x h box fits inside bounds without hitting boxes.
@@ -146,8 +148,9 @@ let S={distance:'mi',altitude:'ft'};
 export const useSettings=s=>{S=s;};
 export const KM=1.609344;
 export const metric=()=>S.distance==='km';
+const INT=new Intl.NumberFormat('en-US'); // kept: toLocaleString makes a new formatter each call in the TV's web view
 export const fmt={
-  int:v=>number(v)?(Math.round(v)||0).toLocaleString('en-US'):'—', // ||0: never "-0"
+  int:v=>number(v)?INT.format(Math.round(v)||0):'—', // ||0: never "-0"
   dist:(mi,d=1)=>!number(mi)?'—':S.distance==='km'?`${(mi*KM).toFixed(d)} km`:`${mi.toFixed(d)} mi`,
   far:mi=>!number(mi)?'—':S.distance==='km'?`${fmt.int(mi*KM)} km`:`${fmt.int(mi)} mi`,
   alt:ft=>!number(ft)?'—':S.altitude==='m'?`${fmt.int(ft*.3048)} m`:ft>=18000?`FL${Math.round(ft/100)}`:`${fmt.int(ft)} ft`,
@@ -421,3 +424,36 @@ export const militaryAlts=L=>{
   const w=n=>t.slice(0,n).map(([k,c])=>`${c} ${k}`).join(' · ');
   return [...new Set([w(4),w(3),w(2),w(1)])];
 };
+
+// Atlas Satellite's imagery tiles of a view (template with {z}, {x}, {y}): across the date line the column asked
+// wraps round (the unwrapped one, kept in x, still places the tile east or west of home), and rows
+// stop at the grid's top and bottom (~85°), so no tile is asked that the servers don't have.
+export function satTiles(template,z,x0,x1,y0,y1){
+  const n=2**z,out=[];
+  for(let x=x0;x<=x1;x++)for(let y=Math.max(0,y0);y<=Math.min(n-1,y1);y++)
+    out.push({x,y,url:template.replace('{z}',z).replace('{y}',y).replace('{x}',((x%n)+n)%n)});
+  return out;
+}
+// Loads each tile's picture and hands it to draw(tile,img) while alive(); the pictures are dropped
+// once drawn. A tile that fails (no connection, the server busy) is asked again on its own, 30 s on,
+// doubling to 5 min, while alive(): an outage at launch no longer leaves the imagery black until the
+// place or the scale changes. Returns stop() (a new view, or the layout gone).
+export function loadTiles(tiles,draw,alive,{make=()=>new Image(),wait=30000,max=300000}={}){
+  let timer=null,failed=[];
+  const load=t=>{
+    const img=make();
+    // Clearing src after drawing raises an error event of its own: the handlers go first.
+    img.onload=()=>{img.onload=img.onerror=null;if(alive())draw(t,img);img.src='';};
+    img.onerror=()=>{
+      img.onload=img.onerror=null;if(!alive())return;
+      failed.push(t);
+      timer??=setTimeout(()=>{timer=null;if(!alive())return;const again=failed;failed=[];wait=Math.min(max,wait*2);again.forEach(load);},wait);
+    };
+    img.src=t.url;
+  };
+  tiles.forEach(load);
+  return ()=>{clearTimeout(timer);timer=null;failed=[];};
+}
+// Characters as read (a letter with its marks, an emoji), never half of one: Departures gives each its own flap.
+const SEG=globalThis.Intl?.Segmenter?new Intl.Segmenter('en',{granularity:'grapheme'}):null;
+export const glyphs=s=>SEG?Array.from(SEG.segment(String(s)),g=>g.segment):[...String(s)];

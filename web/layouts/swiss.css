@@ -5,7 +5,7 @@
   --ui-glow:rgba(0,0,0,.08);--ui-alert:#e2231a;--ui-font:'Inter',sans-serif;--ui-radius:0px}
 .L-swiss .layout{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-feature-settings:'tnum'}
 .L-swiss .top{position:absolute;left:36px;right:36px;top:22px;display:flex;justify-content:space-between;align-items:baseline;font:700 24px/1 'Inter';letter-spacing:-.01em}
-.L-swiss .city{display:flex;align-items:center;gap:12px;white-space:nowrap;overflow:hidden;max-width:640px}
+.L-swiss .city{display:flex;align-items:center;gap:12px;white-space:nowrap;overflow:hidden;max-width:640px;padding-bottom:.25em;margin-bottom:-.25em} /* room for g, y and the comma under the clip */
 .L-swiss .city:before{content:'';width:18px;height:18px;background:var(--red);flex:none}
 .L-swiss .clock{font-weight:700}
 .L-swiss .rule{position:absolute;left:36px;right:36px;top:60px;height:3px;background:var(--ink)}
