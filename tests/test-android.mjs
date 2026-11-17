@@ -2,9 +2,9 @@
 // the same allow-list and messages, the picture hosts the page's Content-Security-Policy names, the
 // page as built for Android, its privacy policy edition and its credits. The Kotlin side has its
 // own tests (android/: ./gradlew test).
-import test from 'node:test';
+import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync} from 'node:fs';
+import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync,rmSync} from 'node:fs';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -17,7 +17,10 @@ const kotlin=f=>read(`android/app/src/main/java/com/spacelydigital/whatsup/${f}`
 const ENV=['WHATSUP_PROFILE','WHATSUP_RELEASE','WHATSUP_OUT','WHATSUP_LICENSES','WHATSUP_PLATFORM','WHATSUP_HIDE'];
 const env=o=>{const e={...process.env,...o};for(const k of ENV)if(!(k in o))delete e[k];return e;};
 // scripts/build-web.mjs into a fresh folder; returns the folder.
-const build=(o={})=>{const out=mkdtempSync(join(tmpdir(),'page-'));execFileSync(process.execPath,[join(repo,'scripts/build-web.mjs')],{env:env({WHATSUP_OUT:out,...o}),stdio:'ignore'});return out;};
+// Temporary folders, removed when the tests end.
+const temps=[],temp=prefix=>{const d=mkdtempSync(join(tmpdir(),prefix));temps.push(d);return d;};
+after(()=>{for(const d of temps)rmSync(d,{recursive:true,force:true});});
+const build=(o={})=>{const out=temp('page-');execFileSync(process.execPath,[join(repo,'scripts/build-web.mjs')],{env:env({WHATSUP_OUT:out,...o}),stdio:'ignore'});return out;};
 
 test('allow-list: the Google TV app fetches exactly what the Fire TV app fetches, the same patterns in the same order',()=>{
   const fire=[.../const ALLOWED = \[([\s\S]*?)\n\];/.exec(read('src/App.tsx'))[1].matchAll(/^\s*\/(\^.*\$)\/,$/gm)].map(m=>new RegExp(m[1]));
@@ -31,7 +34,7 @@ test('allow-list: the Google TV app fetches exactly what the Fire TV app fetches
 test('bridge: the Google TV app answers every message the page sends, with the calls the page listens for',()=>{
   const page=read('web/app.mjs')+read('web/live.mjs'),bridge=kotlin('Bridge.kt'),js=kotlin('Bridge.kt').split('object Js')[1];
   const sent=new Set([...page.matchAll(/type:'(\w+)'/g)].map(m=>m[1]));
-  assert.deepEqual([...sent].sort(),['awake','chime','get','ui']);
+  assert.deepEqual([...sent].sort(),['awake','chime','erase','get','ui']);
   for(const t of sent)assert.match(bridge,new RegExp(`"${t}" ->`),t);
   for(const f of ['__whatsupReply','__whatsupBack','__whatsupActive']){
     assert.match(page,new RegExp(`window\\.${f}=`),`the page sets ${f}`);
@@ -46,6 +49,12 @@ test('bridge: the Google TV app answers every message the page sends, with the c
   assert.match(read('web/live.mjs'),/window\.ReactNativeWebView\|\|window\.WhatsUpHost/);
 });
 
+test('on screen or not: the app tells the page at every pause and resume, and again once the page has loaded (Home during the load came before the page could hear it, and it ran its first launch hidden)',()=>{
+  const main=kotlin('MainActivity.kt'),body=name=>new RegExp(`override fun ${name}\\([^)]*\\)[^{]*\\{([\\s\\S]*?)\\n {4,8}\\}`).exec(main)?.[1]||'';
+  assert.match(body('onResume'),/js\(Js\.active\(true\)\)/);
+  assert.match(body('onPause'),/js\(Js\.active\(false\)\)/);
+  assert.match(body('onPageFinished'),/if \(view === web\) js\(Js\.active\(resumed\)\)/);
+});
 test('pictures: the web view loads by itself only the hosts the page\'s img-src names; everything else goes through the allow-list',()=>{
   const csp=/http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(read('web/index.html'))[1];
   const img=csp.split(';').map(s=>s.trim()).find(s=>s.startsWith('img-src ')).split(/\s+/).slice(1).filter(s=>s.startsWith('https://')).map(s=>s.slice(8));
@@ -83,7 +92,7 @@ test('store build switches: the Ko-fi tip and Keep screen awake can be left out,
   assert.equal(html({WHATSUP_HIDE:'tips'}).includes('id="set-awake" hidden'),false);
   assert.match(read('web/whatsup.css'),/^\[hidden\]\{display:none!important\}/m);
   for(const [k,v] of [['WHATSUP_PLATFORM','tizen'],['WHATSUP_HIDE','ads']]){
-    const r=spawnSync(process.execPath,[join(repo,'scripts/build-web.mjs')],{env:env({WHATSUP_OUT:mkdtempSync(join(tmpdir(),'bad-')),[k]:v}),encoding:'utf8'});
+    const r=spawnSync(process.execPath,[join(repo,'scripts/build-web.mjs')],{env:env({WHATSUP_OUT:temp('bad-'),[k]:v}),encoding:'utf8'});
     assert.notEqual(r.status,0,`${k}=${v}`);
   }
 });
@@ -110,7 +119,7 @@ test(`Google TV policy: made from the Fire TV policy by scripts/build-privacy-go
 });
 
 test('About & credits for Google TV: its Android libraries under the Apache license, not the Fire TV app\'s packages',()=>{
-  const out=join(mkdtempSync(join(tmpdir(),'credits-')),'licenses.txt');
+  const out=join(temp('credits-'),'licenses.txt');
   execFileSync(process.execPath,[join(repo,'scripts/build-credits.mjs')],{env:env({WHATSUP_PLATFORM:'android',WHATSUP_PROFILE:'store',WHATSUP_LICENSES:out}),stdio:'ignore'});
   const t=readFileSync(out,'utf8');
   const libs=read('android/app/libraries.txt').split('\n').filter(l=>l&&!l.startsWith('#'));

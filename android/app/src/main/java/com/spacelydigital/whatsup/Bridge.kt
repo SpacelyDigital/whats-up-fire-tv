@@ -1,5 +1,6 @@
 package com.spacelydigital.whatsup
 
+import androidx.webkit.WebMessageCompat
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -13,6 +14,8 @@ import java.math.BigInteger
 //   {type:'chime', volume}                     play the alert chime, unless the app is off screen
 //   {type:'awake', on}                         Settings > Keep screen awake
 //   {type:'ui', overlay}                       a screen is open over the map: Back goes to the page
+//   {type:'erase'}                             Erase all data: the page has cleared its storage and reloads; the
+//                                              app clears what the web view keeps for it (its cache of pictures)
 // The app calls window.__whatsupBack() for Back while a screen is open, and
 // window.__whatsupActive(true|false) when the app comes on or goes off screen.
 
@@ -25,20 +28,35 @@ class Bridge(private val host: Host) {
         fun overlay(open: Boolean)
         fun awake(on: Boolean)
         fun chime(volume: Double)
+        fun erase()
         fun refused(host: String)
     }
 
     fun onMessage(raw: String) {
+        // The page's messages are well under a kilobyte; a much longer one is refused unread. org.json reads nested
+        // arrays and objects recursively, and on a TV a message nested 100,000 deep overflowed the main thread's stack:
+        // a StackOverflowError, which is no JSONException, closed the app. 16 KB holds at most 16,384 levels (30,000
+        // read fine there); the catch is for a device with a smaller stack.
+        if (raw.length > MAX_MESSAGE) return
         val m = try {
             JSONObject(raw)
         } catch (e: JSONException) {
             return
+        } catch (e: StackOverflowError) {
+            return
         }
-        when (m.opt("type")) {
-            "chime" -> if (host.onScreen()) host.chime(JsValue.number(m.opt("volume")).orIfFalsy(0.55))
-            "awake" -> host.awake(m.opt("on") != false)
-            "ui" -> host.overlay(m.opt("overlay") == true)
-            "get" -> get(m)
+        // A message the bridge can't read is ignored, as one that isn't JSON is: anything thrown here would
+        // close the app, since messages arrive on the main thread.
+        try {
+            when (m.opt("type")) {
+                "chime" -> if (host.onScreen()) host.chime(JsValue.number(m.opt("volume")).orIfFalsy(0.55))
+                "awake" -> host.awake(m.opt("on") != false)
+                "ui" -> host.overlay(m.opt("overlay") == true)
+                "erase" -> host.erase()
+                "get" -> get(m)
+            }
+        } catch (e: RuntimeException) {
+        } catch (e: StackOverflowError) {
         }
     }
 
@@ -57,6 +75,15 @@ class Bridge(private val host: Host) {
 
     // JavaScript's `x || fallback` for a number: 0 and NaN are falsy.
     private fun Double.orIfFalsy(fallback: Double) = if (isNaN() || this == 0.0) fallback else this
+
+    companion object {
+        /** The longest message read, in characters. */
+        const val MAX_MESSAGE = 16 * 1024
+
+        /** A message's text; null for an ArrayBuffer, whose data can't be read as text (that throws). */
+        fun textOf(message: WebMessageCompat): String? =
+            if (message.type == WebMessageCompat.TYPE_STRING) message.data else null
+    }
 }
 
 /** Scripts the app runs in the page. Each ends with "true;", as on Fire TV. */
@@ -153,7 +180,10 @@ object JsValue {
         else -> null
     }
 
-    private val DECIMAL = Regex("""[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?""")
+    // ASCII digits only: on Android \d is any Unicode digit, which toDouble() then refuses with an exception. And no
+    // two parts may take the same digits, or a long string that doesn't match takes quadratic time to refuse
+    // (16,000 digits held the main thread for seconds).
+    internal val DECIMAL = Regex("""[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?""")
     private val RADIX = Regex("""0([xX][0-9a-fA-F]+|[oO][0-7]+|[bB][01]+)""")
 
     /** JavaScript's StringToNumber. */

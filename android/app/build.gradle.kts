@@ -68,8 +68,8 @@ android {
         create("personal") {
             dimension = "edition"
             applicationIdSuffix = ".personal"
-            versionCode = 3
-            versionName = "0.1.2"
+            versionCode = 4
+            versionName = "0.1.3"
             buildConfigField("String", "USER_AGENT", "\"${userAgent("0.1")}\"")
             buildConfigField("boolean", "WEB_DEBUG", "true")
             signingConfig = signingConfigs.findByName("personal") ?: signingConfigs.getByName("debug")
@@ -125,7 +125,9 @@ kotlin {
 dependencies {
     implementation("androidx.webkit:webkit:1.18.0")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20260814")
+    // Android's own org.json (AOSP libcore, as published for JVM tests), so the bridge is tested with the parser a TV
+    // runs: no depth limit, the last of two equal keys, Integer/Long/Double numbers. (JSON.org's org.json differs in each.)
+    testImplementation("com.vaadin.external.google:android-json:0.0.20131108.vaadin1")
 }
 
 // --- The page: scripts/build-credits.mjs and scripts/build-web.mjs (Node 20 or later) build the

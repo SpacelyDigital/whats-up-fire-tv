@@ -50,6 +50,19 @@ class AllowListTest {
         )) assertFalse(url, AllowList.allows(url))
     }
 
+    // Found by the attack tests: Android's regex reads \d and \w as any Unicode digit or letter and counts a
+    // character outside the BMP as one (JavaScript counts two), so some addresses Fire TV refuses passed here.
+    // The page writes only printable ASCII (its queries percent-encoded).
+    @Test fun printableAsciiOnly() {
+        for (url in listOf(
+            "https://geocoding-api.open-meteo.com/v1/search?name=Montréal&count=10&language=en&format=json",
+            "https://geocoding-api.open-meteo.com/v1/search?name=" + "😀".repeat(150) + "&count=10&language=en&format=json",
+            "https://opendata.adsb.fi/api/v3/lat/٣٩.10/lon/-84.41/dist/38",
+            "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=1 Main St&benchmark=Public_AR_Current&format=json",
+        )) assertFalse(url, AllowList.allows(url))
+        assertTrue(AllowList.allows("https://geocoding-api.open-meteo.com/v1/search?name=Montr%C3%A9al&count=10&language=en&format=json"))
+    }
+
     @Test fun logsTheHostOnly() {
         assertEquals("geocoding.geo.census.gov", AllowList.hostOf("https://geocoding.geo.census.gov/geocoder?address=1 Main St"))
         assertEquals("non-http URL", AllowList.hostOf("javascript:alert(1)"))
@@ -175,6 +188,66 @@ class FetcherTest {
         assertEquals(Reply.CONNECTION_ERROR, reply)
         assertTrue("took $ms ms", ms in 250..5000)
         assertTrue(http.closed >= 1)
+    }
+
+    // Found by the attack tests: a byte order mark took 3 of the bytes a full-size text may have, so 2 M
+    // three-byte characters after one were refused as oversize.
+    @Test fun byteOrderMarkAtTheLimit() {
+        val text = "€".repeat(Fetcher.MAX_BYTES)
+        val body = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + text.toByteArray()
+        assertEquals(Reply(200, text), fetch(mapOf(geo to Answer(body = body))).second)
+    }
+
+    // Found by the attack tests: only IOException and RuntimeException were caught, so an Error (out of memory
+    // while a big body is read, say) or a checked exception from an Http written in Kotlin escaped onto a network
+    // thread, which closes the app, and the page never heard back.
+    @Test fun everyFailureIsAnAnswer() {
+        for (fail in listOf(Exception("checked"), InterruptedException(), AssertionError("socket"), OutOfMemoryError(), StackOverflowError(), NoClassDefFoundError("x"))) {
+            for (step in 0..2) {
+                val http = object : Http {
+                    override fun open(url: String): Http.Exchange {
+                        if (step == 0) throw fail
+                        return object : Http.Exchange {
+                            override fun send(headers: Map<String, String>, timeoutMs: Int): Int = if (step == 1) throw fail else 200
+                            override fun header(name: String): String? = null
+                            override fun contentLength() = -1L
+                            override fun body(): InputStream = object : InputStream() {
+                                override fun read(): Int = throw fail
+                            }
+                            override fun close() {}
+                        }
+                    }
+                }
+                val reply = Fetcher(ua, http, timer).get(geo, 8000, false)
+                val interrupted = Thread.interrupted() // and cleared, for the next case
+                assertEquals("$fail at step $step", Reply.CONNECTION_ERROR, reply)
+                if (fail is InterruptedException) assertTrue("the interrupt is kept", interrupted)
+            }
+        }
+    }
+
+    // Found by review: a request queued behind the 6 network threads got its whole time only once a thread took
+    // it, so it could still be sent after the page had stopped waiting for it.
+    @Test fun aQueuedRequestGetsOnlyTheTimeLeft() {
+        val http = Fake(mapOf(geo to Answer(hang = true)))
+        val f = Fetcher(ua, http, timer)
+        // It waited longer than its whole time: answered at once, nothing sent.
+        assertEquals(Reply.CONNECTION_ERROR, f.get(geo, 1000, false, postedAt = System.nanoTime() - 1_500_000_000L))
+        assertTrue(http.asked.isEmpty())
+        // It waited 700 ms of 1,000: it ends 300 ms later.
+        val start = System.nanoTime()
+        assertEquals(Reply.CONNECTION_ERROR, f.get(geo, 1000, false, postedAt = start - 700_000_000L))
+        val ms = (System.nanoTime() - start) / 1_000_000
+        assertTrue("took $ms ms", ms in 250..900)
+    }
+
+    // Found by review: the connect timeout was all the time left, which a dead first address (no working IPv6)
+    // used up before Android's HttpURLConnection tried the next one.
+    @Test fun aDeadFirstAddressLeavesTimeForTheNext() {
+        assertEquals(4000, Fetcher.connectTimeout(8000))
+        assertEquals(6000, Fetcher.connectTimeout(12000))
+        assertEquals(3000, Fetcher.connectTimeout(5000))
+        assertEquals(2000, Fetcher.connectTimeout(2000))
     }
 
     @Test fun noTimerNoRequest() {

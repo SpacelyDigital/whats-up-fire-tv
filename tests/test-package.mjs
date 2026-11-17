@@ -1,13 +1,14 @@
 // node --test tests/  — the release guard (scripts/check-package.mjs) on packages built from web/.
-import test from 'node:test';
+import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {mkdtempSync,cpSync,writeFileSync,readFileSync} from 'node:fs';
+import {mkdtempSync,cpSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 
 const repo=new URL('..',import.meta.url).pathname,tmp=mkdtempSync(join(tmpdir(),'guard-test-')),forbid=join(tmp,'forbid.txt');
 writeFileSync(forbid,'# stand-in list\nzz-not-present-zz\n');
+after(()=>rmSync(tmp,{recursive:true,force:true}));
 const env=(o={})=>{const e={...process.env,WHATSUP_FORBID:forbid,...o};for(const k of ['WHATSUP_PROFILE','WHATSUP_RELEASE','WHATSUP_OUT','WHATSUP_LICENSES','WHATSUP_PLATFORM','WHATSUP_HIDE'])if(!(k in o))delete e[k];return e;};
 // Built as build-web.mjs builds assets/, packed as a .vpkg holds them (manifest.toml + assets/); edit(dir) changes files first.
 function pack(name,{profile='personal',release=false,edit}={}){
@@ -62,4 +63,18 @@ test('release guard: personal packages still pass, warned about what keeps them 
 test('release guard: a stylesheet naming the app fails (comments too)',()=>{
   const f=pack('css-store.vpkg',{profile:'store',release:true,edit:d=>{const p=join(d,'assets/layouts/swiss.css');writeFileSync(p,`/* What's Up */\n${readFileSync(p,'utf8')}`);}});
   const r=guard(f,{WHATSUP_PROFILE:'store'});assert.equal(r.code,1,r.out);assert.match(r.out,/assets\/layouts\/swiss\.css: shows/);
+});
+
+test('release guard: a Google TV store package whose User-Agent has no contact address fails (the policy promises our email address on most requests)',()=>{
+  // A stand-in .apk: the store page in assets/www/ and a classes.dex holding the app's User-Agent.
+  const apk=(name,ua)=>{
+    const d=join(tmp,name);
+    execFileSync(process.execPath,[join(repo,'scripts/build-web.mjs')],{env:env({WHATSUP_OUT:join(d,'assets/www'),WHATSUP_PROFILE:'store',WHATSUP_RELEASE:'1',WHATSUP_PLATFORM:'android'}),stdio:'ignore'});
+    writeFileSync(join(d,'classes.dex'),`dex\n035\0...${ua}\0...`);
+    const f=join(tmp,`${name}.apk`);execFileSync('zip',['-qr',f,'classes.dex','assets'],{cwd:d});return f;
+  };
+  const none=guard(apk('ua-none','WhatsUp-GoogleTV/1.0 (Spacely Digital)'),{WHATSUP_PROFILE:'store'});
+  assert.equal(none.code,1,none.out);assert.match(none.out,/User-Agent carries no contact address/);
+  const given=guard(apk('ua-given','WhatsUp-GoogleTV/1.0 (Spacely Digital; help@example.com)'),{WHATSUP_PROFILE:'store'});
+  assert.doesNotMatch(given.out,/User-Agent/,given.out);
 });

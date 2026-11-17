@@ -45,7 +45,10 @@ object AllowList {
     private val HOST = Regex("""^https?://([^/?#]+)""")
 
     // The whole address must match, as in JavaScript: in Java a bare "$" also matches before a final line break.
-    fun allows(url: String) = regexes.any { it.matches(url) }
+    // Printable ASCII only, as the page writes every address (its queries are percent-encoded): Android's regex reads
+    // \d and \w as any Unicode digit or letter and counts a character outside the BMP as one, where JavaScript counts
+    // two, so only on ASCII do these patterns decide as they do on Fire TV.
+    fun allows(url: String) = url.all { it in '!'..'~' } && regexes.any { it.matches(url) }
 
     // For the log, the host only: a refused geocoder address could carry a typed street address.
     fun hostOf(url: String) = HOST.find(url)?.groupValues?.get(1) ?: "non-http URL"
@@ -73,7 +76,7 @@ class UrlHttp : Http {
             c.requestMethod = "GET"
             c.instanceFollowRedirects = false // each hop is checked against the list first
             c.useCaches = false
-            c.connectTimeout = timeoutMs
+            c.connectTimeout = Fetcher.connectTimeout(timeoutMs)
             c.readTimeout = timeoutMs
             for ((k, v) in headers) c.setRequestProperty(k, v)
             return c.responseCode
@@ -95,15 +98,26 @@ class Fetcher(
         const val MAX_BYTES = 2 * 1024 * 1024
         private const val MAX_HOPS = 5
         private val REDIRECTS = setOf(301, 302, 303, 307, 308)
+
+        // Android's HttpURLConnection tries a host's addresses one at a time, each for the whole connect timeout. With
+        // all the time left on the first, a dead first address (an IPv6 address with no working IPv6, say) would use
+        // it up, and every request would fail. Half of it (at least 3 s) leaves the next address the rest.
+        fun connectTimeout(left: Int) = minOf(left, maxOf(3000, left / 2))
     }
 
-    /** Fetches [url] (already allowed) within [timeoutMs] in all, redirects and body included. Never throws. */
-    fun get(url: String, timeoutMs: Long, binary: Boolean): Reply {
-        val start = System.nanoTime()
+    /**
+     * Fetches [url] (already allowed) within [timeoutMs] in all, redirects and body included, counted from [postedAt]
+     * (System.nanoTime() when the page asked: a request that waited for a free thread gets only the time left, as the
+     * page's own wait started then). Never throws.
+     */
+    fun get(url: String, timeoutMs: Long, binary: Boolean, postedAt: Long = System.nanoTime()): Reply {
+        val start = postedAt
         val headers = mapOf("User-Agent" to userAgent, "Accept" to if (binary) "*/*" else "application/json")
+        val wait = timeoutMs - (System.nanoTime() - start) / 1_000_000
+        if (wait <= 0) return Reply.CONNECTION_ERROR
         // No timer (the app is closing): no request either.
         val watch = try {
-            Watch(timeoutMs)
+            Watch(wait)
         } catch (e: RuntimeException) {
             return Reply.CONNECTION_ERROR
         }
@@ -140,8 +154,8 @@ class Fetcher(
                         Reply(200, Base64.getEncoder().encodeToString(bytes))
                     } else {
                         // The page's limit counts characters, as JavaScript's text.length does; UTF-8 takes at
-                        // most 3 bytes for each of them.
-                        val bytes = ex.body().use { readAtMost(it, 3 * MAX_BYTES) } ?: return Reply.OVERSIZE
+                        // most 3 bytes for each of them, after a byte order mark, which isn't text.
+                        val bytes = ex.body().use { readAtMost(it, 3 * MAX_BYTES + 3) } ?: return Reply.OVERSIZE
                         val text = utf8(bytes)
                         if (text.length > MAX_BYTES) Reply.OVERSIZE else Reply(200, text)
                     }
@@ -153,6 +167,11 @@ class Fetcher(
         } catch (e: IOException) {
             return Reply.CONNECTION_ERROR
         } catch (e: RuntimeException) {
+            return Reply.CONNECTION_ERROR
+        } catch (e: Throwable) {
+            // Anything else, such as an OutOfMemoryError while a big body is read, is an answer too: thrown on a
+            // network thread it would close the app, and the page would never hear back.
+            if (e is InterruptedException) Thread.currentThread().interrupt()
             return Reply.CONNECTION_ERROR
         } finally {
             watch.done()

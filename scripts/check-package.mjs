@@ -17,7 +17,7 @@
 //    package is personal:
 //    the same gaps are only warned about, so the TV's own builds still pass.
 import {execFileSync} from 'node:child_process';
-import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync} from 'node:fs';
+import {readFileSync,readdirSync,statSync,mkdtempSync,existsSync,rmSync} from 'node:fs';
 import {join,relative,basename} from 'node:path';
 import {tmpdir,homedir} from 'node:os';
 
@@ -25,6 +25,7 @@ const pkg=process.argv[2];
 if(!pkg)throw new Error('usage: check-package.mjs <package.vpkg|app.apk|app.aab>');
 const kind=(/\.(apk|aab)$/i.exec(pkg)?.[1]||'vpkg').toLowerCase();
 const dir=mkdtempSync(join(tmpdir(),'pkgcheck-'));
+process.on('exit',()=>rmSync(dir,{recursive:true,force:true})); // the unpacked copy goes when the check ends
 if(kind==='vpkg')execFileSync('tar',['xf',pkg,'-C',dir]);else execFileSync('unzip',['-q',pkg,'-d',dir]);
 // Where the page is: the Fire TV package's assets/, the Google TV app's assets/www/.
 const page={vpkg:'assets/',apk:'assets/www/',aab:'base/assets/www/'}[kind];
@@ -93,6 +94,12 @@ if(process.env.WHATSUP_PROFILE==='store'||/-store(-[\w-]+)?\.(vpkg|apk|aab)$/.te
   else if(policy!==final)problems.push(`store package: ${page}privacy.txt is not web/${name}${placeholder(policy)}`);
   if(shown!==final)problems.push(`store package: the policy the page shows (whatsup.js) is not web/${name}${placeholder(shown)}`);
   const at=policy.indexOf('[');if(at>=0)problems.push(`store package: privacy.txt still has a placeholder: "${policy.slice(at,at+20)}"`);
+  // Google TV: the policy says most requests carry our email address, in the app's User-Agent. The repository keeps
+  // none, so only a build given one (WHATSUP_CONTACT, android/README.md) has it.
+  if(platform==='android'){
+    const dex=files.filter(f=>/(^|\/)classes\d*\.dex$/.test(f)).map(f=>readFileSync(join(dir,f)).toString('latin1')).join('\n');
+    if(!/WhatsUp-GoogleTV\/[\d.]+ \(Spacely Digital; [\w.+-]+@[\w.-]+\)/.test(dex))problems.push('store package: the User-Agent carries no contact address (build with WHATSUP_CONTACT set; the policy promises it)');
+  }
 }else{
   if(!release)console.warn('package check warning: personal package, not a release build: the URL hooks are live');
   if(placeholder(shown||policy))console.warn('package check warning: personal package: its privacy text is the placeholder (not for the store)');

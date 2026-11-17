@@ -16,16 +16,19 @@ object PageFiles {
 
     enum class Route { PAGE, PASS, REFUSE }
 
-    fun route(scheme: String?, host: String?): Route {
+    // [port] as android.net.Uri gives it: -1 when the address names none. Only https's own port is served or passed.
+    fun route(scheme: String?, host: String?, port: Int = -1): Route {
         if (scheme == "data" || scheme == "blob" || scheme == "about") return Route.PASS
-        if (scheme != "https" || host == null) return Route.REFUSE
+        if (scheme != "https" || host == null || !defaultPort(port)) return Route.REFUSE
         if (host == HOST) return Route.PAGE
         val pictures = PICTURE_HOSTS.any { if (it.startsWith("*.")) host.endsWith(it.substring(1)) else host == it }
         return if (pictures) Route.PASS else Route.REFUSE
     }
 
     /** May the web view go to this address? Only the page itself (a reload after Erase all data). */
-    fun mayNavigate(scheme: String?, host: String?) = scheme == "https" && host == HOST
+    fun mayNavigate(scheme: String?, host: String?, port: Int = -1) = scheme == "https" && host == HOST && defaultPort(port)
+
+    private fun defaultPort(port: Int) = port == -1 || port == 443
 
     private val SEGMENT = Regex("""[A-Za-z0-9_][A-Za-z0-9._-]*""")
 

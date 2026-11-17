@@ -1,9 +1,13 @@
 package com.spacelydigital.whatsup
 
+import androidx.webkit.WebMessageCompat
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.regex.Pattern
 
 // The bridge reads each message as the Fire TV app does (src/App.tsx onMessage).
 class BridgeTest {
@@ -14,6 +18,7 @@ class BridgeTest {
         val awake = mutableListOf<Boolean>()
         val overlays = mutableListOf<Boolean>()
         val refused = mutableListOf<String>()
+        var erases = 0
         var answer: Reply? = null // answered at once when set
 
         override fun js(script: String) {
@@ -36,6 +41,10 @@ class BridgeTest {
 
         override fun chime(volume: Double) {
             chimes += volume
+        }
+
+        override fun erase() {
+            erases++
         }
 
         override fun refused(host: String) {
@@ -96,6 +105,72 @@ class BridgeTest {
         )
         assertTrue(h.fetches.isEmpty())
         assertTrue(h.scripts.isEmpty())
+    }
+
+    // Found on a TV: '['.repeat(100000) through window.WhatsUpHost overflowed the main thread's stack and closed the app.
+    @Test fun deeplyNestedOrHugeMessagesAreIgnored() {
+        for (depth in listOf(1_000, 10_000, 16_000, 100_000, 1_000_000)) {
+            val h = send("[".repeat(depth), "{\"a\":".repeat(depth), "[".repeat(depth) + "]".repeat(depth))
+            assertTrue("depth $depth", h.fetches.isEmpty() && h.scripts.isEmpty() && h.refused.isEmpty())
+        }
+        // A real message padded past the limit is refused unread; one just inside it is read.
+        val pad = { n: Int -> """{"type":"get","id":3,"url":"$geo","x":"${"y".repeat(n)}"}""" }
+        val base = pad(0).length
+        assertTrue(send(pad(Bridge.MAX_MESSAGE - base + 1)).fetches.isEmpty())
+        assertEquals(1, send(pad(Bridge.MAX_MESSAGE - base)).fetches.size)
+        // Deep nesting inside the limit, on a thread with a small stack (a TV's main thread has 8 MB; this one about
+        // 64 KB, where Android's org.json overflows): no Error escapes onMessage.
+        var thrown: Throwable? = null
+        val t = Thread(null, {
+            try {
+                send("{\"a\":".repeat(Bridge.MAX_MESSAGE / 5), "[".repeat(Bridge.MAX_MESSAGE))
+            } catch (e: Throwable) {
+                thrown = e
+            }
+        }, "small-stack", 64 * 1024)
+        t.start()
+        t.join()
+        assertNull(thrown)
+    }
+
+    // Found by review: an ArrayBuffer posted to WhatsUpHost arrives as a message whose text can't be read (getData()
+    // throws), and the app read it first thing, on the main thread, which closed the app.
+    @Test fun onlyTextMessagesAreRead() {
+        assertEquals("{}", Bridge.textOf(WebMessageCompat("{}")))
+        val buffer = WebMessageCompat(byteArrayOf(1, 2))
+        assertThrows(IllegalStateException::class.java) { buffer.data }
+        assertNull(Bridge.textOf(buffer))
+    }
+
+    // Found by the attack tests: on a TV \d is any Unicode digit, so a volume of "٣" passed the number pattern and
+    // toDouble() then threw out of onMessage; and a long digit string that doesn't match took seconds to refuse.
+    @Test fun numbersInTextAreSafeAndQuick() {
+        // Android's regex always reads \d and \w with Unicode classes, as Java's does with UNICODE_CHARACTER_CLASS.
+        val asOnATv = Pattern.compile(JsValue.DECIMAL.pattern, Pattern.UNICODE_CHARACTER_CLASS)
+        for (s in listOf("٣", "１２", "५०००", "1٠e3", "߁")) {
+            assertFalse(s, asOnATv.matcher(s).matches())
+            assertTrue(s, JsValue.fromString(s).isNaN())
+        }
+        val h = send("""{"type":"chime","volume":"٣"}""", """{"type":"get","id":1,"url":"$geo","timeoutMs":"٥٠٠٠"}""")
+        assertEquals(listOf(0.55), h.chimes)
+        assertEquals(8000L, h.fetches.single().second)
+        // 16,000 digits and then something else: refused at once (2 to 4 s before, and longer on a TV).
+        val long = "1".repeat(16_000)
+        val start = System.nanoTime()
+        val h2 = send(
+            """{"type":"chime","volume":"${long}x"}""",
+            """{"type":"get","id":2,"url":"$geo","timeoutMs":"${long}e"}""",
+            """{"type":"get","id":3,"url":"$geo","timeoutMs":["$long.5."]}""",
+        )
+        val ms = (System.nanoTime() - start) / 1_000_000
+        assertTrue("took $ms ms", ms < 500)
+        assertEquals(listOf(0.55), h2.chimes)
+        assertEquals(listOf(8000L, 8000L), h2.fetches.map { it.second })
+    }
+
+    @Test fun eraseGoesToTheApp() {
+        val h = send("""{"type":"erase"}""", """{"type":"erase","now":true}""", """{"type":"Erase"}""", """{"erase":true}""")
+        assertEquals(2, h.erases)
     }
 
     @Test fun wholeNumberIdsInAnyForm() {
@@ -165,7 +240,7 @@ class JsTest {
 
 class PageFilesTest {
     @Test fun routes() {
-        val r = PageFiles::route
+        val r = { scheme: String?, host: String? -> PageFiles.route(scheme, host) }
         assertEquals(PageFiles.Route.PAGE, r("https", "appassets.androidplatform.net"))
         assertEquals(PageFiles.Route.PASS, r("https", "basemap.nationalmap.gov"))
         assertEquals(PageFiles.Route.PASS, r("https", "tiles.maps.eox.at"))
@@ -181,6 +256,17 @@ class PageFilesTest {
         assertEquals(PageFiles.Route.REFUSE, r("https", null))
         assertTrue(PageFiles.mayNavigate("https", "appassets.androidplatform.net"))
         assertTrue(!PageFiles.mayNavigate("https", "ko-fi.com"))
+    }
+
+    // Found by the attack tests: the port was never looked at, so the page's files were served on any port.
+    @Test fun onlyHttpsOwnPort() {
+        val page = "appassets.androidplatform.net"
+        assertEquals(PageFiles.Route.PAGE, PageFiles.route("https", page, -1))
+        assertEquals(PageFiles.Route.PAGE, PageFiles.route("https", page, 443))
+        assertEquals(PageFiles.Route.REFUSE, PageFiles.route("https", page, 8443))
+        assertEquals(PageFiles.Route.REFUSE, PageFiles.route("https", "cdn.planespotters.net", 8080))
+        assertTrue(PageFiles.mayNavigate("https", page, 443))
+        assertFalse(PageFiles.mayNavigate("https", page, 8443))
     }
 
     @Test fun assets() {

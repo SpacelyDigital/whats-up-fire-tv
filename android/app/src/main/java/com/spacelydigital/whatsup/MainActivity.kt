@@ -23,7 +23,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
-import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebSettingsCompat
@@ -51,7 +50,6 @@ class MainActivity : Activity(), Bridge.Host {
     private var resumed = false
     private var wantsAwake = false // Settings > Keep screen awake, as the page reports it
     private var overlay = false
-    private var backToken: Any? = null
     private val losses = ArrayDeque<Long>() // when the page's process was lost, for the last minute
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +60,7 @@ class MainActivity : Activity(), Bridge.Host {
         chime = Chime(this)
         showsPage = true
         makeWeb()
+        if (Build.VERSION.SDK_INT >= 33) Back33.register(this) { back() }
     }
 
     // Android System WebView draws the page: it must be there, on, and new enough for the page's
@@ -139,8 +138,7 @@ class MainActivity : Activity(), Bridge.Host {
         // window.WhatsUpHost: only the app's own page, in the top frame, can post to the bridge.
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) { // checked above; lint looks here
             WebViewCompat.addWebMessageListener(view, "WhatsUpHost", setOf(PageFiles.ORIGIN)) { _, message, origin, isMainFrame, _ ->
-                val data = message.data
-                if (isMainFrame && origin.toString() == PageFiles.ORIGIN && data != null) bridge.onMessage(data)
+                if (isMainFrame && origin.toString() == PageFiles.ORIGIN) Bridge.textOf(message)?.let(bridge::onMessage)
             }
         }
         view.webViewClient = Client()
@@ -161,7 +159,7 @@ class MainActivity : Activity(), Bridge.Host {
     private inner class Client : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             val url = request.url
-            return when (PageFiles.route(url.scheme, url.host)) {
+            return when (PageFiles.route(url.scheme, url.host, url.port)) {
                 PageFiles.Route.PASS -> null
                 PageFiles.Route.REFUSE -> empty(403, "Forbidden")
                 PageFiles.Route.PAGE -> {
@@ -177,7 +175,13 @@ class MainActivity : Activity(), Bridge.Host {
         }
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) =
-            !PageFiles.mayNavigate(request.url.scheme, request.url.host)
+            !PageFiles.mayNavigate(request.url.scheme, request.url.host, request.url.port)
+
+        // The page loaded: tell it whether it is on screen. Home pressed while it was loading sent it off screen
+        // before it could hear that (onPause's message came too early), and it ran its whole first launch hidden.
+        override fun onPageFinished(view: WebView, url: String?) {
+            if (view === web) js(Js.active(resumed))
+        }
 
         // The page's process ended (out of memory, or a crash): start the page again, now or on return
         // to the app. If that keeps happening, close instead of looping.
@@ -227,8 +231,9 @@ class MainActivity : Activity(), Bridge.Host {
 
     override fun onStop() {
         started = false
-        // Off screen nothing on the page runs: onPause told it to stop polling, and this also
-        // holds its timers (a map retry, the clock), so a hidden app sends no requests at all.
+        // Off screen nothing on the page runs: onPause told it to stop polling and to hold any other request (the
+        // replies to earlier ones still run it), and this also holds its timers (a map retry, the clock), so a hidden
+        // app sends no requests at all.
         web?.pauseTimers()
         super.onStop()
     }
@@ -255,37 +260,31 @@ class MainActivity : Activity(), Bridge.Host {
         return super.dispatchKeyEvent(event)
     }
 
-    // Back: while a screen is open over the map, the page closes it; otherwise Android's own Back
-    // (the app goes to the background). Android 13 and later ask through a registered callback.
+    // Back: while a screen is open over the map, the page closes it. Otherwise the app goes to the background, as
+    // Home does, and comes back as it was. (Android 12 and later do that by themselves only for a phone launcher
+    // activity; this TV launcher activity they would close, and every return after Back would load the page again.)
     private fun setOverlay(open: Boolean) {
         overlay = open
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (open && backToken == null) backToken = Back33.register(this) { js(Js.BACK) }
-            if (!open && backToken != null) {
-                Back33.unregister(this, backToken!!)
-                backToken = null
-            }
+    }
+
+    private fun back() {
+        when {
+            overlay && web != null -> js(Js.BACK)
+            showsPage && moveTaskToBack(true) -> Unit
+            else -> finish()
         }
     }
 
-    // Android 12 and earlier only: the manifest opts in to Android 13's back callbacks (setOverlay),
+    // Android 12 and earlier only: the manifest opts in to Android 13's back callbacks (registered in onCreate),
     // so newer versions never call this.
-    @SuppressLint("GestureBackNavigation")
-    @Deprecated("Android 12 and earlier; Android 13 and later use the callback set in setOverlay")
-    override fun onBackPressed() {
-        if (overlay && web != null) js(Js.BACK) else @Suppress("DEPRECATION") super.onBackPressed()
-    }
+    @SuppressLint("GestureBackNavigation", "MissingSuperCall")
+    @Deprecated("Android 12 and earlier; Android 13 and later use the callback registered in onCreate")
+    override fun onBackPressed() = back()
 
     @RequiresApi(33)
     private object Back33 {
-        fun register(activity: Activity, back: () -> Unit): Any {
-            val callback = OnBackInvokedCallback { back() }
-            activity.onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
-            return callback
-        }
-
-        fun unregister(activity: Activity, token: Any) {
-            activity.onBackInvokedDispatcher.unregisterOnBackInvokedCallback(token as OnBackInvokedCallback)
+        fun register(activity: Activity, back: () -> Unit) {
+            activity.onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { back() }
         }
     }
 
@@ -302,9 +301,10 @@ class MainActivity : Activity(), Bridge.Host {
     }
 
     override fun fetch(url: String, timeoutMs: Long, binary: Boolean, done: (Reply) -> Unit) {
+        val posted = System.nanoTime() // the page's wait starts now, even if no network thread is free yet
         try {
             net.execute {
-                val reply = fetcher.get(url, timeoutMs, binary)
+                val reply = fetcher.get(url, timeoutMs, binary, posted)
                 main.post { done(reply) }
             }
         } catch (e: RuntimeException) {
@@ -323,6 +323,12 @@ class MainActivity : Activity(), Bridge.Host {
 
     override fun chime(volume: Double) {
         chime?.play(volume.toFloat())
+    }
+
+    // Erase all data: the page has removed what it stored and reloads. The web view's own disk cache still holds the
+    // satellite pictures around home and the aircraft photos it loaded, which the privacy policy says Erase deletes.
+    override fun erase() {
+        web?.clearCache(true)
     }
 
     override fun refused(host: String) {
