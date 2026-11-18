@@ -86,7 +86,7 @@ export function loadSettings(){
     // No saved window yet: an example window (ENE 74° to S 175°, 25 mi) to adjust from.
     viewFrom:deg(s.viewFrom,74),viewTo:deg(s.viewTo,175),
     viewMiles:VIEW_MILES.includes(Number(s.viewMiles))?Number(s.viewMiles):25,
-    layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-dark'};
+    layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-satellite'};
 }
 // A saved place that can't be read (damaged), not none or an unconfirmed guess (saved as null).
 export const placeDamaged=()=>{const p=store.get(KEY)?.place;return !!p&&!makePlace(p);};

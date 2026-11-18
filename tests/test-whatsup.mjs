@@ -614,3 +614,11 @@ test('build 3: the store build fills the screen, as the personal build does (no 
   assert.equal(profileFor('store').stageScale,1);
   assert.equal(profileFor('store').stageScale,profileFor('personal').stageScale);
 });
+
+test('build 3: the layouts in Settings order start Atlas Satellite, Atlas Light, Atlas Dark, then the other nine as before; the first is the default',()=>{
+  const src=readFileSync(new URL('../web/app.mjs',import.meta.url),'utf8');
+  const list=/const LAYOUTS=(\[[\s\S]*?\]\]);/.exec(src)?.[1];
+  const ids=JSON.parse(list.replace(/'/g,'"')).map(([id])=>id);
+  assert.deepEqual(ids,['atlas-satellite','atlas','atlas-dark','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky']);
+  assert.match(readFileSync(new URL('../web/place.mjs',import.meta.url),'utf8'),/s\.layout:'atlas-satellite'\}/,'loadSettings falls back to the first layout');
+});

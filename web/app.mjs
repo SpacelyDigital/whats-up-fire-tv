@@ -98,7 +98,7 @@ function flashCredits(){
 }
 
 // --- Layouts. Order is the Settings order; the first is the default.
-const LAYOUTS=[['atlas-dark','Atlas Dark'],['atlas','Atlas Light'],['atlas-satellite','Atlas Satellite'],
+const LAYOUTS=[['atlas-satellite','Atlas Satellite'],['atlas','Atlas Light'],['atlas-dark','Atlas Dark'],
   ['radar','Radar'],['glass','Glass'],['departures','Departures'],['blueprint','Blueprint'],['swiss','Swiss'],['synthwave','Synthwave'],['sectional','Sectional'],['cockpit','Cockpit'],['night-sky','Night Sky']];
 const layoutName=id=>(LAYOUTS.find(([k])=>k===id)||LAYOUTS[0])[1];
 const validLayout=id=>LAYOUTS.some(([k])=>k===id)?id:LAYOUTS[0][0];

@@ -135,8 +135,16 @@ test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°)
 test('settings: bad saved values fall back to safe defaults',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({radiusMiles:99,distance:'parsecs',altitude:'m',layout:'<script>'}),setItem(){},removeItem(){}};
   const s=loadSettings();
-  assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-dark');assert.equal(s.placeNames,'cities');
+  assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-satellite');assert.equal(s.placeNames,'cities');
   delete globalThis.localStorage;
+});
+test('settings: build 3 starts new installs on Atlas Satellite; a layout saved by build 2 (Atlas Dark, its default, or Atlas Light) is kept, and so is any other saved one',()=>{
+  const load=saved=>{globalThis.localStorage={getItem:()=>saved===undefined?null:JSON.stringify(saved),setItem(){},removeItem(){}};try{return loadSettings().layout;}finally{delete globalThis.localStorage;}};
+  assert.equal(load(undefined),'atlas-satellite','nothing saved: the first layout');
+  assert.equal(load({}),'atlas-satellite','saved settings without a layout');
+  // As build 2 saves them: the whole settings object, so its default layout is saved too.
+  for(const layout of ['atlas-dark','atlas','atlas-satellite','radar','night-sky'])
+    assert.equal(load({place:null,confirmed:false,mapMiles:15,radiusMiles:3,distance:'mi',altitude:'ft',layout}),layout,layout);
 });
 test('settings: a saved place that can\'t be read is damaged (the logbook and \'Recently above\' wait for a confirmed place); no place or an unconfirmed guess (saved as null) is not',async()=>{
   const {placeDamaged}=await import('../web/place.mjs');
