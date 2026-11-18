@@ -39,6 +39,12 @@ build, policy edition, credits).
   `node ../scripts/build-privacy-googletv.mjs`. Its dates stay `[date]` until it is published, and the
   package check refuses a store package until then.
 
+## Testing without a TV
+
+`../tests/googletv-rig/` runs the page in headless Chromium set up as this app (the same page serving,
+bridge, network threads, keys and lifecycle, and a TV-sized mobile viewport), with faults for every
+service. See its README; `node ../tests/googletv-rig/smoke.mjs` is its self-test.
+
 ## Google Play
 
 Decided on 2026-11-16 for the first release:

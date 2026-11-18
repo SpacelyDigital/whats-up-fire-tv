@@ -83,6 +83,7 @@ npm run serve                    # http://127.0.0.1:8767/  (?demo=1[&scene=emerg
                                  #  ?layout=atlas, ?units=metric, ?screen=settings|picker|welcome|adjust,
                                  #  ?screen=locate&typed=CHICAGO, ?reset=1)
 node scripts/dev-server.mjs web 8770   # the same from web/ as ES modules, no build step
+node scripts/offline-server.mjs assets 8767   # the same with every service answered from tests/fixtures
 node scripts/shot.mjs "http://127.0.0.1:8767/?q=Chicago" out.png 25000   # 1920x1080 via Chrome
 npm run build:release            # -> build/armv7-release/whatsup_armv7.vpkg (and aarch64, x86_64)
 vega run-app build/armv7-release/whatsup_armv7.vpkg com.spacelydigital.whatsup.main -d <fire-tv-ip>:5555
