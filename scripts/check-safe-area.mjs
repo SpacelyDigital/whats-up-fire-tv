@@ -1,16 +1,19 @@
 // node scripts/check-safe-area.mjs [layout ...]  (needs the dev server on a store-profile build:
 //   WHATSUP_PROFILE=store WHATSUP_OUT=$PWD/build/store-assets npm run build:web
 //   node scripts/dev-server.mjs build/store-assets 8767)
-// Title-safe check (Amazon's overscan guidance): no visible text inside the outer 5% of the
-// screen (96 px left and right, 54 px top and bottom at 1920×1080), in every layout at
-// 1920×1080 and 1280×720: the dashboard in the busy, long, longest, emergency and quiet demo
+// Edge check. Both builds fill the screen now (build 3: PROFILE.stageScale 1), so the rule is
+// that no visible text touches a screen edge, where it would be cut off (at least 1 px clear).
+// A build whose stage is inset (stageScale below 1, as builds 1 and 2 of the store app were at
+// 0.9) is held to the title-safe rule of Amazon's overscan guidance instead: no visible text
+// inside the outer 5% (96 px left and right, 54 px top and bottom at 1920×1080). The stage's
+// scale is measured on the page and printed. Every layout at 1920×1080 and 1280×720: the dashboard in the busy, long, longest, emergency and quiet demo
 // scenes (with the opening credit line, and the map-radius toast), Settings, the layout picker,
 // the location screens (keyboard with results, the match, the first-run card, Adjust
 // position), Privacy and its Erase box, About and the first-run consent. Geocoding answers
 // are canned and photo lookups refused here (model photos show), imagery isn't loaded; the
 // map tiles come through the dev server. Prints the text closest to the edges per layout and,
 // from those distances, the largest stage scale that would keep it all inside 5%.
-// CHECK_SIZES=1080 or 720 runs one size. Exit code 1 if any text is inside the outer 5%.
+// CHECK_SIZES=1080 or 720 runs one size. Exit code 1 if any text breaks the rule for its stage.
 import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
@@ -75,7 +78,9 @@ const only=process.argv.slice(2);
 // One state: measure, keep the text inside 5% and the closest to each axis.
 function tally(res,state,acc){
   if(!res)return acc.bad.push(`${state}: page not measured`);
-  const {W,H,items}=res,mx=W*.05,my=H*.05;if(res.scale>0)stageScale=res.scale;
+  // Full screen: text must stay at least 1 px off every edge (an edge-clipped box ends at 0);
+  // an inset stage: outside the outer 5%.
+  const {W,H,items}=res,inset=res.scale>0&&res.scale<.995,mx=inset?W*.05:1,my=inset?H*.05:1;if(res.scale>0)stageScale=res.scale;
   if(!items.length)acc.bad.push(`${state}: no text found`);
   for(const it of items){
     const dx=Math.min(it.l,it.r),dy=Math.min(it.tp,it.b);
@@ -115,7 +120,7 @@ for(const [w,h] of SIZES)for(const layout of LAYOUTS){
   const ok=!acc.inside.length&&!acc.bad.length;
   console.log(`${ok?'ok  ':'FAIL'} ${h}p ${layout.padEnd(16)} closest: ${(acc.x*100).toFixed(2)}% of the width (${acc.xi}), ${(acc.y*100).toFixed(2)}% of the height (${acc.yi})`);
   for(const line of [...acc.bad,...acc.inside.slice(0,8)])console.log(`     ${line}`);
-  if(acc.inside.length>8)console.log(`     … ${acc.inside.length-8} more inside the outer 5%`);
+  if(acc.inside.length>8)console.log(`     … ${acc.inside.length-8} more ${stageScale>.995?'at a screen edge':'inside the outer 5%'}`);
   if(!ok)fails.push(`${h}p ${layout}`);
   if(acc.x<worst.x){worst.x=acc.x;worst.xi=`${h}p ${layout} ${acc.xi}`;}
   if(acc.y<worst.y){worst.y=acc.y;worst.yi=`${h}p ${layout} ${acc.yi}`;}
@@ -124,7 +129,8 @@ for(const [w,h] of SIZES)for(const layout of LAYOUTS){
 // share of that dimension): S = 0.9 / (1 - 2d) keeps the closest text at exactly 5%.
 const S=d=>Math.min(1,.9/(1-2*d));
 console.log(`\nclosest text: ${(worst.x*100).toFixed(2)}% from a side (${worst.xi}); ${(worst.y*100).toFixed(2)}% from the top or bottom (${worst.yi})`);
-if(stageScale>.995)console.log(`largest stage scale that would keep all of it inside 5%: ${Math.min(S(worst.x),S(worst.y)).toFixed(4)}`);
-else console.log(`stage drawn at ${(stageScale*100).toFixed(1)}% of the screen`);
-console.log(fails.length?`FAIL: text inside the outer 5% in ${fails.length} of ${SIZES.length*LAYOUTS.filter(l=>!only.length||only.includes(l)).length}`:'all text inside the title-safe area');
+const full=stageScale>.995,runs=SIZES.length*LAYOUTS.filter(l=>!only.length||only.includes(l)).length;
+console.log(`stage drawn at ${(stageScale*100).toFixed(1)}% of the screen${full?' (full screen)':''}`);
+if(full)console.log(`largest stage scale that would keep all of it inside 5%: ${Math.min(S(worst.x),S(worst.y)).toFixed(4)}`);
+console.log(fails.length?`FAIL: text ${full?'at a screen edge':'inside the outer 5%'} in ${fails.length} of ${runs}`:full?'no text at any screen edge':'all text inside the title-safe area');
 process.exit(fails.length?1:0);

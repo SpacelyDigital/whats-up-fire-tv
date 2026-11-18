@@ -474,3 +474,10 @@ test('consent: a new record holds the policy version agreed to (the "Version N" 
   for(const v of [2,3,4])assert.equal(valid(JSON.stringify({v,at:'2026-11-01'})),true,`v ${v}`);
   for(const raw of ['{"v":1}','{"v":"3"}','{"v":',null,'[]'])assert.equal(valid(raw),false,raw);
 });
+
+test('build 3: the store build fills the screen, as the personal build does (no 90% stage and no frame round it)',async()=>{
+  const {profileFor,STORE_STAGE_SCALE}=await import('../web/profile.mjs');
+  assert.equal(STORE_STAGE_SCALE,1);
+  assert.equal(profileFor('store').stageScale,1);
+  assert.equal(profileFor('store').stageScale,profileFor('personal').stageScale);
+});

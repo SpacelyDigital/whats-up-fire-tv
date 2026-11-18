@@ -17,8 +17,8 @@ import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from '.
 const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
 const stage=$('stage');
-// The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
-// reaches the outer 5% of any edge (overscan); the personal build fills the screen.
+// The stage fills the screen at PROFILE.stageScale 1 (both builds); below 1 it is drawn at that
+// share of the screen, centred, to keep text out of the outer 5% of the edges (overscan).
 const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
 // The margin around an inset stage shows the layout's own background (its --edge colour where
