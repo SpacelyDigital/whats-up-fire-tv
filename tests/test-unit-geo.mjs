@@ -4,6 +4,7 @@
 // Tests marked {todo:'BUG: ...'} expose a real bug (see qa/overnight-2026-11-02/FINDINGS-unit.md).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {inBearings,inZone,zoneOutline,norm,ABOVE_MI,snapDeg,snapped,GRID_DEG,GRID_PAD_NM,distanceMiles,airspace,IDS,coordinates} from '../web/core.mjs';
 import {selection,observations,haversine,feedUrlFor,MAX_NM} from '../web/live.mjs';
 
@@ -187,4 +188,56 @@ test('feed query: the snapped point only, the distance widened by the pad, cappe
   assert.match(feedUrlFor({latitude:0,longitude:-179.99},5),/\/lat\/0\.00\/lon\/-180\.00\/dist\/8$/);
   for(const [home,nm] of [[{latitude:NaN,longitude:0},15],[{latitude:'x',longitude:0},15],[{latitude:10,longitude:undefined},15],[{latitude:10,longitude:10},NaN],[{latitude:10,longitude:10},-5]])
     assert.equal(feedUrlFor(home,nm),null,JSON.stringify([home,nm]));
+});
+
+// Atlas Satellite's imagery tiles (kit.mjs, used by layouts/atlas.mjs), loaded with stand-ins for Image and the timers.
+test('satellite imagery: across the date line the column asked wraps round (the drawn position keeps the unwrapped one); rows stop at the grid\'s edges',async()=>{
+  const {satTiles}=await import('../web/kit.mjs');
+  assert.equal(typeof satTiles,'function','kit.mjs exports satTiles');
+  // Suva at 250 mi, z7: columns 125-129 of 128 (x 128 and 129 are 0 and 1 east of the line).
+  const tiles=satTiles('https://img/{z}/{y}/{x}',7,125,129,70,70);
+  assert.deepEqual(tiles.map(t=>t.x),[125,126,127,128,129]);
+  assert.deepEqual(tiles.map(t=>t.url),['125','126','127','0','1'].map(x=>`https://img/7/70/${x}`));
+  // Chatham Islands: columns -2..1 at z3 (n 8).
+  assert.deepEqual(satTiles('{z}/{y}/{x}',3,-2,1,4,4).map(t=>t.url),['3/4/6','3/4/7','3/4/0','3/4/1']);
+  // Rows past the top or bottom of the grid are not asked.
+  assert.deepEqual(satTiles('{z}/{y}/{x}',3,0,0,-2,1).map(t=>t.y),[0,1]);
+  assert.deepEqual(satTiles('{z}/{y}/{x}',3,0,0,6,9).map(t=>t.y),[6,7]);
+});
+
+test('satellite imagery: a tile that fails is asked again on its own (30 s, then 60 s...), tiles drawn are kept; nothing is asked once the view has changed',async()=>{
+  const {loadTiles}=await import('../web/kit.mjs');
+  assert.equal(typeof loadTiles,'function','kit.mjs exports loadTiles');
+  assert.match(readFileSync(new URL('../web/layouts/atlas.mjs',import.meta.url),'utf8'),/satStop=loadTiles\(satTiles\(/,'Atlas Satellite loads its imagery this way');
+  const real={set:globalThis.setTimeout,clear:globalThis.clearTimeout};let now=0;const timers=new Set();
+  globalThis.setTimeout=(fn,ms)=>{const h={fn,at:now+ms};timers.add(h);return h;};
+  globalThis.clearTimeout=h=>{timers.delete(h);};
+  const run=ms=>{const end=now+ms;for(;;){const due=[...timers].filter(h=>h.at<=end).sort((a,b)=>a.at-b.at)[0];if(!due)break;timers.delete(due);now=due.at;due.fn();}now=end;};
+  // A picture: clearing its src raises an error event, as browsers do.
+  const asked=[],make=()=>{const img={set src(v){if(v==='')img.onerror?.();else asked.push({img,url:v,t:now});}};return img;};
+  const answer=(ok,url)=>asked.filter(a=>!a.done&&(!url||a.url===url)).forEach(a=>{a.done=true;ok?a.img.onload?.():a.img.onerror?.();});
+  try{
+    let live=true;const drawn=[];
+    const tiles=[{x:1,y:1,url:'a'},{x:2,y:1,url:'b'}];
+    const stop=loadTiles(tiles,t=>drawn.push(t.url),()=>live,{make});
+    assert.deepEqual(asked.map(a=>a.url),['a','b']);
+    answer(false); // an outage at launch: both fail
+    run(29000);assert.equal(asked.length,2,'not before 30 s');
+    run(1000);assert.deepEqual(asked.slice(2).map(a=>a.url),['a','b'],'both asked again at 30 s');
+    answer(true,'a');answer(false,'b');
+    assert.deepEqual(drawn,['a']);
+    run(59000);assert.equal(asked.length,4,'b: not before another 60 s');
+    run(1000);assert.deepEqual(asked.slice(4).map(a=>a.url),['b'],'only the missing tile is asked');
+    answer(true);
+    assert.deepEqual(drawn,['a','b']);
+    run(3600000);assert.equal(asked.length,5,'drawn tiles are never asked again (clearing a drawn picture is no failure)');
+    // A failure for a view that has gone (a new place or scale, the layout closed): not asked again.
+    const stop2=loadTiles([{x:0,y:0,url:'c'}],()=>{},()=>live,{make});
+    live=false;answer(false);run(600000);
+    assert.equal(asked.filter(a=>a.url==='c').length,1,'no retry for a view no longer shown');
+    stop();stop2();live=true;
+    // stop() (a new view): a failed tile's retry is dropped.
+    const stop3=loadTiles([{x:0,y:0,url:'e'}],()=>{},()=>live,{make});answer(false);stop3();run(600000);
+    assert.equal(asked.filter(a=>a.url==='e').length,1,'stopped: not asked again');
+  }finally{globalThis.setTimeout=real.set;globalThis.clearTimeout=real.clear;}
 });

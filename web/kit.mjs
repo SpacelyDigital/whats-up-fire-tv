@@ -416,3 +416,33 @@ export const militaryAlts=L=>{
   const w=n=>t.slice(0,n).map(([k,c])=>`${c} ${k}`).join(' · ');
   return [...new Set([w(4),w(3),w(2),w(1)])];
 };
+
+// Atlas Satellite's imagery tiles of a view (template with {z}, {x}, {y}): across the date line the column asked
+// wraps round (the unwrapped one, kept in x, still places the tile east or west of home), and rows
+// stop at the grid's top and bottom (~85°), so no tile is asked that the servers don't have.
+export function satTiles(template,z,x0,x1,y0,y1){
+  const n=2**z,out=[];
+  for(let x=x0;x<=x1;x++)for(let y=Math.max(0,y0);y<=Math.min(n-1,y1);y++)
+    out.push({x,y,url:template.replace('{z}',z).replace('{y}',y).replace('{x}',((x%n)+n)%n)});
+  return out;
+}
+// Loads each tile's picture and hands it to draw(tile,img) while alive(); the pictures are dropped
+// once drawn. A tile that fails (no connection, the server busy) is asked again on its own, 30 s on,
+// doubling to 5 min, while alive(): an outage at launch no longer leaves the imagery black until the
+// place or the scale changes. Returns stop() (a new view, or the layout gone).
+export function loadTiles(tiles,draw,alive,{make=()=>new Image(),wait=30000,max=300000}={}){
+  let timer=null,failed=[];
+  const load=t=>{
+    const img=make();
+    // Clearing src after drawing raises an error event of its own: the handlers go first.
+    img.onload=()=>{img.onload=img.onerror=null;if(alive())draw(t,img);img.src='';};
+    img.onerror=()=>{
+      img.onload=img.onerror=null;if(!alive())return;
+      failed.push(t);
+      timer??=setTimeout(()=>{timer=null;if(!alive())return;const again=failed;failed=[];wait=Math.min(max,wait*2);again.forEach(load);},wait);
+    };
+    img.src=t.url;
+  };
+  tiles.forEach(load);
+  return ()=>{clearTimeout(timer);timer=null;failed=[];};
+}
