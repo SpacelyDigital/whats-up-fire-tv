@@ -6,13 +6,13 @@
 //    addresses outside the US.
 //  - store: the public app, same services; its own privacy policy. The switches stay so a
 //    service can be turned off for the store build alone (photos, eox, nominatim).
-// The store build draws the whole screen at STORE_STAGE_SCALE of the TV's size, centred, with
-// the margin in the layout's own background, so no text sits in the outer 5% of any edge
-// (Amazon's overscan guidance: a TV left on overscan crops the edges). 0.9 puts the stage's own
-// edge exactly 5% in, so text clears the margin wherever a layout places it: the fixed text
-// would allow 0.911 (scripts/check-safe-area.mjs measures it), but plane tags in Sectional and
-// Synthwave and Radar's data blocks may sit 2-4 px from the stage edge.
-export const STORE_STAGE_SCALE=0.9;
+// The store build fills the screen, as the personal build does (build 3, at the owner's request:
+// the 90% stage of builds 1 and 2 left a wide plain border around the map). Below 1 the stage
+// is drawn at that share of the TV's size, centred, with the margin in the layout's own
+// background (app.mjs paintEdge); 0.9 kept all text out of the outer 5% of every edge (Amazon's
+// overscan guidance; scripts/check-safe-area.mjs measures it), but on a TV that shows the whole
+// picture it reads as a frame, and the owner's TV has run full screen all along.
+export const STORE_STAGE_SCALE=1;
 // Platform (scripts/build-web.mjs, WHATSUP_PLATFORM): the TV app this page is built into, Fire TV
 // (vega, the default) or Google TV (android). The page is the same on both; the store build's
 // privacy policy is each store's own edition (web/privacy-store.txt, web/privacy-store-googletv.txt),

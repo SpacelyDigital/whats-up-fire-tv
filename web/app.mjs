@@ -21,9 +21,9 @@ const setText=(id,v)=>{
   if(id==='layout-note')document.documentElement.classList.toggle('map-down',/unavailable/i.test(v));
 };
 const stage=$('stage');
-// The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
-// reaches the outer 5% of any edge (overscan); the personal build fills the screen. The screen's size
-// comes from screenSize (kit.mjs), never the window's inner size: see there.
+// The stage fills the screen at PROFILE.stageScale 1 (both builds); below 1 it is drawn at that
+// share of the screen, centred, to keep text out of the outer 5% of the edges (overscan). The screen's
+// size comes from screenSize (kit.mjs), never the window's inner size: see there.
 const fit=()=>{const [w,h]=screenSize(),s=Math.min(w/960,h/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
 // The margin around an inset stage shows the layout's own background (its --edge colour where

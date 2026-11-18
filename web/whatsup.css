@@ -8,7 +8,7 @@
   --mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#000}
-/* The store build's inset margin: app.mjs (paintEdge) paints body in the layout's background (a layout
+/* An inset stage's margin (PROFILE.stageScale below 1; both builds fill the screen now): app.mjs (paintEdge) paints body in the layout's background (a layout
    with a gradient background names its outer colour as --edge). */
 [hidden]{display:none!important}
 /* Centred even before app.mjs scales it, so the stage never sticks out of a 960x540 screen (see screenSize in kit.mjs). */

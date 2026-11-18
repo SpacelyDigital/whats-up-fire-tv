@@ -607,3 +607,10 @@ test('the busy cog turns only while it is shown (an endless invisible animation 
   assert.ok(!/animation/.test(rule('#busy svg')),'#busy svg has no animation of its own');
   assert.match(rule('#busy.on svg'),/animation:busy-spin/);
 });
+
+test('build 3: the store build fills the screen, as the personal build does (no 90% stage and no frame round it)',async()=>{
+  const {profileFor,STORE_STAGE_SCALE}=await import('../web/profile.mjs');
+  assert.equal(STORE_STAGE_SCALE,1);
+  assert.equal(profileFor('store').stageScale,1);
+  assert.equal(profileFor('store').stageScale,profileFor('personal').stageScale);
+});

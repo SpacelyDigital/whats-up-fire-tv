@@ -46,8 +46,9 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   ("Plane 3 of 9 · 4.2 mi NE") and its map mark. Back, a minute without Left/Right, the plane
   leaving the map or an emergency squawk give the card back to the hero. Its photo and route are
   looked up only once it has stayed on the card about a second (`web/browse.mjs`).
-* **Store build.** Draws the whole screen at 90%, centred, so no text sits in the outer 5% of
-  any edge (TV overscan); the personal build fills the screen (`web/profile.mjs`).
+* **Full screen.** Both builds fill the screen. Builds 1 and 2 of the store app drew it at 90%,
+  centred, to keep text out of the outer 5% of the edges (TV overscan); build 3 dropped that
+  border (`web/profile.mjs`, STORE_STAGE_SCALE).
 * **Backup feed.** While adsb.fi isn't answering (two failed polls in a row, or 15 s of
   failures), positions come from adsb.lol (`api.adsb.lol/v2`): the same rounded point and
   radius, at most once every 10 s (it answers a 5 s pace with a 429), never on the same poll as
