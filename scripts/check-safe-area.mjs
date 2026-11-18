@@ -17,7 +17,7 @@
 import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
-const LAYOUTS=['atlas-dark','atlas','atlas-satellite','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
+const LAYOUTS=['atlas-satellite','atlas','atlas-dark','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
 const SIZES=[[1920,1080],[1280,720]].filter(([,h])=>!process.env.CHECK_SIZES||process.env.CHECK_SIZES.split(',').includes(String(h)));
 const HEBRON={name:'Hebron',admin:'Kentucky',country:'United States',countryCode:'US',latitude:39.0659,longitude:-84.7011,timeZone:'America/New_York',confirmed:true};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));

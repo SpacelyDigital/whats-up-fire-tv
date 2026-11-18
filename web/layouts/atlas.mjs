@@ -2,8 +2,8 @@
 // buildings, every road class with casings, rail, aeroways, place names) with planes
 // as bold markers and trails, and a slim side column carrying the most data of any
 // layout: hero flight, route and progress, six stats, cargo and military today, today, recent.
-// Layout 1, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 3,
-// Atlas Satellite, puts satellite imagery under a light road overlay (atlas-satellite.css).
+// Layout 3, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 1,
+// Atlas Satellite (the default), puts satellite imagery under a light road overlay (atlas-satellite.css).
 import {satTiles,loadTiles,svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
   airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit,headingAlts} from '../kit.mjs';
 import {PROFILE} from '../profile.mjs';
