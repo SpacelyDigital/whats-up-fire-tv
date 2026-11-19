@@ -8,7 +8,7 @@
   --mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#000}
-/* The store build's inset margin: app.mjs (paintEdge) paints body in the layout's background (a layout
+/* An inset stage's margin (PROFILE.stageScale below 1; both builds fill the screen now): app.mjs (paintEdge) paints body in the layout's background (a layout
    with a gradient background names its outer colour as --edge). */
 [hidden]{display:none!important}
 .stage{position:absolute;left:50%;top:50%;width:960px;height:540px;transform-origin:center;overflow:hidden;
@@ -132,6 +132,7 @@ button.focus{border-color:var(--ui-ink);background:var(--ui-ink);color:var(--ui-
 #settings .card.editing .title{display:flex;align-items:baseline}
 #settings .card.editing .title::after{content:'‹ › change  ·  OK keep  ·  Back undo';margin-left:auto;font-size:14px;font-weight:600;color:var(--ui-dim);white-space:nowrap;letter-spacing:normal;text-transform:none}
 #settings .card.editing.big .title::after{content:'‹ › 1°  ·  ▲▼ 10°  ·  OK keep  ·  Back undo'}
+#settings .card.editing.edge .title::after{content:'‹ › more if your TV cuts off the edges  ·  OK keep  ·  Back undo'}
 #settings .row.done{width:220px;margin:10px auto 0;display:block}
 
 /* Busy cog (theme accent): fades in only if the work lasts more than ~250 ms. */

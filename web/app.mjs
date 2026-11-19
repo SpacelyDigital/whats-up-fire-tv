@@ -8,7 +8,7 @@ import {PROFILE} from './profile.mjs';
 import {chimeGate,dLon} from './core.mjs';
 import {HISTORY_KEY,MAX_NM,store,setRouteFocus} from './live.mjs';
 import {start,demo,query,compass,resetLog,setLogRadius,flushLog,retryIn} from './model.mjs';
-import {MAP_RADII,VIEW_MILES,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
+import {MAP_RADII,VIEW_MILES,EDGE_STEPS,edgeScale,alertFor,loadSettings,saveSettings,placeDamaged,locateByIp,searchPlaces,searchAddress,looksLikeAddress,looksLikeUSAddress,looksLikePostcode,placeLabel,refineZone} from './place.mjs';
 import {buildMap,savedMap,saveMap,touchMap,buildDetail,hasDetail,savedDetail,saveDetail,decodeDetail,detailSpec,detailFits,dropOldMaps,STALE} from './mapgen.mjs';
 import {svg,useSettings,fmt,makeCanvas,paintMap,fitLine,themedQr,fit as fitText,quietText,swapText,pruneFitted,overflows} from './kit.mjs';
 import {setPhotoGate} from './photos.mjs';
@@ -17,9 +17,12 @@ import {step as stepBrowse,apply as applyBrowse,held,LookupGate,IDLE_MS} from '.
 const $=id=>document.getElementById(id);
 const setText=(id,v)=>{const el=$(id);v=v??'';if(el&&el.textContent!==String(v))el.textContent=v;};
 const stage=$('stage');
-// The store build draws the stage at PROFILE.stageScale of the screen, centred, so no text
-// reaches the outer 5% of any edge (overscan); the personal build fills the screen.
-const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*PROFILE.stageScale;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+// The stage fills the screen at Settings > Screen edges 1%, the default in both builds. Each step
+// above that draws it 1% of the screen further in from every edge, centred (place.mjs edgeScale),
+// for a TV that cuts off the edges of the picture; the viewer picks it, watching the screen shrink.
+// PROFILE.stageScale (1 in both builds; builds 1 and 2 of the store app had 0.9) scales on top.
+let stageShare=PROFILE.stageScale;
+const fit=()=>{const s=Math.min(innerWidth/960,innerHeight/540)*stageShare;stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
 addEventListener('resize',fit);fit();
 // The margin around an inset stage shows the layout's own background (its --edge colour where
 // that background is a gradient; Adjust position's own background while it is open), shaded
@@ -28,13 +31,15 @@ addEventListener('resize',fit);fit();
 const clear=c=>!c||c==='transparent'||/^rgba\(.*,\s*0\)$/.test(c);
 let edgePainted='';
 function paintEdge(){
-  if(!(PROFILE.stageScale<1))return;
+  if(!(stageShare<1)){if(edgePainted){document.body.style.background='';edgePainted='';}return;} // back to full screen
   const cs=getComputedStyle(stage),own=cs.getPropertyValue('--edge').trim(),bg=getComputedStyle($('layout')).backgroundColor;
   const edge=stage.classList.contains('adjusting')?cs.backgroundColor:own||(clear(bg)?cs.backgroundColor:bg);
   const shades=[...stage.querySelectorAll(':scope > .overlay:not([hidden])')].map(o=>getComputedStyle(o)).filter(c=>c.display!=='none').map(c=>c.backgroundColor).filter(c=>!clear(c));
   const v=[...shades.map(c=>`linear-gradient(${c},${c})`),edge].join(',');
   if(v!==edgePainted)document.body.style.background=edgePainted=v;
 }
+// Settings > Screen edges: n% (1 to 10), applied at once.
+function setEdge(n){stageShare=PROFILE.stageScale*edgeScale(n);fit();paintEdge();}
 
 // --- Bridge to the Vega app: it handles the remote's Back button and asks us first.
 const native=window.ReactNativeWebView;
@@ -45,7 +50,7 @@ const tellAwake=()=>tellApp({type:'awake',on:settings.keepAwake===true});
 // Rarest/Farthest follow the map radius (Settings > Map radius, Up/Down).
 setLogRadius(()=>settings.mapMiles||CONFIG.rangeMiles);
 let settings=loadSettings(),feed=null,lastModel=null,placeToken=0,onScreen=true;
-useSettings(settings);
+useSettings(settings);setEdge(settings.edge);
 const mapMiles=()=>settings.mapMiles||CONFIG.rangeMiles;
 // The feed follows the map radius: adsb.fi (or adsb.lol) is asked for ~1.5x the radius (wide layouts
 // show that far sideways), at most its 250 NM, and polled less often over big areas. One started while
@@ -90,7 +95,7 @@ function flashCredits(){
 }
 
 // --- Layouts. Order is the Settings order; the first is the default.
-const LAYOUTS=[['atlas-dark','Atlas Dark'],['atlas','Atlas Light'],['atlas-satellite','Atlas Satellite'],
+const LAYOUTS=[['atlas-satellite','Atlas Satellite'],['atlas','Atlas Light'],['atlas-dark','Atlas Dark'],
   ['radar','Radar'],['glass','Glass'],['departures','Departures'],['blueprint','Blueprint'],['swiss','Swiss'],['synthwave','Synthwave'],['sectional','Sectional'],['cockpit','Cockpit'],['night-sky','Night Sky']];
 const layoutName=id=>(LAYOUTS.find(([k])=>k===id)||LAYOUTS[0])[1];
 const validLayout=id=>LAYOUTS.some(([k])=>k===id)?id:LAYOUTS[0][0];
@@ -399,7 +404,7 @@ function refreshLayout(){try{active?.mod.refresh?.();}catch(e){console.error(e);
 // --- Focus and remote navigation
 function labelRow(el){
   const name=el.querySelector?.(':scope > span'),value=el.querySelector?.(':scope > b');
-  if(name&&el.classList.contains('row'))el.setAttribute('aria-label',[name.textContent,value?.textContent].filter(Boolean).join(', '));
+  if(name&&el.classList.contains('row'))el.setAttribute('aria-label',[name.textContent,value?.dataset.say||value?.textContent].filter(Boolean).join(', '));
 }
 // While a screen is open the dashboard behind it is hidden from screen readers, with the map's note (a live
 // region: a street map drawn behind Settings or a picker preview would be read over them).
@@ -519,6 +524,8 @@ function showSettings(){
   setText('set-map-v',fmt.dist(mapMiles(),0));
   setText('set-distance-v',settings.distance==='km'?'Kilometers':'Miles');
   setText('set-altitude-v',settings.altitude==='m'?'Meters':'Feet');
+  {const e=$('set-edge-v');e._alts=settings.edge===1?['1% · full screen','1% · full','1%']:[`${settings.edge}%`];setText('set-edge-v',e._alts[0]);
+    e.dataset.say=settings.edge===1?'1 percent, full screen':`${settings.edge} percent`;} // read "Screen edges, 5 percent"
   setText('set-awake-v',settings.keepAwake?'On':'Off');
   setText('set-places-v',{off:'Off',cities:'Cities',hoods:'Neighborhoods',both:'Cities & neighborhoods'}[settings.placeNames]);
   setText('set-chime-v',{off:'Off',low:'On · quiet',med:'On · medium',high:'On · loud'}[settings.chime]);
@@ -562,6 +569,10 @@ function adjustSetting(el,dir){
     return;
   }
   else if(el.id==='set-awake'){settings.keepAwake=!settings.keepAwake;saveSettings(settings);showSettings();return tellAwake();}
+  else if(el.id==='set-edge'){ // the whole picture, Settings with it, shrinks or grows as it steps
+    settings.edge=EDGE_STEPS[Math.max(0,Math.min(EDGE_STEPS.length-1,EDGE_STEPS.indexOf(settings.edge)+dir))];
+    saveSettings(settings);setEdge(settings.edge);return showSettings();
+  }
   else return;
   saveSettings(settings);useSettings(settings);showSettings();
   if(el.id==='set-radius'&&settings.place){busy(refreshLayout);clearTimeout(zoneTimer);zoneTimer=setTimeout(restartFeed,900);} // the feed's alert radius
@@ -622,6 +633,7 @@ function stopEdit(commit=false){
 // keeps the row's full width (in the narrow monospace layouts the hint left it no room).
 function editHint(row,was){
   const card=$('settings').querySelector('.card');card.classList.toggle('editing',!!row);card.classList.toggle('big',row?.dataset.big!==undefined);
+  card.classList.toggle('edge',row?.id==='set-edge'); // its own hint: what the setting is for
   fitValue(row||was);
 }
 // Back while editing puts the value back as it was when OK was pressed, applied once: a Map radius
@@ -634,7 +646,7 @@ function cancelEdit(){
   const {place,...now}=settings,changed=Object.keys(before).filter(k=>before[k]!==now[k]);
   if(!changed.length)return;
   const mapStep=before.mapMiles!==settings.mapMiles||!!mapTimer;
-  Object.assign(settings,before);saveSettings(settings);useSettings(settings);showSettings();tellAwake();
+  Object.assign(settings,before);saveSettings(settings);useSettings(settings);setEdge(settings.edge);showSettings();tellAwake();
   busy(()=>{mapsChanged();refreshLayout();});
   clearTimeout(mapTimer);mapTimer=0;clearTimeout(zoneTimer);
   if(mapStep)mapTimer=setTimeout(()=>{mapTimer=0;if(settings.place)applyPlace(settings.place);},700);else zoneTimer=setTimeout(restartFeed,700);
@@ -1061,6 +1073,8 @@ async function boot(){
   if(w)Object.assign(settings,{alertZone:'window',viewFrom:+w[1]%360,viewTo:+w[2]%360,viewMiles:VIEW_MILES.includes(+w[3])?+w[3]:25});
   // Screenshot hook: ?map=50 sets the map radius for this launch.
   if(MAP_RADII.includes(Number(query.get('map'))))settings.mapMiles=Number(query.get('map'));
+  // Screenshot hook: ?edge=5 sets Settings > Screen edges for this launch.
+  if(EDGE_STEPS.includes(Number(query.get('edge')))){settings.edge=Number(query.get('edge'));setEdge(settings.edge);}
   // Screenshot hook: ?layout=atlas shows that layout for this launch.
   if(query.get('layout'))settings.layout=validLayout(query.get('layout'));
   settings.layout=validLayout(settings.layout);

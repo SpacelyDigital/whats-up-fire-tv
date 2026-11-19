@@ -2,9 +2,9 @@
 // buildings, every road class with casings, rail, aeroways, place names) with planes
 // as bold markers and trails, and a slim side column carrying the most data of any
 // layout: hero flight, route and progress, six stats, cargo and military today, today, recent.
-// Layout 1, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 3,
-// Atlas Satellite, puts satellite imagery under a light road overlay (atlas-satellite.css).
-import {svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
+// Layout 3, Atlas Dark, is the same code with the DARK palette and atlas-dark.css; layout 1,
+// Atlas Satellite (the default), puts satellite imagery under a light road overlay (atlas-satellite.css).
+import {satTiles,loadTiles,svg,el,setText,fmt,placeName,statusText,quietText,planeIcon,byInterest,makeCanvas,paintMap,toView,placesNear,
   airfieldsNear,shortField,cityName,compass,number,TrailBook,placeBox,metric,KM,alertRadius,ppmOf,niceDistance,range,overlap,zonePath,windowView,silhouette,photoFor,qrFor,modelPhoto,fitLine,themedQr,fit,snapped,GRID_PAD_MI,shortAuthor,photoAlt,militaryAlts,psCredit,headingAlts} from '../kit.mjs';
 import {PROFILE} from '../profile.mjs';
 
@@ -104,7 +104,7 @@ const BASE=[
 
 const usPlace=p=>p?.countryCode==='US'||p?.countryCode==='PR';
 const imagery=()=>sat&&(usPlace(ctx?.place?.())||PROFILE.eox);
-let root,demo,ctx,dark=false,sat=false,satToken=0,satKey='',$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
+let root,demo,ctx,dark=false,sat=false,satToken=0,satKey='',satStop=()=>{},$={},maps={},trails=new TrailBook(360000,4000),staticBoxes=[];
 
 function ui(){
   const map=el('div','at-map'),side=el('aside','at-side');
@@ -155,7 +155,7 @@ function ui(){
 // ~40 tiles), drawn as they arrive onto their own canvas; the images are dropped once drawn.
 function drawSatellite(){
   const place=ctx?.place?.();if(!sat||!$.sat||!place)return;
-  if(!imagery()){const g=$.sat.getContext('2d');g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,$.sat.width,$.sat.height);g.restore();satKey='';satToken++;return;}
+  if(!imagery()){const g=$.sat.getContext('2d');g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,$.sat.width,$.sat.height);g.restore();satKey='';satToken++;satStop();return;}
   const c=$.sat,k=c._k||1,g=c.getContext('2d');
   const us=usPlace(place),ppm=ppmOf(VIEW),cos=Math.cos(place.latitude*Math.PI/180);
   // Nothing changed that moves the imagery (place, scale, the water drawn under it): keep
@@ -182,15 +182,11 @@ function drawSatellite(){
   const lonOf=x=>x/n*360-180,latOf=y=>Math.atan(Math.sinh(Math.PI-2*Math.PI*y/n))*180/Math.PI;
   // Screen point of a lat/lon (same equirectangular miles as the vector maps, from the true home).
   const px=(lat,lon)=>({x:VIEW.cx+(lon-place.longitude)*69.172*cos*ppm,y:VIEW.cy-(lat-place.latitude)*69*ppm});
-  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){
-    const img=new Image();
-    img.onload=()=>{
-      if(token!==satToken||!$.sat)return;
-      const a=px(latOf(y),lonOf(x)),b=px(latOf(y+1),lonOf(x+1));
-      g.drawImage(img,a.x,a.y,b.x-a.x+.5,b.y-a.y+.5);img.src='';
-    };
-    img.src=(us?USGS:EOX).replace('{z}',z).replace('{y}',y).replace('{x}',x);
-  }
+  satStop();
+  satStop=loadTiles(satTiles(us?USGS:EOX,z,x0,x1,y0,y1),(t,img)=>{
+    const a=px(latOf(t.y),lonOf(t.x)),b=px(latOf(t.y+1),lonOf(t.x+1));
+    g.drawImage(img,a.x,a.y,b.x-a.x+.5,b.y-a.y+.5);
+  },()=>token===satToken&&!!$.sat);
 }
 
 function drawMap(){
@@ -398,5 +394,5 @@ export default {
   render,shows,
   refresh(){scaleBar();}, // units: the scale bar; the map itself shows no distance, and the card's come with the model
   refreshZone(){}, // the zone is drawn with the aircraft on every tick
-  unmount(){root=null;satToken++;picHex='';photo=null;$={};maps={};trails.clear();},
+  unmount(){root=null;satToken++;satStop();picHex='';photo=null;$={};maps={};trails.clear();},
 };

@@ -1,20 +1,24 @@
 // node scripts/check-safe-area.mjs [layout ...]  (needs the dev server on a store-profile build:
 //   WHATSUP_PROFILE=store WHATSUP_OUT=$PWD/build/store-assets npm run build:web
 //   node scripts/dev-server.mjs build/store-assets 8767)
-// Title-safe check (Amazon's overscan guidance): no visible text inside the outer 5% of the
-// screen (96 px left and right, 54 px top and bottom at 1920×1080), in every layout at
-// 1920×1080 and 1280×720: the dashboard in the busy, long, longest, emergency and quiet demo
+// Edge check. Both builds fill the screen at Settings > Screen edges 1%, the default, so the
+// rule is that no visible text touches a screen edge, where it would be cut off (at least 1 px
+// clear). CHECK_EDGE=n (2 to 10) runs it with Screen edges at n%: the stage is drawn
+// (n-1)% of the screen in from every edge, and no text may reach that margin (at least 1 px
+// inside the stage: text cut by the stage's edge ends on it). The stage's scale is measured on
+// the page and printed, with how far the closest text is from the screen's edges. Every layout at 1920×1080 and 1280×720: the dashboard in the busy, long, longest, emergency and quiet demo
 // scenes (with the opening credit line, and the map-radius toast), Settings, the layout picker,
 // the location screens (keyboard with results, the match, the first-run card, Adjust
 // position), Privacy and its Erase box, About and the first-run consent. Geocoding answers
 // are canned and photo lookups refused here (model photos show), imagery isn't loaded; the
 // map tiles come through the dev server. Prints the text closest to the edges per layout and,
 // from those distances, the largest stage scale that would keep it all inside 5%.
-// CHECK_SIZES=1080 or 720 runs one size. Exit code 1 if any text is inside the outer 5%.
+// CHECK_SIZES=1080 or 720 runs one size. Exit code 1 if any text breaks the rule for its stage.
 import {launch} from './browser.mjs';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
-const LAYOUTS=['atlas-dark','atlas','atlas-satellite','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
+const EDGE=Number(process.env.CHECK_EDGE)||1;
+const LAYOUTS=['atlas-satellite','atlas','atlas-dark','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
 const SIZES=[[1920,1080],[1280,720]].filter(([,h])=>!process.env.CHECK_SIZES||process.env.CHECK_SIZES.split(',').includes(String(h)));
 const HEBRON={name:'Hebron',admin:'Kentucky',country:'United States',countryCode:'US',latitude:39.0659,longitude:-84.7011,timeZone:'America/New_York',confirmed:true};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -41,7 +45,7 @@ async function page(w,h,{consent=true,layout}){
   await send('Page.enable');await send('Runtime.enable');await send('Network.enable');
   await send('Network.setBlockedURLs',{urls:['*basemap.nationalmap.gov*','*tiles.maps.eox.at*','*planespotters*','*plnspttrs*']});
   await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:false});
-  const settings={place:HEBRON,confirmed:true,layout,mapMiles:15};
+  const settings={place:HEBRON,confirmed:true,layout,mapMiles:15,edge:EDGE};
   await send('Page.addScriptToEvaluateOnNewDocument',{source:MOCK+`;try{${consent?`localStorage.setItem('whatsup.consent',JSON.stringify({v:2,at:'2026-11-03'}));`:''}
     if(!localStorage.getItem('whatsup.settings.v1'))localStorage.setItem('whatsup.settings.v1',${JSON.stringify(JSON.stringify(settings))});}catch{}`});
   return {send,ev,key,errors,go:url=>send('Page.navigate',{url}),close(){ws.close();chrome.kill();setTimeout(()=>{try{rmSync(profile,{recursive:true,force:true});}catch{}},800);}};
@@ -68,14 +72,17 @@ const MEASURE=`(()=>{const W=innerWidth,H=innerHeight,out=[];
       out.push({t:t.slice(0,40),cls:(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className?'.'+el.className.split(' ')[0]:el.className?.baseVal?'.'+el.className.baseVal.split(' ')[0]:''),
         l:r.left,r:W-r.right,tp:r.top,b:H-r.bottom});}
   }
-  return {W,H,items:out,scale:document.getElementById('stage').getBoundingClientRect().width/W};})()`;
+  const st=document.getElementById('stage').getBoundingClientRect();
+  return {W,H,items:out,scale:st.width/W,ml:Math.min(st.left,W-st.right),mt:Math.min(st.top,H-st.bottom)};})()`;
 
 const fails=[],worst={x:Infinity,y:Infinity,xi:null,yi:null};let stageScale=1;
 const only=process.argv.slice(2);
 // One state: measure, keep the text inside 5% and the closest to each axis.
 function tally(res,state,acc){
   if(!res)return acc.bad.push(`${state}: page not measured`);
-  const {W,H,items}=res,mx=W*.05,my=H*.05;if(res.scale>0)stageScale=res.scale;
+  // Full screen: text must stay at least 1 px off every edge (an edge-clipped box ends at 0);
+  // an inset stage (Screen edges above 1%): at least 1 px inside the stage, off the margin round it.
+  const {W,H,items}=res,inset=res.scale>0&&res.scale<.995,mx=inset?res.ml+1:1,my=inset?res.mt+1:1;if(res.scale>0)stageScale=res.scale;
   if(!items.length)acc.bad.push(`${state}: no text found`);
   for(const it of items){
     const dx=Math.min(it.l,it.r),dy=Math.min(it.tp,it.b);
@@ -115,7 +122,7 @@ for(const [w,h] of SIZES)for(const layout of LAYOUTS){
   const ok=!acc.inside.length&&!acc.bad.length;
   console.log(`${ok?'ok  ':'FAIL'} ${h}p ${layout.padEnd(16)} closest: ${(acc.x*100).toFixed(2)}% of the width (${acc.xi}), ${(acc.y*100).toFixed(2)}% of the height (${acc.yi})`);
   for(const line of [...acc.bad,...acc.inside.slice(0,8)])console.log(`     ${line}`);
-  if(acc.inside.length>8)console.log(`     … ${acc.inside.length-8} more inside the outer 5%`);
+  if(acc.inside.length>8)console.log(`     … ${acc.inside.length-8} more ${stageScale>.995?'at a screen edge':'in the margin'}`);
   if(!ok)fails.push(`${h}p ${layout}`);
   if(acc.x<worst.x){worst.x=acc.x;worst.xi=`${h}p ${layout} ${acc.xi}`;}
   if(acc.y<worst.y){worst.y=acc.y;worst.yi=`${h}p ${layout} ${acc.yi}`;}
@@ -124,7 +131,8 @@ for(const [w,h] of SIZES)for(const layout of LAYOUTS){
 // share of that dimension): S = 0.9 / (1 - 2d) keeps the closest text at exactly 5%.
 const S=d=>Math.min(1,.9/(1-2*d));
 console.log(`\nclosest text: ${(worst.x*100).toFixed(2)}% from a side (${worst.xi}); ${(worst.y*100).toFixed(2)}% from the top or bottom (${worst.yi})`);
-if(stageScale>.995)console.log(`largest stage scale that would keep all of it inside 5%: ${Math.min(S(worst.x),S(worst.y)).toFixed(4)}`);
-else console.log(`stage drawn at ${(stageScale*100).toFixed(1)}% of the screen`);
-console.log(fails.length?`FAIL: text inside the outer 5% in ${fails.length} of ${SIZES.length*LAYOUTS.filter(l=>!only.length||only.includes(l)).length}`:'all text inside the title-safe area');
+const full=stageScale>.995,runs=SIZES.length*LAYOUTS.filter(l=>!only.length||only.includes(l)).length;
+console.log(`Screen edges ${EDGE}%: stage drawn at ${(stageScale*100).toFixed(1)}% of the screen${full?' (full screen)':`, ${((1-stageScale)*50).toFixed(1)}% in from every edge`}`);
+if(full)console.log(`largest stage scale that would keep all of it inside 5%: ${Math.min(S(worst.x),S(worst.y)).toFixed(4)}`);
+console.log(fails.length?`FAIL: text ${full?'at a screen edge':'in the margin'} in ${fails.length} of ${runs}`:full?'no text at any screen edge':'no text in the margin or at its edge');
 process.exit(fails.length?1:0);

@@ -134,8 +134,44 @@ test('coordinates: null, empty, blank, false or [] are no coordinate (never 0°)
 test('settings: bad saved values fall back to safe defaults',()=>{
   globalThis.localStorage={getItem:()=>JSON.stringify({radiusMiles:99,distance:'parsecs',altitude:'m',layout:'<script>'}),setItem(){},removeItem(){}};
   const s=loadSettings();
-  assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-dark');assert.equal(s.placeNames,'cities');
+  assert.equal(s.radiusMiles,10);assert.equal(s.distance,'mi');assert.equal(s.altitude,'m');assert.equal(s.layout,'atlas-satellite');assert.equal(s.placeNames,'cities');
   delete globalThis.localStorage;
+});
+test('settings: build 3 starts new installs on Atlas Satellite; a layout saved by build 2 (Atlas Dark, its default, or Atlas Light) is kept, and so is any other saved one',()=>{
+  const load=saved=>{globalThis.localStorage={getItem:()=>saved===undefined?null:JSON.stringify(saved),setItem(){},removeItem(){}};try{return loadSettings().layout;}finally{delete globalThis.localStorage;}};
+  assert.equal(load(undefined),'atlas-satellite','nothing saved: the first layout');
+  assert.equal(load({}),'atlas-satellite','saved settings without a layout');
+  // As build 2 saves them: the whole settings object, so its default layout is saved too.
+  for(const layout of ['atlas-dark','atlas','atlas-satellite','radar','night-sky'])
+    assert.equal(load({place:null,confirmed:false,mapMiles:15,radiusMiles:3,distance:'mi',altitude:'ft',layout}),layout,layout);
+});
+test('settings: Screen edges starts at 1% (full screen) for new installs, after Erase and for settings saved by builds 1 to 3 without it; a saved 1% to 10% is kept; anything else reads as 1%',()=>{
+  const load=saved=>{globalThis.localStorage={getItem:()=>saved===undefined?null:JSON.stringify(saved),setItem(){},removeItem(){}};try{return loadSettings().edge;}finally{delete globalThis.localStorage;}};
+  assert.equal(load(undefined),1,'nothing saved: a new install, or after Erase (it removes every saved whatsup. key)');
+  assert.equal(load({}),1,'saved settings without it');
+  // As builds 2 and 3 save them: the whole settings object, with no edge in it.
+  assert.equal(load({place:null,confirmed:false,mapMiles:15,radiusMiles:3,distance:'mi',altitude:'ft',keepAwake:false,chime:'med',placeNames:'cities',alertZone:'circle',viewFrom:74,viewTo:175,viewMiles:25,layout:'atlas-dark'}),1,'build 2 settings');
+  for(let n=1;n<=10;n++)assert.equal(load({edge:n,layout:'radar'}),n,`saved ${n}%`);
+  for(const bad of [0,11,-1,2.5,'x','3',null,true,[3],{},100])assert.equal(load({edge:bad}),1,`saved ${JSON.stringify(bad)}`);
+});
+test('settings: Screen edges sets the stage scale: 1% full screen, then 1% of the screen further in from every edge per step, to 0.82 at 10%',async()=>{
+  const {EDGE_STEPS,edgeScale}=await import('../web/place.mjs');
+  assert.deepEqual(EDGE_STEPS,[1,2,3,4,5,6,7,8,9,10]);
+  assert.equal(edgeScale(1),1);
+  for(const n of EDGE_STEPS)assert.ok(Math.abs(edgeScale(n)-(1-2*(n-1)/100))<1e-12,`${n}%`);
+  assert.ok(Math.abs(edgeScale(5)-.92)<1e-12);assert.ok(Math.abs(edgeScale(10)-.82)<1e-12);
+  for(const bad of [0,11,undefined,null,'5',2.5])assert.equal(edgeScale(bad),1,`${JSON.stringify(bad)}: full screen`);
+});
+test('settings: Screen edges is saved with the other settings and read back',async()=>{
+  const {saveSettings}=await import('../web/place.mjs'),{store}=await import('../web/live.mjs');
+  const KEY='whatsup.settings.v1',data=new Map();
+  globalThis.localStorage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+  try{
+    const s=loadSettings();assert.equal(s.edge,1);
+    saveSettings({...s,edge:7});assert.equal(JSON.parse(data.get(KEY)).edge,7);assert.equal(loadSettings().edge,7);
+    saveSettings({...loadSettings(),mapMiles:25});assert.equal(loadSettings().edge,7,'kept through another change');
+    store.remove(KEY);assert.equal(data.has(KEY),false);assert.equal(loadSettings().edge,1,'erased: back to 1%');
+  }finally{store.remove(KEY);delete globalThis.localStorage;}
 });
 test('settings: a saved place that can\'t be read is damaged (the logbook and \'Recently above\' wait for a confirmed place); no place or an unconfirmed guess (saved as null) is not',async()=>{
   const {placeDamaged}=await import('../web/place.mjs');

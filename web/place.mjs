@@ -62,6 +62,11 @@ export const VIEW_MILES=[5,10,15,20,25,30,40,50,60,75,100];
 const deg=(v,d)=>Number.isFinite(Number(v))?((Math.round(Number(v))%360)+360)%360:d;
 // Map radius steps (Settings > Map radius, and Up/Down on the dashboard).
 export const MAP_RADII=[2,5,10,15,25,50,100,150,250];
+// Screen edges steps (Settings > Screen edges). 1% is full screen, the default: the closest text
+// then sits about 1% from an edge. Each step above it draws the picture 1% of the screen further
+// in from every edge, centred, for a TV that cuts off the edges of the picture (overscan).
+export const EDGE_STEPS=[1,2,3,4,5,6,7,8,9,10];
+export const edgeScale=n=>1-2*((EDGE_STEPS.includes(n)?n:1)-1)/100;
 // The alert zone sits inside the map: the ring (and the Window view's reach) never wider
 // than the map radius.
 export const alertFor=(radius,mapMiles)=>Math.max(1,Math.min(radius,mapMiles));
@@ -74,12 +79,13 @@ export function loadSettings(){
     keepAwake:s.keepAwake===true, // Settings > Keep screen awake (off unless turned on; a saved choice is kept)
     chime:['off','low','med','high'].includes(s.chime)?s.chime:'med', // Settings > Chime (a plane enters your zone)
     placeNames:['off','cities','hoods','both'].includes(s.placeNames)?s.placeNames:'cities', // Settings > Place names
+    edge:EDGE_STEPS.includes(s.edge)?s.edge:1, // Settings > Screen edges (1% = full screen); saved as a number
     // Alert zone: 'circle' (all around, Alert radius) or 'window' (bearings from -> to, out to viewMiles).
     alertZone:s.alertZone==='window'?'window':'circle',
     // No saved window yet: an example window (ENE 74° to S 175°, 25 mi) to adjust from.
     viewFrom:deg(s.viewFrom,74),viewTo:deg(s.viewTo,175),
     viewMiles:VIEW_MILES.includes(Number(s.viewMiles))?Number(s.viewMiles):25,
-    layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-dark'};
+    layout:typeof s.layout==='string'&&/^[a-z-]{2,20}$/.test(s.layout)?s.layout:'atlas-satellite'};
 }
 // A saved place that can't be read (damaged), not none or an unconfirmed guess (saved as null).
 export const placeDamaged=()=>{const p=store.get(KEY)?.place;return !!p&&!makePlace(p);};

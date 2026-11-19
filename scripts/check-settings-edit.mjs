@@ -9,7 +9,7 @@
 import {launch} from './browser.mjs';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';
 
 const BASE=process.env.CHECK_URL||'http://localhost:8767/index.html';
-const LAYOUTS=['atlas-dark','atlas','atlas-satellite','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
+const LAYOUTS=['atlas-satellite','atlas','atlas-dark','radar','glass','departures','blueprint','swiss','synthwave','sectional','cockpit','night-sky'];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function page(){
   const {chrome,port}=await launch(mkdtempSync(tmpdir()+'/sedit'),['--window-size=960,540','about:blank']);
