@@ -68,8 +68,8 @@ android {
         create("personal") {
             dimension = "edition"
             applicationIdSuffix = ".personal"
-            versionCode = 4
-            versionName = "0.1.3"
+            versionCode = 5
+            versionName = "0.1.4"
             buildConfigField("String", "USER_AGENT", "\"${userAgent("0.1")}\"")
             buildConfigField("boolean", "WEB_DEBUG", "true")
             signingConfig = signingConfigs.findByName("personal") ?: signingConfigs.getByName("debug")

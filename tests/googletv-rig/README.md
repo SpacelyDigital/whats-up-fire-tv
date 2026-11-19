@@ -23,7 +23,7 @@ node tests/googletv-rig/smoke.mjs       # the rig's self-test (about a minute), 
 `build.sh [repo] [outdir]` builds five variants of the page as the app's Gradle build makes them:
 `personal` (the personal APK), `store` (Google Play), `store-hidden` (store with the tip QR and Keep
 screen awake switched off), and `personal-dev` and `store-dev` with the developer URL hooks on
-(`?demo=1&scene=busy|long|longest|emergency|quiet&still=1&layout=<id>&screen=settings|picker|welcome|adjust|locate&typed=CHI&map=50&units=metric&window=90-180-25&q=London&reset=1`).
+(`?demo=1&scene=busy|long|longest|emergency|quiet&still=1&layout=<id>&screen=settings|picker|welcome|adjust|locate&typed=CHI&map=50&units=metric&window=90-180-25&edge=1..10&q=London&reset=1`).
 Release variants ignore URL hooks: drive them with keys, or seed localStorage.
 
 ```js
@@ -69,7 +69,7 @@ const app=await launch({
   geojs. Modes: ok, offline, refuse, sNNN (any HTTP status; Retry-After from retryAfter), timeout (stalls to the
   deadline), slow:<ms>, slowbody:<ms>, noreply (never answered: not something the real app does), garbage, portal,
   empty, redirect (to a host off the list: 'blocked'), redirect-ok, redirect-loop, oversize, big, bom, badutf8.
-- Looking: `await app.screen()` gives {layers (open screens, top last), top, adjusting, busy, focused, hasPlace, layout,
+- Looking: `await app.screen()` gives {layers (open screens, top last), top, adjusting, busy, focused, hasPlace, layout, edge,
   stage {scale,cx,cy,w,h}, viewport {innerW,innerH,clientW,clientH,scrollW,scrollH}, text, notes};
   `await app.check({allowExits})` lists broken invariants (page errors, viewport widened, page scrolls, stage scale or
   centre wrong, Back flag inconsistent with what's open, requests refused or off the list, page files missing,
@@ -94,7 +94,9 @@ handles a key, change the rig the same way.
 - The first-run "Is this right?" card focuses Change, not Confirm.
 - Back presses within 350 ms of the last one are dropped by the page (Fire TV reports one press twice).
 - Back on the consent screen, and on the first search screen when no place is saved yet, leaves the app.
-- The store build draws the whole stage at 0.9 of the screen (a 5% margin for overscan); personal draws it full screen.
+- Both builds fill the screen. Settings > Screen edges (1%, the default, up to 10%) draws the stage 1% further in from
+  every edge per step (n% gives 1 - 2(n-1)/100 of the screen) for a TV that cuts off the edges; `app.check()` expects
+  the saved value.
 - Media keys (Play/Pause etc.) are ignored by the page on purpose (left to the system).
 - Measured on a TV and accepted: Radar's sweep and Night Sky's twinkle cost about a third of a core; Cockpit's
   picker "Back cancel" wraps to two lines.

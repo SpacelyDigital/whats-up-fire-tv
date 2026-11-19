@@ -540,7 +540,10 @@ export class App{
     if(s.fail)return [...p,'screen() failed: '+s.fail];
     if(s.viewport.innerW!==s.viewport.clientW||s.viewport.innerH!==s.viewport.clientH)p.push(`layout viewport widened: inner ${s.viewport.innerW}x${s.viewport.innerH} vs root ${s.viewport.clientW}x${s.viewport.clientH}`);
     if(s.viewport.scrollW>s.viewport.clientW+1||s.viewport.scrollH>s.viewport.clientH+1)p.push(`page scrolls: ${s.viewport.scrollW}x${s.viewport.scrollH} in ${s.viewport.clientW}x${s.viewport.clientH}`);
-    const want=Math.min(this.dev.w/960,this.dev.h/540)*(this.variant.startsWith('store')?0.9:1);
+    // Both builds fill the screen; Settings > Screen edges n% (saved as a number 1-10, anything else
+    // reads as 1) draws the stage at 1-2(n-1)/100 of it (place.mjs edgeScale).
+    const edge=Number.isInteger(s.edge)&&s.edge>=1&&s.edge<=10?s.edge:1;
+    const want=Math.min(this.dev.w/960,this.dev.h/540)*(1-2*(edge-1)/100);
     if(Math.abs(s.stage.scale-want)>0.002)p.push(`stage scale ${s.stage.scale.toFixed(4)}, expected ${want.toFixed(4)}`);
     if(Math.abs(s.stage.cx-this.dev.w/2)>1||Math.abs(s.stage.cy-this.dev.h/2)>1)p.push(`stage off centre: (${s.stage.cx},${s.stage.cy})`);
     // The app's Back flag against what's on screen: a screen over the map that isn't the first-run consent or the first search must catch Back.
@@ -597,7 +600,7 @@ const SCREEN=()=>{
   return {
     layers,top,adjusting:stage.classList.contains('adjusting'),busy:document.getElementById('busy').classList.contains('on'),
     focused:f?(f.id||f.dataset.key||f.dataset.action||f.className)+(f.textContent?': '+f.textContent.replace(/\s+/g,' ').trim().slice(0,60):''):null,
-    hasPlace:!!settings.place,layout:settings.layout||null,
+    hasPlace:!!settings.place,layout:settings.layout||null,edge:settings.edge??null,
     stage:{scale:+(r.width/960).toFixed(5),cx:Math.round(r.left+r.width/2),cy:Math.round(r.top+r.height/2),w:Math.round(r.width),h:Math.round(r.height)},
     viewport:{innerW:innerWidth,innerH:innerHeight,clientW:de.clientWidth,clientH:de.clientHeight,scrollW:de.scrollWidth,scrollH:de.scrollHeight,vvScale:visualViewport?.scale??1},
     text:(el?.innerText||'').replace(/\s+/g,' ').trim().slice(0,500),notes,
