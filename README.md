@@ -20,7 +20,7 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   radius 2–250 mi (also Up/Down on the dashboard; the alert ring never exceeds it),
   keep screen awake (off unless turned on: a silent, invisible 10 s loop in Vega's native player
   holds off the screensaver while the app is shown; see `src/silentLoop.ts`),
-  distance mi/km (speed kt or km/h), altitude ft/m. Back closes.
+  distance mi/km (speed kt or km/h), altitude ft/m, screen edges 1–10%. Back closes.
 * **Layouts.** Settings > Layout opens a bar over the live dashboard: left/right switch
   layouts on the spot, OK keeps one, Back goes back to the saved one. 1 Atlas Satellite (default; USGS / Sentinel-2 imagery), 2 Atlas Light (full city map),
   3 Atlas Dark, 4 Radar (green phosphor scope), 5 Glass, 6 Departures (split-flap board), 7 Blueprint,
@@ -46,9 +46,14 @@ Includes MIT-licensed code by Alex Miller; see `THIRD_PARTY_NOTICES.md`. By Spac
   ("Plane 3 of 9 · 4.2 mi NE") and its map mark. Back, a minute without Left/Right, the plane
   leaving the map or an emergency squawk give the card back to the hero. Its photo and route are
   looked up only once it has stayed on the card about a second (`web/browse.mjs`).
-* **Full screen.** Both builds fill the screen. Builds 1 and 2 of the store app drew it at 90%,
-  centred, to keep text out of the outer 5% of the edges (TV overscan); build 3 dropped that
-  border (`web/profile.mjs`, STORE_STAGE_SCALE).
+* **Full screen, and Screen edges.** Both builds fill the screen by default. Builds 1 and 2 of
+  the store app drew it at 90%, centred, to keep text out of the outer 5% of the edges (TV
+  overscan); build 3 dropped that border (`web/profile.mjs`, STORE_STAGE_SCALE) and lets the
+  viewer choose instead: Settings > Screen edges, 1% (full screen, the default) to 10%, draws the
+  picture (n−1)% of the screen in from every edge, centred, with the margin in the layout's own
+  background, applied live as it steps and saved with the other settings (`web/place.mjs`
+  edgeScale, `web/app.mjs` setEdge). `scripts/check-edge.mjs` walks it with the remote's keys;
+  `CHECK_EDGE=n scripts/check-safe-area.mjs` checks every screen with it at n%.
 * **Backup feed.** While adsb.fi isn't answering (two failed polls in a row, or 15 s of
   failures), positions come from adsb.lol (`api.adsb.lol/v2`): the same rounded point and
   radius, at most once every 10 s (it answers a 5 s pace with a 429), never on the same poll as
@@ -78,7 +83,7 @@ npm install
 npm run test:web                 # route selection, cargo brands, place labels, map from a real tile
 node tests/smoke-live.mjs 41.88 -87.63 30   # live APIs from Node at a lat/lon
 npm run serve                    # http://127.0.0.1:8767/  (?demo=1[&scene=emergency|quiet], ?q=London,
-                                 #  ?layout=atlas, ?units=metric, ?screen=settings|picker|welcome|adjust,
+                                 #  ?layout=atlas, ?units=metric, ?edge=5, ?screen=settings|picker|welcome|adjust,
                                  #  ?screen=locate&typed=CHICAGO, ?reset=1)
 node scripts/dev-server.mjs web 8770   # the same from web/ as ES modules, no build step
 node scripts/shot.mjs "http://127.0.0.1:8767/?q=Chicago" out.png 25000   # 1920x1080 via Chrome

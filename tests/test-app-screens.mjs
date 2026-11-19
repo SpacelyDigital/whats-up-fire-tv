@@ -11,7 +11,8 @@ const fn=name=>{const m=new RegExp(`^(async )?function ${name}\\(.*?\\n\\}`,'ms'
 const line=start=>{const m=new RegExp(`^${start}.*$`,'m').exec(APP);assert.ok(m,`${start} in app.mjs`);return m[0];};
 // A context with those functions; setText(id,v) lands in `texts`.
 function page(code,globals={}){
-  const texts={},ctx=vm.createContext({texts,setText:(id,v)=>{texts[id]=String(v??'');},console:{error(){}},...globals});
+  // Settings > Screen edges (place.mjs EDGE_STEPS; setEdge scales the stage): a test that looks at them passes its own.
+  const texts={},ctx=vm.createContext({texts,setText:(id,v)=>{texts[id]=String(v??'');},console:{error(){}},EDGE_STEPS:[1,2,3,4,5,6,7,8,9,10],setEdge(){},...globals});
   vm.runInContext(code.join('\n'),ctx);
   return ctx;
 }
@@ -496,13 +497,14 @@ test('on-screen keyboard: Left/Right go to the key beside it on the same row and
   assert.equal(go('result0','down'),'result1');assert.equal(go('result2','up'),'result1');
   // Settings: two columns of rows (the left one shorter) and Done centred below.
   const col=(x,ids)=>ids.map((id,i)=>box(id,x,80+33*i,400,30));
-  const set=[...col(48,['set-location','set-adjust','set-zone','set-radius']),...col(470,['set-layout','set-map','set-places','set-distance','set-altitude','set-awake','set-chime','set-about','set-privacy']),
+  const set=[...col(48,['set-location','set-adjust','set-zone','set-radius']),...col(470,['set-layout','set-map','set-places','set-distance','set-altitude','set-edge','set-awake','set-chime','set-about','set-privacy']),
     box('set-done',370,390,220,30,'done')];
   const s=run(set);
   assert.equal(s('set-adjust','right'),'set-map');assert.equal(s('set-map','left'),'set-adjust');
   assert.equal(s('set-radius','down'),'set-done');assert.equal(s('set-privacy','down'),'set-done');assert.equal(s('set-done','up'),'set-privacy');
   assert.equal(s('set-altitude','left'),'set-radius','no row beside it: the nearest, as before');
   assert.equal(s('set-zone','up'),'set-adjust');assert.equal(s('set-chime','down'),'set-about');
+  assert.equal(s('set-altitude','down'),'set-edge');assert.equal(s('set-edge','down'),'set-awake');assert.equal(s('set-awake','up'),'set-edge');
 });
 
 test('welcome card: one line says how to reach Settings later, fitted to one line once the card is shown',()=>{
@@ -659,7 +661,7 @@ test('screen reader: OK on a Settings value row says "Editing <row>, <value>", O
   p.endPick(false);assert.equal(p.texts['pick-name'],'','cleared on closing: the next opening reads the name again');
   assert.match(readFileSync(new URL('../web/index.html',import.meta.url),'utf8'),/<div class="pick-body" id="pick-body" tabindex="-1" role="group" aria-labelledby="pick-count">/);
   // Stepping a value in edit mode reads the new value; the restore on Back is not read ('Cancelled' is).
-  const els={},$=id=>els[id]??={};let label='Alert radius, 3 mi',next=label;
+  const els={},$=id=>els[id]??={dataset:{}};let label='Alert radius, 3 mi',next=label;
   const srow={getAttribute:()=>label,querySelector:()=>({textContent:label.split(', ')[1]})};
   const s=page([fn('showSettings')],{LAYOUTS:[['radar','Radar']],layoutName:()=>'Radar',settings:{layout:'radar',place:null,radiusMiles:3,viewFrom:0,viewTo:90,viewMiles:25,placeNames:'off',chime:'off'},
     placeLabel:()=>'',alertFor:r=>r,mapMiles:()=>10,fmt:{dist:v=>`${v} mi`},compass:()=>'N',VIEW_MILES:[25],$,document:{querySelectorAll:sel=>sel==='#settings .row'?[srow]:[]},fitValue(){},labelRow(){label=next;},focused:srow,editing:null});
@@ -667,6 +669,25 @@ test('screen reader: OK on a Settings value row says "Editing <row>, <value>", O
   els['sr-live'].textContent='Cancelled';next='Alert radius, 3 mi';s.editing=null;s.showSettings();assert.equal(els['sr-live'].textContent,'Cancelled','the restore after Back');
 });
 
+test('Settings > Screen edges: shows 1% · full screen (shorter wordings for narrow fonts) or n%, read as "Screen edges, n percent"; Left/Right step it 1% to 10%, applied and saved at once',()=>{
+  const els={},$=id=>els[id]??={dataset:{}},settings={layout:'radar',place:null,radiusMiles:3,viewFrom:0,viewTo:90,viewMiles:25,placeNames:'off',chime:'off',edge:1};
+  const s=page([fn('showSettings'),fn('labelRow')],{LAYOUTS:[['radar','Radar']],layoutName:()=>'Radar',settings,placeLabel:()=>'',alertFor:r=>r,mapMiles:()=>10,fmt:{dist:v=>`${v} mi`},compass:()=>'N',VIEW_MILES:[25],$,
+    document:{querySelectorAll:()=>[]},fitValue(){},editing:null});
+  s.showSettings();assert.equal(s.texts['set-edge-v'],'1% · full screen');assert.deepEqual([...els['set-edge-v']._alts],['1% · full screen','1% · full','1%']);assert.equal(els['set-edge-v'].dataset.say,'1 percent, full screen');
+  settings.edge=5;s.showSettings();assert.equal(s.texts['set-edge-v'],'5%');assert.equal(els['set-edge-v'].dataset.say,'5 percent');
+  // The row's spoken label takes the value's spoken form.
+  const attrs={},row={classList:{contains:c=>c==='row'},setAttribute:(k,v)=>attrs[k]=v,querySelector:q=>q===':scope > span'?{textContent:'Screen edges'}:els['set-edge-v']};
+  s.labelRow(row);assert.equal(attrs['aria-label'],'Screen edges, 5 percent');
+  // Stepping: clamped at 1 and 10, saved and applied (the stage rescaled) on every step.
+  const seen=[];settings.edge=1;
+  const a=page([fn('adjustSetting')],{settings,EDGE_STEPS:[1,2,3,4,5,6,7,8,9,10],saveSettings:x=>seen.push(`save ${x.edge}`),setEdge:n=>seen.push(`scale ${n}`),showSettings:()=>seen.push('show'),
+    useSettings(){},busy(){},refreshLayout(){},startPick(){},stepMap(){},zoneChanged(){},tellApp(){},tellAwake(){}});
+  const edge={id:'set-edge'};
+  a.adjustSetting(edge,-1);assert.equal(settings.edge,1,'not below 1%');
+  a.adjustSetting(edge,1);assert.equal(settings.edge,2);assert.deepEqual(seen.slice(-3),['save 2','scale 2','show']);
+  for(let i=0;i<20;i++)a.adjustSetting(edge,1);assert.equal(settings.edge,10,'not above 10%');
+  a.adjustSetting(edge,-1);assert.equal(settings.edge,9);
+});
 test('screen reader: a plane that came before the layout script landed is read as soon as the layout has mounted, not at the next poll; a layout switch with the same plane, or no model yet, reads nothing',async()=>{
   const writes=[],sr={set textContent(v){writes.push(v);},get textContent(){return writes.at(-1)??'';}};
   const MOD={mount(){},setMap(){},render(){}},ENY={hex:'a1b2c3',status:'Nearest',flight:'ENY4198',type:'Embraer 170',ground:8.2};
